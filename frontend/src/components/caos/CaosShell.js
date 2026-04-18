@@ -17,6 +17,7 @@ export const CaosShell = () => {
     artifacts,
     busy,
     commitUserEmail,
+    continuity,
     createSession,
     currentSession,
     error,
@@ -74,7 +75,7 @@ export const CaosShell = () => {
             </div>
           ) : null}
 
-          <MessagePane busy={busy} currentSession={currentSession} messages={filteredMessages} onSpeak={speakText} />
+          <MessagePane busy={busy} currentSession={currentSession} messages={filteredMessages} onSpeak={speakText} receipts={artifacts.receipts} />
           <Composer busy={busy} onSend={sendMessage} onTranscribe={transcribeAudio} onUploadFile={uploadFile} status={status} />
         </section>
 
@@ -100,6 +101,20 @@ export const CaosShell = () => {
             <div className="context-metric" data-testid="caos-receipt-memory-count">
               <span>Injected memories</span>
               <strong>{latestReceipt?.injected_memory_count || 0}</strong>
+            </div>
+          </section>
+
+          <section className="context-card" data-testid="caos-continuity-card">
+            <div className="context-card-heading">
+              <Brain size={16} />
+              <h2 data-testid="caos-continuity-heading">Continuity</h2>
+            </div>
+            <div className="context-metric" data-testid="caos-continuity-depth">
+              <span>Lineage depth</span>
+              <strong>{continuity?.lineage_depth || 0}</strong>
+            </div>
+            <div className="context-list-item" data-testid="caos-continuity-summary">
+              {continuity?.latest_summary?.summary || "No continuity summary yet."}
             </div>
           </section>
 

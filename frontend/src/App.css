@@ -320,6 +320,53 @@
     color: rgba(191, 219, 254, 0.82);
 }
 
+.reaction-row,
+.reply-shell,
+.receipt-inline {
+    margin-top: 12px;
+}
+
+.reaction-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.reaction-chip,
+.reply-card,
+.receipt-inline {
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(15, 23, 42, 0.74);
+    border-radius: 14px;
+}
+
+.reaction-chip,
+.reply-card,
+.receipt-inline {
+    padding: 10px 12px;
+}
+
+.reply-shell {
+    display: grid;
+    gap: 10px;
+}
+
+.reply-shell textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(2, 6, 23, 0.5);
+    color: #eff6ff;
+    border-radius: 14px;
+    padding: 10px 12px;
+}
+
+.receipt-inline {
+    display: grid;
+    gap: 4px;
+    color: rgba(191, 219, 254, 0.82);
+}
+
 .message-empty,
 .thread-empty {
     padding: 18px;

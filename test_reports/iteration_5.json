@@ -1,0 +1,54 @@
+{
+  "summary": "Ran full backend regression plus focused frontend E2E for lineage/continuity and bubble controls. Backend lineage continuity behavior passed; frontend bubble/continuity interactions passed; Files & Artifacts open flow regressed from shell/menu path during this run.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "ShellHeader / context actions",
+        "issue": "Clicking Files & Artifacts from header menu did not open artifacts drawer in 3 consecutive reproductions.",
+        "selector": "[data-testid='caos-header-menu-files']",
+        "priority": "HIGH"
+      },
+      {
+        "component": "Right continuity column action row",
+        "issue": "Files & Artifacts drawer could not be reliably opened after the menu-files failure path, blocking full regression of file/link UI in this run.",
+        "selector": "[data-testid='caos-open-artifacts-button']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_caos_lineage_continuity.py",
+    "/app/backend/tests/test_caos_api.py",
+    "/app/backend/tests/test_caos_files_voice_integration.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Fix Files & Artifacts open behavior from header dropdown ([data-testid='caos-header-menu-files']).",
+    "Verify and stabilize Files & Artifacts open behavior from right-side button ([data-testid='caos-open-artifacts-button']) after menu interactions.",
+    "Re-run frontend regression for menu/files/artifacts/voice/search/thread flows after this UI fix."
+  ],
+  "critical_code_review_comments": [
+    "useCaosShell has unresolved React hook dependency warnings in frontend logs (stale-closure risk across session/profile/artifact callbacks).",
+    "Chat route still returns raw internal exception text via HTTP 500 detail; sanitize server errors before returning to clients."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_caos_lineage_continuity.py",
+    "/app/test_reports/iteration_5.json"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "75%"
+  },
+  "test_credentials": "Read /app/memory/test_credentials.md before auth tests; file currently has no credentials.",
+  "seed_data_creation": "Created TEST_caos_lineage_<token>@example.com users and isolated sessions/chats via public APIs.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend lineage continuity is covered by new pytest file and passes. Frontend: Reply/Useful/Receipt controls and continuity-card hydration passed. Stop-loop rule reached after 3 failed attempts on menu/files artifacts open selectors.",
+  "rca of the issue": "Reproduction: open header menu -> click Files & Artifacts. Expected artifacts drawer, observed no drawer open across 3 attempts; subsequent files flow checks became unstable/blocked in that state. Likely UI state/event handling issue around menu-to-drawer transition (setMenuOpen(false) + onOpenArtifacts) or interaction interception around the right-side action region."
+}

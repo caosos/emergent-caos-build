@@ -13,6 +13,7 @@ export const useCaosShell = () => {
   const [messages, setMessages] = useState([]);
   const [profile, setProfile] = useState(null);
   const [artifacts, setArtifacts] = useState({ receipts: [], summaries: [], seeds: [] });
+  const [continuity, setContinuity] = useState(null);
   const [files, setFiles] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [lastTurn, setLastTurn] = useState(null);
@@ -66,6 +67,16 @@ export const useCaosShell = () => {
     return response.data;
   }, []);
 
+  const loadContinuity = useCallback(async (sessionId) => {
+    if (!sessionId) {
+      setContinuity(null);
+      return null;
+    }
+    const response = await axios.get(`${API}/caos/sessions/${sessionId}/continuity`);
+    setContinuity(response.data);
+    return response.data;
+  }, []);
+
   const selectSession = useCallback(async (session) => {
     setCurrentSession(session);
     setBusy(true);
@@ -73,6 +84,7 @@ export const useCaosShell = () => {
     try {
       await loadMessages(session.session_id);
       await loadArtifacts(session.session_id);
+      await loadContinuity(session.session_id);
       await loadFiles();
       setStatus(`Loaded session ${session.title}.`);
     } catch (issue) {
@@ -82,7 +94,7 @@ export const useCaosShell = () => {
     } finally {
       setBusy(false);
     }
-  }, [loadArtifacts, loadFiles, loadMessages]);
+  }, [loadArtifacts, loadContinuity, loadFiles, loadMessages]);
 
   const createSession = useCallback(async (title = "New Thread") => {
     setBusy(true);
@@ -103,6 +115,7 @@ export const useCaosShell = () => {
       setCurrentSession(created);
       setMessages([]);
       setArtifacts({ receipts: [], summaries: [], seeds: [] });
+      setContinuity(null);
       setLastTurn(null);
       setStatus(`Created session ${created.title}.`);
       return created;
@@ -137,6 +150,7 @@ export const useCaosShell = () => {
       setCurrentSession(refreshedSession);
       await loadMessages(session.session_id);
       await loadArtifacts(session.session_id);
+      await loadContinuity(session.session_id);
       await loadProfile();
       await loadFiles();
       setStatus("CAOS replied with session-scoped context.");
@@ -147,7 +161,7 @@ export const useCaosShell = () => {
     } finally {
       setBusy(false);
     }
-  }, [createSession, currentSession, loadArtifacts, loadFiles, loadMessages, loadProfile, loadSessions, userEmail]);
+  }, [createSession, currentSession, loadArtifacts, loadContinuity, loadFiles, loadMessages, loadProfile, loadSessions, userEmail]);
 
   useEffect(() => {
     const hydrate = async () => {
@@ -160,6 +174,7 @@ export const useCaosShell = () => {
           setCurrentSession(foundSessions[0]);
           await loadMessages(foundSessions[0].session_id);
           await loadArtifacts(foundSessions[0].session_id);
+          await loadContinuity(foundSessions[0].session_id);
           setStatus(`Loaded ${foundSessions.length} saved sessions.`);
         } else {
           setMessages([]);
@@ -174,7 +189,7 @@ export const useCaosShell = () => {
       }
     };
     hydrate();
-  }, [loadArtifacts, loadFiles, loadMessages, loadProfile, loadSessions]);
+  }, [loadArtifacts, loadContinuity, loadFiles, loadMessages, loadProfile, loadSessions]);
 
   const filteredMessages = useMemo(() => {
     if (!searchQuery.trim()) return messages;
@@ -242,6 +257,7 @@ export const useCaosShell = () => {
   return {
     artifacts,
     busy,
+    continuity,
     createSession,
     currentSession,
     error,

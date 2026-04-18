@@ -129,10 +129,15 @@ class ReceiptRecord(BaseModel):
     id: str
     session_id: str
     assistant_message_id: str
+    source_message_ids: list[str] = Field(default_factory=list)
     provider: str
     model: str
     retrieval_terms: list[str] = Field(default_factory=list)
     selected_memory_ids: list[str] = Field(default_factory=list)
+    previous_receipt_id: str | None = None
+    previous_summary_id: str | None = None
+    previous_seed_id: str | None = None
+    lineage_depth: int = 0
     reduction_ratio: float = 0.0
     final_message_count: int = 0
     wcw_used_estimate: int = 0
@@ -145,6 +150,9 @@ class SummaryRecord(BaseModel):
     session_id: str
     source_user_excerpt: str
     summary: str
+    source_message_ids: list[str] = Field(default_factory=list)
+    previous_summary_id: str | None = None
+    lineage_depth: int = 0
     created_at: datetime
 
 
@@ -154,6 +162,10 @@ class SeedRecord(BaseModel):
     topics: list[str] = Field(default_factory=list)
     seed_text: str
     selected_memory_ids: list[str] = Field(default_factory=list)
+    source_message_ids: list[str] = Field(default_factory=list)
+    previous_seed_id: str | None = None
+    previous_summary_id: str | None = None
+    lineage_depth: int = 0
     created_at: datetime
 
 
@@ -161,6 +173,14 @@ class SessionArtifactsResponse(BaseModel):
     receipts: list[ReceiptRecord] = Field(default_factory=list)
     summaries: list[SummaryRecord] = Field(default_factory=list)
     seeds: list[SeedRecord] = Field(default_factory=list)
+
+
+class ContinuityResponse(BaseModel):
+    session_id: str
+    latest_summary: SummaryRecord | None = None
+    latest_seed: SeedRecord | None = None
+    latest_receipt: ReceiptRecord | None = None
+    lineage_depth: int = 0
 
 
 class UserFileRecord(BaseModel):

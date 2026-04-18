@@ -71,11 +71,53 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     await collection("messages").insert_one(assistant_doc)
     wcw_used_estimate = max(1, sum(len(message.content) for message in compressed) // 4)
     wcw_budget = 200000
+    previous_receipt = await collection("receipts").find_one({"session_id": payload.session_id}, {"_id": 0}, sort=[("created_at", -1)])
+    previous_summary = await collection("thread_summaries").find_one({"session_id": payload.session_id}, {"_id": 0}, sort=[("created_at", -1)])
+    previous_seed = await collection("context_seeds").find_one({"session_id": payload.session_id}, {"_id": 0}, sort=[("created_at", -1)])
+    lineage_depth = max(
+        previous_receipt.get("lineage_depth", 0) if previous_receipt else 0,
+        previous_summary.get("lineage_depth", 0) if previous_summary else 0,
+        previous_seed.get("lineage_depth", 0) if previous_seed else 0,
+    ) + 1
+    source_message_ids = [user_message.id, assistant_message.id]
     await collection("receipts").insert_one(
-        build_receipt_record(payload.session_id, assistant_message.id, payload.provider, payload.model, receipt, wcw_used_estimate, wcw_budget)
+        build_receipt_record(
+            payload.session_id,
+            assistant_message.id,
+            source_message_ids,
+            payload.provider,
+            payload.model,
+            receipt,
+            wcw_used_estimate,
+            wcw_budget,
+            previous_receipt_id=previous_receipt["id"] if previous_receipt else None,
+            previous_summary_id=previous_summary["id"] if previous_summary else None,
+            previous_seed_id=previous_seed["id"] if previous_seed else None,
+            lineage_depth=lineage_depth,
+        )
     )
-    await collection("thread_summaries").insert_one(build_summary_record(payload.session_id, payload.content, reply))
-    await collection("context_seeds").insert_one(build_seed_record(payload.session_id, receipt, payload.content, reply))
+    await collection("thread_summaries").insert_one(
+        build_summary_record(
+            payload.session_id,
+            payload.content,
+            reply,
+            source_message_ids,
+            previous_summary_id=previous_summary["id"] if previous_summary else None,
+            lineage_depth=lineage_depth,
+        )
+    )
+    await collection("context_seeds").insert_one(
+        build_seed_record(
+            payload.session_id,
+            receipt,
+            payload.content,
+            reply,
+            source_message_ids,
+            previous_seed_id=previous_seed["id"] if previous_seed else None,
+            previous_summary_id=previous_summary["id"] if previous_summary else None,
+            lineage_depth=lineage_depth,
+        )
+    )
     await collection("sessions").update_one(
         {"session_id": payload.session_id},
         {

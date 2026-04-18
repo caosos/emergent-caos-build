@@ -9,20 +9,30 @@ def utc_now_iso() -> str:
 def build_receipt_record(
     session_id: str,
     assistant_message_id: str,
+    source_message_ids: list[str],
     provider: str,
     model: str,
     receipt: dict,
     wcw_used_estimate: int,
     wcw_budget: int,
+    previous_receipt_id: str | None = None,
+    previous_summary_id: str | None = None,
+    previous_seed_id: str | None = None,
+    lineage_depth: int = 0,
 ) -> dict:
     return {
         "id": str(uuid.uuid4()),
         "session_id": session_id,
         "assistant_message_id": assistant_message_id,
+        "source_message_ids": source_message_ids,
         "provider": provider,
         "model": model,
         "retrieval_terms": receipt.get("retrieval_terms", []),
         "selected_memory_ids": receipt.get("selected_memory_ids", []),
+        "previous_receipt_id": previous_receipt_id,
+        "previous_summary_id": previous_summary_id,
+        "previous_seed_id": previous_seed_id,
+        "lineage_depth": lineage_depth,
         "reduction_ratio": receipt.get("reduction_ratio", 0),
         "final_message_count": receipt.get("final_message_count", 0),
         "wcw_used_estimate": wcw_used_estimate,
@@ -31,18 +41,37 @@ def build_receipt_record(
     }
 
 
-def build_summary_record(session_id: str, user_text: str, assistant_text: str) -> dict:
+def build_summary_record(
+    session_id: str,
+    user_text: str,
+    assistant_text: str,
+    source_message_ids: list[str],
+    previous_summary_id: str | None = None,
+    lineage_depth: int = 0,
+) -> dict:
     summary = assistant_text.strip().replace("\n", " ")[:280]
     return {
         "id": str(uuid.uuid4()),
         "session_id": session_id,
         "source_user_excerpt": user_text[:180],
         "summary": summary,
+        "source_message_ids": source_message_ids,
+        "previous_summary_id": previous_summary_id,
+        "lineage_depth": lineage_depth,
         "created_at": utc_now_iso(),
     }
 
 
-def build_seed_record(session_id: str, receipt: dict, user_text: str, assistant_text: str) -> dict:
+def build_seed_record(
+    session_id: str,
+    receipt: dict,
+    user_text: str,
+    assistant_text: str,
+    source_message_ids: list[str],
+    previous_seed_id: str | None = None,
+    previous_summary_id: str | None = None,
+    lineage_depth: int = 0,
+) -> dict:
     topics = receipt.get("retrieval_terms", [])[:8]
     return {
         "id": str(uuid.uuid4()),
@@ -50,5 +79,9 @@ def build_seed_record(session_id: str, receipt: dict, user_text: str, assistant_
         "topics": topics,
         "seed_text": f"User: {user_text[:140]} | Assistant: {assistant_text[:220]}",
         "selected_memory_ids": receipt.get("selected_memory_ids", []),
+        "source_message_ids": source_message_ids,
+        "previous_seed_id": previous_seed_id,
+        "previous_summary_id": previous_summary_id,
+        "lineage_depth": lineage_depth,
         "created_at": utc_now_iso(),
     }

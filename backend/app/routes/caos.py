@@ -9,6 +9,7 @@ from app.db import collection
 from app.schemas.caos import (
     ChatRequest,
     ChatResponse,
+    ContinuityResponse,
     ContextPrepareRequest,
     ContextPrepareResponse,
     ContextStats,
@@ -95,6 +96,25 @@ async def get_session_artifacts(session_id: str):
         receipts=[ReceiptRecord(**doc) for doc in receipt_docs],
         summaries=[SummaryRecord(**doc) for doc in summary_docs],
         seeds=[SeedRecord(**doc) for doc in seed_docs],
+    )
+
+
+@router.get("/sessions/{session_id}/continuity", response_model=ContinuityResponse)
+async def get_session_continuity(session_id: str):
+    latest_receipt_doc = await collection("receipts").find_one({"session_id": session_id}, {"_id": 0}, sort=[("created_at", -1)])
+    latest_summary_doc = await collection("thread_summaries").find_one({"session_id": session_id}, {"_id": 0}, sort=[("created_at", -1)])
+    latest_seed_doc = await collection("context_seeds").find_one({"session_id": session_id}, {"_id": 0}, sort=[("created_at", -1)])
+    lineage_depth = max(
+        latest_receipt_doc.get("lineage_depth", 0) if latest_receipt_doc else 0,
+        latest_summary_doc.get("lineage_depth", 0) if latest_summary_doc else 0,
+        latest_seed_doc.get("lineage_depth", 0) if latest_seed_doc else 0,
+    )
+    return ContinuityResponse(
+        session_id=session_id,
+        latest_summary=SummaryRecord(**latest_summary_doc) if latest_summary_doc else None,
+        latest_seed=SeedRecord(**latest_seed_doc) if latest_seed_doc else None,
+        latest_receipt=ReceiptRecord(**latest_receipt_doc) if latest_receipt_doc else None,
+        lineage_depth=lineage_depth,
     )
 
 
