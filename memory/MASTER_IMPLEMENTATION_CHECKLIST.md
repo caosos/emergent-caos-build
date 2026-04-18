@@ -38,6 +38,9 @@ Goal: Make the main shell structurally match the intended CAOS operating experie
 - [x] Overlay-style previous threads behavior where appropriate
 - [~] Compact right search/context strip parity
 
+### 1.2.a Current refinement note
+- [~] Workspace hierarchy is being tightened so overlays, command dock, and center message surface read as one operating surface instead of stacked independent widgets
+
 ### 1.3 First-run / welcome
 - [ ] `/Welcome` landing with starfield hero and feature tiles
 - [ ] Guided multi-step onboarding tour modal
@@ -187,3 +190,4 @@ Goal: Connect CAOS to the user’s external systems and tools.
 
 ## Current Note
 - The current chat strip exposes working-packet information using existing receipt/context estimates. True token-derived WCW accounting remains a Phase 2 contract item and is not considered complete yet.
+- The command dock and side panels are now being constrained so thread/search/context overlays stay visually above the bottom operating controls instead of colliding with them.

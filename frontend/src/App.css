@@ -631,8 +631,9 @@
     position: fixed;
     left: calc(24px + var(--rail-width) + 18px);
     top: 126px;
+    bottom: 210px;
     width: min(360px, calc(100vw - 80px));
-    max-height: calc(100vh - 320px);
+    max-height: none;
     overflow: auto;
     padding: 16px;
     border: 1px solid rgba(148, 163, 184, 0.16);
@@ -1132,8 +1133,9 @@
     position: fixed;
     right: 24px;
     top: 156px;
+    bottom: 210px;
     width: 290px;
-    max-height: calc(100vh - 360px);
+    max-height: none;
     overflow: auto;
     padding: 16px;
     border: 1px solid rgba(148, 163, 184, 0.16);
@@ -1162,8 +1164,9 @@
     position: fixed;
     right: 24px;
     top: 156px;
+    bottom: 210px;
     width: 320px;
-    max-height: calc(100vh - 360px);
+    max-height: none;
     overflow: auto;
     border: 1px solid rgba(148, 163, 184, 0.16);
     background: rgba(8, 15, 31, 0.98);
