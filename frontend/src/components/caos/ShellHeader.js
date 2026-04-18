@@ -9,7 +9,7 @@ const PROVIDER_LABELS = {
 };
 
 
-export const ShellHeader = ({ activeModel, activeProvider, currentSession, isRailOpen, keySource, onToggleRail, onToggleSearch, wcwBudget, wcwUsed }) => {
+export const ShellHeader = ({ activeModel, activeProvider, currentSession, isRailOpen, keySource, onOpenThreads, onToggleRail, onToggleSearch, wcwBudget, wcwUsed }) => {
   const percent = Math.min(100, Math.round(((wcwUsed || 0) / (wcwBudget || 1)) * 100));
   const providerLabel = PROVIDER_LABELS[activeProvider] || activeProvider || "ChatGPT";
 
@@ -28,7 +28,7 @@ export const ShellHeader = ({ activeModel, activeProvider, currentSession, isRai
       </div>
 
       <div className="caos-header-actions">
-        <div className="caos-thread-pill" data-testid="caos-header-thread-pill">{currentSession?.title || "No active thread"}</div>
+        <button className="caos-thread-pill" data-testid="caos-header-thread-pill" onClick={onOpenThreads} type="button">{currentSession?.title || "No active thread"}</button>
 
         <button className="search-icon-button" data-testid="caos-search-toggle-button" onClick={onToggleSearch}>
           <Search size={14} />

@@ -4,7 +4,7 @@ import { Clock3, FolderKanban, MessageSquareText, PanelLeftOpen, Sparkles, Wrenc
 import { RailAccountMenu } from "@/components/caos/RailAccountMenu";
 
 
-export const ThreadRail = ({ currentSessionId, isCollapsed, onNewSession, onOpenArtifacts, onOpenProfile, onOpenSearch, onSelectSession, onToggleRail, profile, runtimeSettings, sessions, userEmail }) => {
+export const ThreadRail = ({ currentSessionId, isCollapsed, onNewSession, onOpenArtifacts, onOpenProfile, onOpenSearch, onOpenThreads, onSelectSession, onToggleRail, profile, runtimeSettings, sessions, userEmail }) => {
   const displayName = profile?.preferred_name || userEmail?.split("@")[0] || "Michael";
   const [railSearch, setRailSearch] = useState("");
   const visibleSessions = useMemo(() => {
@@ -78,7 +78,7 @@ export const ThreadRail = ({ currentSessionId, isCollapsed, onNewSession, onOpen
         <button className="rail-nav-item" data-testid="caos-rail-tools-button"><Wrench size={14} />Tools</button>
         <button className="rail-nav-item" data-testid="caos-rail-models-button"><Sparkles size={14} />Models</button>
         <button className="rail-nav-item" data-testid="caos-rail-projects-button"><FolderKanban size={14} />Projects</button>
-        <button className="rail-nav-item" data-testid="caos-rail-threads-button"><MessageSquareText size={14} />Threads</button>
+        <button className="rail-nav-item" data-testid="caos-rail-threads-button" onClick={onOpenThreads}><MessageSquareText size={14} />Threads</button>
       </div>
 
       <div className="rail-header" data-testid="caos-thread-rail-header">

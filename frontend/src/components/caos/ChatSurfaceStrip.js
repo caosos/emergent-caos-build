@@ -1,7 +1,7 @@
-import { FolderOpen, Radar, Search, Workflow } from "lucide-react";
+import { FolderOpen, History, Radar, Search, Workflow } from "lucide-react";
 
 
-export const ChatSurfaceStrip = ({ latestReceipt, onOpenArtifacts, onOpenInspector, onOpenSearch }) => {
+export const ChatSurfaceStrip = ({ latestReceipt, onOpenArtifacts, onOpenInspector, onOpenSearch, onOpenThreads }) => {
   const continuityCount = (latestReceipt?.selected_summary_ids?.length || 0) + (latestReceipt?.selected_seed_ids?.length || 0);
 
   return (
@@ -19,6 +19,10 @@ export const ChatSurfaceStrip = ({ latestReceipt, onOpenArtifacts, onOpenInspect
         <strong>{continuityCount} packets</strong>
       </div>
       <div className="chat-surface-actions" data-testid="caos-chat-surface-actions">
+        <button className="surface-strip-button" data-testid="caos-chat-surface-threads-button" onClick={onOpenThreads} type="button">
+          <History size={14} />
+          <span>Threads</span>
+        </button>
         <button className="surface-strip-button" data-testid="caos-chat-surface-search-button" onClick={onOpenSearch} type="button">
           <Search size={14} />
           <span>Search</span>

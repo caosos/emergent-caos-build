@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the latest CAOS /chat visual parity pass on https://deno-env-review.preview.emergentagent.com. Focus areas: (1) Chat shell still loads without regressions, (2) New compact chat surface strip exists with: caos-chat-surface-wcw-chip, caos-chat-surface-lane-chip, caos-chat-surface-continuity-chip, caos-chat-surface-search-button, caos-chat-surface-inspector-button, caos-chat-surface-files-button, (3) Search button from the strip opens the search drawer, (4) Context button from the strip opens the inspector panel, (5) Files button from the strip opens artifacts, (6) Composer remains usable after the white/slim redesign, (7) Message actions (copy/reply/useful/receipt when present) still render and remain clickable, (8) Watch for layout breakage, overlap that blocks interaction, console errors, or failed requests."
+user_problem_statement: "Test the latest CAOS Phase 1 /chat checklist slice on https://deno-env-review.preview.emergentagent.com. Focus on the new previous-threads behavior and chat parity surfaces: (1) caos-chat-surface-threads-button opens the caos-previous-threads-panel, (2) Previous threads panel shows title, search input, and selectable thread cards, (3) Selecting a previous thread card should switch context without crashing, (4) Header thread pill should also open the previous threads panel, (5) Sidebar Threads button should open the previous threads panel, (6) Chat surface strip buttons (Threads, Search, Context, Files) should all remain usable, (7) Composer should remain visible/usable after these changes, (8) Check for any console errors, blocked interactions, or serious layout regressions."
 
 backend:
   - task: "GET /caos/runtime/settings/{user_email} default hybrid runtime settings"
@@ -730,17 +730,116 @@ frontend:
           agent: "testing"
           comment: "Error handling verified successfully. No 500 errors encountered during comprehensive testing. Edge cases tested: non-existent users, invalid sessions, missing fields. All endpoints handle errors gracefully with appropriate HTTP status codes (404, 422). No contract mismatches or regressions found."
 
+  - task: "PreviousThreadsPanel component with title, search, and thread cards"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/PreviousThreadsPanel.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "PreviousThreadsPanel component verified successfully. Panel opens via chat surface strip Threads button (data-testid='caos-chat-surface-threads-button'). Panel displays all required elements: title 'Previous Threads' (data-testid='caos-previous-threads-title'), search input (data-testid='caos-previous-threads-search-input'), and 15 thread cards with data-testid pattern 'caos-previous-thread-card-{session_id}'. Each thread card shows title, lane label, and preview text. Close button (data-testid='caos-previous-threads-close-button') works correctly."
+
+  - task: "Previous threads panel search functionality"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/PreviousThreadsPanel.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Search functionality verified successfully. Search input accepts text and filters thread cards correctly. Tested with query 'test' which filtered results from 15 threads to 5 matching threads. Search is case-insensitive and searches across thread title, preview, and lane fields. Clearing search restores full thread list."
+
+  - task: "Thread card selection switches context"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/PreviousThreadsPanel.js, /app/frontend/src/components/caos/CaosShell.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Thread card selection verified successfully. Clicking a thread card (data-testid='caos-previous-thread-card-{session_id}') triggers onSelectSession callback and closes the panel automatically. Panel closes cleanly after selection. Thread context switches correctly in the message pane header. No crashes or errors during thread switching."
+
+  - task: "Header thread pill opens previous threads panel"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/ShellHeader.js, /app/frontend/src/components/caos/CaosShell.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Header thread pill integration verified successfully. Clicking header thread pill button (data-testid='caos-header-thread-pill') opens the previous threads panel correctly. Panel renders with all content visible. Close button works to dismiss the panel. No errors during interaction."
+
+  - task: "Sidebar Threads button opens previous threads panel"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/ThreadRail.js, /app/frontend/src/components/caos/CaosShell.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Sidebar Threads button integration verified successfully. Clicking sidebar Threads button (data-testid='caos-rail-threads-button') in the rail navigation opens the previous threads panel correctly. Panel displays all thread cards and search functionality. Multiple entry points (chat surface strip, header pill, sidebar button) all correctly open the same previous threads panel."
+
+  - task: "Chat surface strip buttons remain usable with new Threads button"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/ChatSurfaceStrip.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Chat surface strip buttons verified successfully. All buttons remain functional after adding Threads button: (1) Threads button (data-testid='caos-chat-surface-threads-button') opens previous threads panel, (2) Search button (data-testid='caos-chat-surface-search-button') opens search drawer, (3) Context button (data-testid='caos-chat-surface-inspector-button') opens inspector panel, (4) Files button (data-testid='caos-chat-surface-files-button') opens artifacts drawer. All buttons clickable and functional. No layout issues or button overlap."
+
+  - task: "Composer remains visible and usable after previous threads changes"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/Composer.js, /app/frontend/src/components/caos/CaosShell.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Composer usability verified successfully after previous threads panel implementation. Composer shell (data-testid='caos-composer-shell') remains visible at bottom of viewport. Composer textarea (data-testid='caos-composer-textarea') is accessible and accepts input correctly. Send button (data-testid='caos-composer-send-button') visible and functional. No blocking overlays or interaction issues. Composer remains fully functional after opening/closing previous threads panel and other drawers."
+
+  - task: "No console errors or layout regressions from previous threads feature"
+    implemented: true
+    working: true
+    file: "All CAOS frontend components"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Layout stability and error checking verified successfully. No console errors detected during comprehensive testing of previous threads feature. No network request failures (4xx/5xx responses). All critical layout elements remain visible and functional: shell root, shell grid, message pane, command footer, composer. No blocking overlays or interaction issues. Previous threads panel integrates cleanly without causing layout breakage or regressions. All tested interactions work smoothly."
+
+
 metadata:
   created_by: "testing_agent"
-  version: "1.6"
-  test_sequence: 7
+  version: "1.7"
+  test_sequence: 8
   run_ui: false
 
 test_plan:
   current_focus:
-    - "CAOS /chat visual parity pass testing completed successfully"
+    - "CAOS Phase 1 /chat checklist slice - Previous threads testing completed successfully"
   stuck_tasks: []
   test_all: true
+    - agent: "testing"
+      message: "CAOS PHASE 1 /CHAT CHECKLIST SLICE - PREVIOUS THREADS TESTING COMPLETE (April 18, 2026) - Tested latest previous-threads behavior and chat parity surfaces on https://deno-env-review.preview.emergentagent.com. All 8 focus areas verified successfully: (1) Chat surface strip Threads button (data-testid='caos-chat-surface-threads-button') opens previous threads panel correctly, (2) Previous threads panel displays title 'Previous Threads', search input, and 15 selectable thread cards with proper data-testids, (3) Thread card selection switches context correctly and closes panel automatically without crashes, (4) Header thread pill (data-testid='caos-header-thread-pill') opens previous threads panel successfully, (5) Sidebar Threads button (data-testid='caos-rail-threads-button') opens previous threads panel successfully, (6) All chat surface strip buttons remain usable: Threads, Search, Context, Files buttons all functional and open their respective panels/drawers, (7) Composer remains visible and usable - textarea accepts input correctly, no blocking overlays, (8) No console errors, no network failures, no layout regressions detected. Search functionality in previous threads panel works correctly (filters from 15 to 5 results). Multiple entry points (chat surface strip, header pill, sidebar button) all correctly open the same previous threads panel. All critical layout elements remain visible and stable. Previous threads feature integrates cleanly without causing any meaningful blockers or regressions. READY FOR PRODUCTION."
   test_priority: "high_first"
 
 agent_communication:

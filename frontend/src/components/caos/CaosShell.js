@@ -6,6 +6,7 @@ import { Composer } from "@/components/caos/Composer";
 import { InspectorPanel } from "@/components/caos/InspectorPanel";
 import { MessagePane } from "@/components/caos/MessagePane";
 import { ModelBar } from "@/components/caos/ModelBar";
+import { PreviousThreadsPanel } from "@/components/caos/PreviousThreadsPanel";
 import { ProfileDrawer } from "@/components/caos/ProfileDrawer";
 import { QuickActionsStrip } from "@/components/caos/QuickActionsStrip";
 import { SearchDrawer } from "@/components/caos/SearchDrawer";
@@ -20,6 +21,7 @@ export const CaosShell = () => {
   const [showInspector, setShowInspector] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showThreadExplorer, setShowThreadExplorer] = useState(false);
   const {
     artifacts,
     busy,
@@ -81,6 +83,7 @@ export const CaosShell = () => {
         currentSession={currentSession}
         isRailOpen={isRailOpen}
         keySource={runtimeSettings.key_source}
+        onOpenThreads={() => setShowThreadExplorer((value) => !value)}
         onToggleRail={() => setIsRailOpen((value) => !value)}
         onToggleSearch={() => setShowSearch((value) => !value)}
         wcwBudget={lastTurn?.wcw_budget || 200000}
@@ -95,6 +98,7 @@ export const CaosShell = () => {
           onOpenArtifacts={() => setShowArtifacts(true)}
           onOpenProfile={() => setShowProfile(true)}
           onOpenSearch={() => setShowSearch(true)}
+          onOpenThreads={() => setShowThreadExplorer((value) => !value)}
           onSelectSession={selectSession}
           onToggleRail={() => setIsRailOpen((value) => !value)}
           profile={profile}
@@ -119,11 +123,20 @@ export const CaosShell = () => {
             onOpenArtifacts={() => setShowArtifacts(true)}
             onOpenInspector={() => setShowInspector(true)}
             onOpenSearch={() => setShowSearch(true)}
+            onOpenThreads={() => setShowThreadExplorer((value) => !value)}
             onSpeak={speakText}
             receipts={artifacts.receipts}
           />
         </section>
       </div>
+
+      <PreviousThreadsPanel
+        currentSessionId={currentSession?.session_id}
+        isOpen={showThreadExplorer}
+        onClose={() => setShowThreadExplorer(false)}
+        onSelectSession={selectSession}
+        sessions={sessions}
+      />
 
       <div className="command-footer" data-testid="caos-command-footer">
         <QuickActionsStrip onContinueThread={() => createSession("Continued Thread")} onOpenArtifacts={() => setShowArtifacts(true)} />

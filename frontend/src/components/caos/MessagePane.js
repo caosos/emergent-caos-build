@@ -7,7 +7,7 @@ import { ChatSurfaceStrip } from "@/components/caos/ChatSurfaceStrip";
 const formatRole = (role) => (role === "assistant" ? "CAOS" : role === "user" ? "You" : "System");
 
 
-export const MessagePane = ({ busy, currentSession, latestReceipt, messages, onOpenArtifacts, onOpenInspector, onOpenSearch, onSpeak, receipts }) => {
+export const MessagePane = ({ busy, currentSession, latestReceipt, messages, onOpenArtifacts, onOpenInspector, onOpenSearch, onOpenThreads, onSpeak, receipts }) => {
   const [actionStatus, setActionStatus] = useState("");
   const [messageMeta, setMessageMeta] = useState({});
   const [speakingId, setSpeakingId] = useState("");
@@ -55,7 +55,7 @@ export const MessagePane = ({ busy, currentSession, latestReceipt, messages, onO
         {busy ? <span className="busy-chip" data-testid="caos-busy-chip">Thinking…</span> : null}
       </div>
 
-      <ChatSurfaceStrip latestReceipt={latestReceipt} onOpenArtifacts={onOpenArtifacts} onOpenInspector={onOpenInspector} onOpenSearch={onOpenSearch} />
+      <ChatSurfaceStrip latestReceipt={latestReceipt} onOpenArtifacts={onOpenArtifacts} onOpenInspector={onOpenInspector} onOpenSearch={onOpenSearch} onOpenThreads={onOpenThreads} />
 
       <div className="message-scroll" data-testid="caos-message-scroll">
         {messages.length === 0 ? (
