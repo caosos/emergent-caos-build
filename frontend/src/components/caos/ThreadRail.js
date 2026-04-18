@@ -1,7 +1,9 @@
 import { Clock3, FolderKanban, MessageSquareText, Sparkles, Wrench } from "lucide-react";
 
 
-export const ThreadRail = ({ currentSessionId, onNewSession, onSelectSession, sessions }) => {
+export const ThreadRail = ({ currentSessionId, onNewSession, onOpenArtifacts, onOpenProfile, onSelectSession, sessions, userEmail }) => {
+  const initial = (userEmail || "U").trim().charAt(0).toUpperCase() || "U";
+
   return (
     <aside className="thread-rail" data-testid="caos-thread-rail">
       <div className="rail-brand" data-testid="caos-rail-brand">
@@ -53,7 +55,12 @@ export const ThreadRail = ({ currentSessionId, onNewSession, onSelectSession, se
       </div>
 
       <div className="rail-footer" data-testid="caos-rail-footer">
-        <button className="rail-footer-button" data-testid="caos-rail-settings-button">Settings</button>
+        <button className="rail-user-card" data-testid="caos-rail-user-card" onClick={onOpenProfile}>
+          <span className="rail-user-avatar" data-testid="caos-rail-user-avatar">{initial}</span>
+          <span className="rail-user-meta" data-testid="caos-rail-user-meta">{userEmail}</span>
+        </button>
+        <button className="rail-footer-button" data-testid="caos-rail-files-button" onClick={onOpenArtifacts}>Files</button>
+        <button className="rail-footer-button" data-testid="caos-rail-settings-button" onClick={onOpenProfile}>Settings</button>
         <button className="rail-footer-button" data-testid="caos-rail-logout-button">Log Out</button>
       </div>
     </aside>

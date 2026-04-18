@@ -19,6 +19,8 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Richer CAOS surfaces ported into the shell: working header menu, file upload + saved links, copy action for all messages, backend read-aloud action for assistant messages, microphone transcription flow, graceful action feedback/errors, inline replies, Useful reaction chips, and inline linked receipt panels.
 - Backend regression tests and browser validation for shell/chat/artifact/file/voice/menu/continuity flows.
 - Added a dedicated System Blueprint and TSB log in `/app/memory` so architecture and recurring failures are documented for the team.
+- Simplified the shell hierarchy based on latest feedback: left rail owns new-thread/navigation behavior, header is lighter, search is icon-first, and user identity is moving into the lower rail instead of living in the header.
+- Continued the shell cleanup: user identity now sits in the lower rail with settings/files/logout, and the top search surface has been reduced toward a compact inspector-style interaction.
 
 ## Prioritized Backlog
 ### P0

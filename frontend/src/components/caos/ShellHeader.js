@@ -1,7 +1,7 @@
 import { Cpu, Search } from "lucide-react";
 
 
-export const ShellHeader = ({ currentSession, searchQuery, setSearchQuery, wcwBudget, wcwUsed }) => {
+export const ShellHeader = ({ currentSession, onToggleSearch, wcwBudget, wcwUsed }) => {
   const percent = Math.min(100, Math.round(((wcwUsed || 0) / (wcwBudget || 1)) * 100));
 
   return (
@@ -14,15 +14,9 @@ export const ShellHeader = ({ currentSession, searchQuery, setSearchQuery, wcwBu
       </div>
 
       <div className="caos-header-actions">
-        <label className="inline-field search-field" data-testid="caos-search-field">
+        <button className="search-icon-button" data-testid="caos-search-toggle-button" onClick={onToggleSearch}>
           <Search size={14} />
-          <input
-            data-testid="caos-thread-search-input"
-            placeholder="Search this thread"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-          />
-        </label>
+        </button>
 
         <div className="engine-chip" data-testid="caos-engine-chip">
           <Cpu size={14} />

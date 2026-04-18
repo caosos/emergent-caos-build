@@ -14,6 +14,7 @@ import { useCaosShell } from "@/components/caos/useCaosShell";
 export const CaosShell = () => {
   const [showArtifacts, setShowArtifacts] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const {
     artifacts,
     busy,
@@ -51,8 +52,7 @@ export const CaosShell = () => {
     <main className="caos-shell-root" data-testid="caos-shell-root">
       <ShellHeader
         currentSession={currentSession}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
+        onToggleSearch={() => setShowSearch((value) => !value)}
         wcwBudget={lastTurn?.wcw_budget || 200000}
         wcwUsed={lastTurn?.wcw_used_estimate || 0}
       />
@@ -61,8 +61,11 @@ export const CaosShell = () => {
         <ThreadRail
           currentSessionId={currentSession?.session_id}
           onNewSession={() => createSession()}
+          onOpenArtifacts={() => setShowArtifacts(true)}
+          onOpenProfile={() => setShowProfile(true)}
           onSelectSession={selectSession}
           sessions={sessions}
+          userEmail={userEmail}
         />
 
         <section className="caos-main-column" data-testid="caos-main-column">
@@ -77,77 +80,67 @@ export const CaosShell = () => {
           <Composer busy={busy} onSend={sendMessage} onTranscribe={transcribeAudio} onUploadFile={uploadFile} status={status} />
         </section>
 
-        <aside className="context-column" data-testid="caos-context-column">
-          <div className="surface-button-row" data-testid="caos-surface-button-row">
-            <button className="surface-button" data-testid="caos-open-profile-button" onClick={() => setShowProfile(true)}>Profile</button>
-            <button className="surface-button" data-testid="caos-open-artifacts-button" onClick={() => setShowArtifacts(true)}>Files & Artifacts</button>
-          </div>
+        {!showSearch ? (
+          <aside className="context-column" data-testid="caos-context-column">
+            <section className="context-card" data-testid="caos-receipt-card">
+              <div className="context-card-heading">
+                <Brain size={16} />
+                <h2 data-testid="caos-receipt-heading">Why this reply fits</h2>
+              </div>
+              <div className="context-metric" data-testid="caos-receipt-reduction">
+                <span>Context trimmed</span>
+                <strong>{Math.round((latestReceipt?.reduction_ratio || 0) * 100)}%</strong>
+              </div>
+              <div className="context-metric" data-testid="caos-receipt-retrieval-terms">
+                <span>Used for recall</span>
+                <strong>{latestReceipt?.retrieval_terms?.join(", ") || "No turn yet"}</strong>
+              </div>
+              <div className="context-metric" data-testid="caos-receipt-memory-count">
+                <span>Memories carried</span>
+                <strong>{latestReceipt?.injected_memory_count || 0}</strong>
+              </div>
+            </section>
 
-          <section className="context-card" data-testid="caos-receipt-card">
-            <div className="context-card-heading">
-              <Brain size={16} />
-              <h2 data-testid="caos-receipt-heading">Turn Receipt</h2>
-            </div>
-            <div className="context-metric" data-testid="caos-receipt-reduction">
-              <span>Reduction ratio</span>
-              <strong>{Math.round((latestReceipt?.reduction_ratio || 0) * 100)}%</strong>
-            </div>
-            <div className="context-metric" data-testid="caos-receipt-retrieval-terms">
-              <span>Retrieval terms</span>
-              <strong>{latestReceipt?.retrieval_terms?.join(", ") || "No turn yet"}</strong>
-            </div>
-            <div className="context-metric" data-testid="caos-receipt-memory-count">
-              <span>Injected memories</span>
-              <strong>{latestReceipt?.injected_memory_count || 0}</strong>
-            </div>
-          </section>
+            <section className="context-card" data-testid="caos-continuity-card">
+              <div className="context-card-heading">
+                <Brain size={16} />
+                <h2 data-testid="caos-continuity-heading">Carried forward</h2>
+              </div>
+              <div className="context-metric" data-testid="caos-continuity-depth">
+                <span>Thread depth</span>
+                <strong>{continuity?.lineage_depth || 0}</strong>
+              </div>
+              <div className="context-list-item" data-testid="caos-continuity-summary">
+                {continuity?.latest_summary?.summary || "No continuity summary yet."}
+              </div>
+            </section>
 
-          <section className="context-card" data-testid="caos-continuity-card">
-            <div className="context-card-heading">
-              <Brain size={16} />
-              <h2 data-testid="caos-continuity-heading">Continuity</h2>
-            </div>
-            <div className="context-metric" data-testid="caos-continuity-depth">
-              <span>Lineage depth</span>
-              <strong>{continuity?.lineage_depth || 0}</strong>
-            </div>
-            <div className="context-list-item" data-testid="caos-continuity-summary">
-              {continuity?.latest_summary?.summary || "No continuity summary yet."}
-            </div>
-          </section>
-
-          <section className="context-card" data-testid="caos-memory-card">
-            <div className="context-card-heading">
-              <FileText size={16} />
-              <h2 data-testid="caos-memory-heading">Injected Memory</h2>
-            </div>
-            <div className="context-list" data-testid="caos-memory-list">
-              {memorySurface.map((memory) => (
-                <div className="context-list-item" data-testid={`caos-memory-item-${memory.id}`} key={memory.id}>
-                  {memory.content}
+            {memorySurface.length ? (
+              <section className="context-card" data-testid="caos-memory-card">
+                <div className="context-card-heading">
+                  <FileText size={16} />
+                  <h2 data-testid="caos-memory-heading">Memory in play</h2>
                 </div>
-              ))}
-              {!memorySurface.length ? (
-                <div className="context-list-item context-list-placeholder" data-testid="caos-memory-empty-state">
-                  No memory injected yet.
+                <div className="context-list" data-testid="caos-memory-list">
+                  {memorySurface.map((memory) => (
+                    <div className="context-list-item" data-testid={`caos-memory-item-${memory.id}`} key={memory.id}>
+                      {memory.content}
+                    </div>
+                  ))}
                 </div>
-              ) : null}
-            </div>
-          </section>
-
-          <section className="context-card" data-testid="caos-search-summary-card">
-            <div className="context-card-heading">
-              <Search size={16} />
-              <h2 data-testid="caos-search-summary-heading">Thread Search</h2>
-            </div>
-            <p data-testid="caos-search-summary-text">
-              {searchQuery ? `Showing messages matching “${searchQuery}”.` : "Use the header search to filter the active session instantly."}
-            </p>
-          </section>
-        </aside>
+              </section>
+            ) : null}
+          </aside>
+        ) : null}
       </div>
 
-      <SearchDrawer results={filteredMessages.slice(0, 8)} searchQuery={searchQuery} />
+      <SearchDrawer
+        isOpen={showSearch}
+        onClose={() => setShowSearch(false)}
+        results={filteredMessages.slice(0, 8)}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+      />
 
       <ProfileDrawer
         isOpen={showProfile}
