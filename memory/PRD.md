@@ -57,3 +57,6 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 1. Deepen receipts/summaries/seeds again so subject bins, continuity packets, and cross-thread rehydration become first-class long-horizon memory primitives with stricter cost budgets.
 2. Push the shell from improved parity to true parity: deeper home-state command center, richer metadata rows, stronger files/photos/links parity, and better worker/receipt drill-down.
 3. Build the secure BYO-provider credential attachment flow so Grok/xAI and future non-Universal engines can be plugged into CAOS without changing the memory architecture.
+
+## Living Contract Tracking
+- Master implementation checklist: `/app/memory/MASTER_IMPLEMENTATION_CHECKLIST.md`
