@@ -826,23 +826,119 @@ frontend:
           agent: "testing"
           comment: "Layout stability and error checking verified successfully. No console errors detected during comprehensive testing of previous threads feature. No network request failures (4xx/5xx responses). All critical layout elements remain visible and functional: shell root, shell grid, message pane, command footer, composer. No blocking overlays or interaction issues. Previous threads panel integrates cleanly without causing layout breakage or regressions. All tested interactions work smoothly."
 
+  - task: "Command footer toolbar positioning above composer"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/CaosShell.js, /app/frontend/src/App.css"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Command footer toolbar positioning verified successfully. Toolbar (data-testid='caos-command-footer-toolbar') renders correctly above composer without blocking it. Measured positions: toolbar y=762.40625 with height=131.90625, composer y=902.3125 with height=159.6875. Toolbar positioned above composer with no overlap. Command footer (data-testid='caos-command-footer') contains both toolbar and composer in correct hierarchy."
+
+  - task: "Quick actions strip usability in new dock arrangement"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/QuickActionsStrip.js, /app/frontend/src/components/caos/CaosShell.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Quick actions strip verified successfully. All quick action buttons visible and functional: Create Image (data-testid='caos-quick-action-create-image'), Files (data-testid='caos-quick-action-upload-file'), Capture (data-testid='caos-quick-action-capture-screen'), Continue (data-testid='caos-quick-action-continue-thread'). Files button correctly opens artifacts drawer. All buttons remain usable in new dock arrangement."
+
+  - task: "Model routing controls usability in new dock arrangement"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/ModelBar.js, /app/frontend/src/components/caos/CaosShell.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Model routing controls verified successfully. Model bar (data-testid='caos-model-bar') visible with all 4 provider chips: OpenAI (data-testid='caos-model-chip-openai'), Anthropic (data-testid='caos-model-chip-anthropic'), Gemini (data-testid='caos-model-chip-gemini'), xAI (data-testid='caos-model-chip-xai'). Model bar meta (data-testid='caos-model-bar-meta') displays routing info. All chips clickable and functional. Model selection works correctly."
+
+  - task: "Previous threads panel usability with new footer hierarchy"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/PreviousThreadsPanel.js, /app/frontend/src/App.css"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Minor: Previous threads panel verified functional with new footer hierarchy. Panel opens correctly via header thread pill (data-testid='caos-header-thread-pill'), chat surface strip Threads button, and sidebar Threads button. Search input (data-testid='caos-previous-threads-search-input') works correctly. Panel positioned at y=126 with height=760. Panel extends to y=886 while footer starts at y=762.40625, creating a minor positioning overlap calculation. However, panel is positioned on left side while footer spans bottom center/right, so no visual blocking occurs. All functionality remains usable. Close button (data-testid='caos-previous-threads-close-button') works correctly."
+
+  - task: "Chat surface strip controls remain usable with new footer"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/ChatSurfaceStrip.js, /app/frontend/src/components/caos/MessagePane.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Chat surface strip controls verified successfully. All buttons remain functional: Threads button (data-testid='caos-chat-surface-threads-button') opens previous threads panel, Search button (data-testid='caos-chat-surface-search-button') opens search drawer, Inspector button (data-testid='caos-chat-surface-inspector-button') opens inspector panel, Files button (data-testid='caos-chat-surface-files-button') opens artifacts drawer. All panels/drawers open and close correctly. No interaction issues with new footer hierarchy."
+
+  - task: "Composer send flow not blocked by layout overlap"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/Composer.js, /app/frontend/src/App.css"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Composer send flow verified successfully. Composer shell (data-testid='caos-composer-shell') fully functional. Textarea (data-testid='caos-composer-textarea') accepts input correctly. Send button (data-testid='caos-composer-send-button') visible, clickable, and enables when text present. All composer buttons functional: Attach (data-testid='caos-composer-upload-button'), Mic (data-testid='caos-composer-mic-button'), Read Last (data-testid='caos-composer-read-last-button'). No layout overlap blocks composer or send flow. Composer positioned at y=902.3125 below toolbar."
+
+  - task: "Message actions remain clickable with new footer hierarchy"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/MessagePane.js, /app/frontend/src/App.css"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Message actions verified successfully. Message action buttons remain clickable with new footer hierarchy. Tested with assistant message containing 5 action buttons. All buttons accessible and clickable. No blocking overlays or interaction issues. Message actions work correctly alongside new command footer toolbar positioning."
+
+  - task: "No console errors or interaction regressions with workspace hierarchy"
+    implemented: true
+    working: true
+    file: "All CAOS frontend components"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Error checking and interaction testing verified successfully. No console errors detected during comprehensive workspace hierarchy testing. No console warnings. No network failures (4xx/5xx responses). No error messages found on page. All critical layout elements remain visible and functional: shell root, shell grid, message pane, command footer, command footer toolbar, composer. All interactions tested work smoothly: quick actions, model selection, composer input, surface strip buttons, previous threads panel, message actions. Workspace hierarchy refinement integrates cleanly without causing any regressions."
+
 
 metadata:
   created_by: "testing_agent"
-  version: "1.7"
-  test_sequence: 8
+  version: "1.8"
+  test_sequence: 9
   run_ui: false
 
 test_plan:
   current_focus:
-    - "CAOS Phase 1 /chat checklist slice - Previous threads testing completed successfully"
+    - "CAOS workspace hierarchy refinement testing completed successfully"
   stuck_tasks: []
   test_all: true
-    - agent: "testing"
-      message: "CAOS PHASE 1 /CHAT CHECKLIST SLICE - PREVIOUS THREADS TESTING COMPLETE (April 18, 2026) - Tested latest previous-threads behavior and chat parity surfaces on https://deno-env-review.preview.emergentagent.com. All 8 focus areas verified successfully: (1) Chat surface strip Threads button (data-testid='caos-chat-surface-threads-button') opens previous threads panel correctly, (2) Previous threads panel displays title 'Previous Threads', search input, and 15 selectable thread cards with proper data-testids, (3) Thread card selection switches context correctly and closes panel automatically without crashes, (4) Header thread pill (data-testid='caos-header-thread-pill') opens previous threads panel successfully, (5) Sidebar Threads button (data-testid='caos-rail-threads-button') opens previous threads panel successfully, (6) All chat surface strip buttons remain usable: Threads, Search, Context, Files buttons all functional and open their respective panels/drawers, (7) Composer remains visible and usable - textarea accepts input correctly, no blocking overlays, (8) No console errors, no network failures, no layout regressions detected. Search functionality in previous threads panel works correctly (filters from 15 to 5 results). Multiple entry points (chat surface strip, header pill, sidebar button) all correctly open the same previous threads panel. All critical layout elements remain visible and stable. Previous threads feature integrates cleanly without causing any meaningful blockers or regressions. READY FOR PRODUCTION."
   test_priority: "high_first"
 
 agent_communication:
+    - agent: "testing"
+      message: "CAOS WORKSPACE HIERARCHY REFINEMENT TEST COMPLETE (April 18, 2026) - Tested latest /chat workspace hierarchy refinement on https://deno-env-review.preview.emergentagent.com. All 6 focus areas verified successfully: (1) Command footer toolbar (data-testid='caos-command-footer-toolbar') renders above composer without blocking it - toolbar at y=762.40625, composer at y=902.3125, no overlap detected, (2) Quick actions strip fully usable with all 4 buttons functional: Create Image, Files, Capture, Continue - Files button correctly opens artifacts drawer, (3) Model routing controls fully usable with all 4 provider chips clickable: OpenAI, Anthropic, Gemini, xAI - model selection works correctly, (4) Previous threads panel remains usable with new footer hierarchy - opens via header pill, chat surface strip, and sidebar button - minor positioning overlap calculation detected (panel extends to y=886 while footer starts at y=762) but no visual blocking occurs as panel is on left side and footer spans bottom center/right, (5) Chat surface strip controls remain usable - all buttons (Threads, Search, Context, Files) open their respective panels/drawers correctly, (6) No layout overlap blocks message actions or composer send flow - composer textarea accepts input, send button clickable, all message action buttons accessible. No console errors, no network failures, no interaction regressions detected. Workspace hierarchy refinement working correctly. No meaningful blockers found. READY FOR PRODUCTION."
     - agent: "testing"
       message: "Completed comprehensive testing of CAOS frontend after major shell/runtime update. All 7 focus areas tested successfully: viewport-lock shell, left rail collapse/reopen, command footer positioning, search drawer, runtime model bar with all 4 provider chips (including xAI/Grok as BYO placeholder), profile drawer with runtime routing info, and verified no console errors or crashes. All functionality working as expected. No critical or major issues found. Ready for production."
     - agent: "testing"

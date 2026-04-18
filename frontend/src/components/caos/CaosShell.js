@@ -139,14 +139,16 @@ export const CaosShell = () => {
       />
 
       <div className="command-footer" data-testid="caos-command-footer">
-        <QuickActionsStrip onContinueThread={() => createSession("Continued Thread")} onOpenArtifacts={() => setShowArtifacts(true)} />
-        <ModelBar
-          activeModel={runtimeSettings.default_model}
-          activeProvider={runtimeSettings.default_provider}
-          keySource={runtimeSettings.key_source}
-          onSelect={updateRuntimeSelection}
-          providerCatalog={runtimeSettings.provider_catalog}
-        />
+        <div className="command-footer-toolbar" data-testid="caos-command-footer-toolbar">
+          <QuickActionsStrip onContinueThread={() => createSession("Continued Thread")} onOpenArtifacts={() => setShowArtifacts(true)} />
+          <ModelBar
+            activeModel={runtimeSettings.default_model}
+            activeProvider={runtimeSettings.default_provider}
+            keySource={runtimeSettings.key_source}
+            onSelect={updateRuntimeSelection}
+            providerCatalog={runtimeSettings.provider_catalog}
+          />
+        </div>
         <Composer
           busy={busy}
           lastAssistantMessage={lastAssistantMessage}
