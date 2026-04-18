@@ -108,19 +108,19 @@ def rank_memories(
 
 def build_context_receipt(
     stats: dict,
+    original_messages: list[MessageRecord],
     compressed: list[MessageRecord],
     injected_memories: list[MemoryEntry],
     retrieval_terms: list[str],
 ) -> dict:
-    chars_before = sum(len(message.content) for message in compressed) + sum(
-        len(memory.content) for memory in injected_memories
-    )
+    chars_before = sum(len(message.content) for message in original_messages)
     sanitized_after = sum(len(message.content) for message in compressed)
     reduction_ratio = 0.0 if chars_before == 0 else round(1 - (sanitized_after / chars_before), 4)
     return {
         "retrieval_terms": retrieval_terms,
         "selected_memory_ids": [memory.id for memory in injected_memories],
         "injected_memory_count": len(injected_memories),
+        "estimated_injected_memory_chars": sum(len(memory.content) for memory in injected_memories),
         "final_message_count": len(compressed),
         "estimated_chars_before": chars_before,
         "estimated_chars_after": sanitized_after,

@@ -111,7 +111,7 @@ async def prepare_context(input: ContextPrepareRequest):
     compressed = compress_history(sanitized, input.hot_head, input.hot_tail)
     memories = [MemoryEntry(**entry) for entry in profile.get("structured_memory", [])]
     injected_memories, retrieval_terms = rank_memories(input.query, compressed, memories, input.memory_limit)
-    receipt = build_context_receipt(stats, compressed, injected_memories, retrieval_terms)
+    receipt = build_context_receipt(stats, messages, compressed, injected_memories, retrieval_terms)
     stats_payload = ContextStats(
         total_messages=stats["total_messages"],
         removed_duplicates=stats["removed_duplicates"],

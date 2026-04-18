@@ -10,6 +10,7 @@ const emptyReceipt = {
   retrieval_terms: [],
   selected_memory_ids: [],
   injected_memory_count: 0,
+  estimated_injected_memory_chars: 0,
   final_message_count: 0,
   estimated_chars_before: 0,
   estimated_chars_after: 0,
@@ -29,6 +30,7 @@ export const MemoryWorkbench = () => {
   const [messages, setMessages] = useState([]);
   const [contextResult, setContextResult] = useState(null);
   const [status, setStatus] = useState("Booting CAOS memory workbench...");
+  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -54,8 +56,13 @@ export const MemoryWorkbench = () => {
     });
   };
 
+  const getErrorMessage = (issue, fallback) => {
+    return issue?.response?.data?.detail || issue?.response?.data?.message || issue?.message || fallback;
+  };
+
   const handleCreateSession = async () => {
     setBusy(true);
+    setError("");
     try {
       await ensureProfile();
       const response = await axios.post(`${API}/caos/sessions`, {
@@ -66,6 +73,10 @@ export const MemoryWorkbench = () => {
       setMessages([]);
       setContextResult(null);
       setStatus(`Session ${response.data.session_id} created.`);
+    } catch (issue) {
+      const message = getErrorMessage(issue, "Session creation failed.");
+      setError(message);
+      setStatus(`Session creation failed: ${message}`);
     } finally {
       setBusy(false);
     }
@@ -73,6 +84,7 @@ export const MemoryWorkbench = () => {
 
   const handleSaveMemory = async () => {
     setBusy(true);
+    setError("");
     try {
       await ensureProfile();
       const response = await axios.post(`${API}/caos/memory/save`, {
@@ -81,6 +93,10 @@ export const MemoryWorkbench = () => {
       });
       setMemories((prev) => [response.data, ...prev]);
       setStatus("Memory saved to structured profile memory.");
+    } catch (issue) {
+      const message = getErrorMessage(issue, "Saving memory failed.");
+      setError(message);
+      setStatus(`Saving memory failed: ${message}`);
     } finally {
       setBusy(false);
     }
@@ -88,10 +104,12 @@ export const MemoryWorkbench = () => {
 
   const handleAddMessage = async () => {
     if (!sessionId) {
+      setError("Create a session before writing messages.");
       setStatus("Create a session before writing messages.");
       return;
     }
     setBusy(true);
+    setError("");
     try {
       const response = await axios.post(`${API}/caos/messages`, {
         session_id: sessionId,
@@ -100,6 +118,10 @@ export const MemoryWorkbench = () => {
       });
       setMessages((prev) => [...prev, response.data]);
       setStatus("Message stored inside the current isolated session.");
+    } catch (issue) {
+      const message = getErrorMessage(issue, "Saving the session message failed.");
+      setError(message);
+      setStatus(`Saving the session message failed: ${message}`);
     } finally {
       setBusy(false);
     }
@@ -107,10 +129,12 @@ export const MemoryWorkbench = () => {
 
   const handlePrepareContext = async () => {
     if (!sessionId) {
+      setError("Create a session before preparing context.");
       setStatus("Create a session before preparing context.");
       return;
     }
     setBusy(true);
+    setError("");
     try {
       const response = await axios.post(`${API}/caos/context/prepare`, {
         user_email: userEmail,
@@ -119,6 +143,10 @@ export const MemoryWorkbench = () => {
       });
       setContextResult(response.data);
       setStatus("Context prepared. Sanitized history and relevant memories are ready.");
+    } catch (issue) {
+      const message = getErrorMessage(issue, "Context preparation failed.");
+      setError(message);
+      setStatus(`Context preparation failed: ${message}`);
     } finally {
       setBusy(false);
     }
@@ -273,6 +301,13 @@ export const MemoryWorkbench = () => {
         </article>
       </section>
 
+      {error ? (
+        <section className="error-banner" data-testid="memory-workbench-error-banner">
+          <strong data-testid="memory-workbench-error-title">Action error</strong>
+          <span data-testid="memory-workbench-error-text">{error}</span>
+        </section>
+      ) : null}
+
       <section className="results-grid" data-testid="context-results-grid">
         <article className="panel" data-testid="sanitized-history-panel">
           <h2 data-testid="sanitized-history-heading">Sanitized history</h2>
@@ -308,6 +343,10 @@ export const MemoryWorkbench = () => {
             <div className="list-card" data-testid="receipt-before-after">
               <strong>Chars before / after</strong>
               <span>{receipt.estimated_chars_before} / {receipt.estimated_chars_after}</span>
+            </div>
+            <div className="list-card" data-testid="receipt-injected-memory-chars">
+              <strong>Injected memory chars</strong>
+              <span>{receipt.estimated_injected_memory_chars}</span>
             </div>
             <div className="list-card" data-testid="receipt-removals">
               <strong>Removed duplicates / low signal</strong>

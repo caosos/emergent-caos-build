@@ -15,7 +15,8 @@
 
 .hero-panel,
 .panel,
-.status-bar {
+.status-bar,
+.error-banner {
     border: 1px solid rgba(148, 163, 184, 0.18);
     background: rgba(8, 15, 31, 0.76);
     backdrop-filter: blur(18px);
@@ -54,7 +55,8 @@
 
 .contract-card,
 .panel,
-.status-bar {
+.status-bar,
+.error-banner {
     border-radius: 24px;
 }
 
@@ -206,6 +208,16 @@
 
 .status-bar {
     margin-top: 8px;
+}
+
+.error-banner {
+    margin: 0 0 20px;
+    padding: 14px 16px;
+    display: grid;
+    gap: 6px;
+    border-color: rgba(248, 113, 113, 0.28);
+    background: rgba(69, 10, 10, 0.45);
+    color: #fee2e2;
 }
 
 @media (max-width: 1100px) {
