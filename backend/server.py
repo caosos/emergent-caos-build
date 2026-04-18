@@ -1,23 +1,14 @@
 from fastapi import FastAPI, APIRouter
-from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
 import logging
-from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List
 import uuid
 from datetime import datetime, timezone
 
-
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
-
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+from app.config import settings
+from app.db import client, db
+from app.routes.caos import router as caos_router
 
 # Create the main app without a prefix
 app = FastAPI()
@@ -66,13 +57,24 @@ async def get_status_checks():
     
     return status_checks
 
+
+@api_router.get("/caos/contract")
+async def caos_contract():
+    return {
+        "runtime": "fastapi-python",
+        "isolation_boundary": "session_id",
+        "memory_pipeline": ["ingest", "sanitize", "compress", "retrieve", "inject", "receipt"],
+        "notes": "Session isolation is canonical. Cross-session memory leakage is forbidden.",
+    }
+
 # Include the router in the main app
 app.include_router(api_router)
+app.include_router(caos_router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=settings.cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
