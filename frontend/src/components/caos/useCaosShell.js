@@ -25,7 +25,7 @@ export const useCaosShell = () => {
     if (!nextValue || nextValue === userEmail) return;
     localStorage.setItem(USER_KEY, nextValue);
     setUserEmailState(nextValue);
-  }, []);
+  }, [userEmail]);
 
   const loadSessions = useCallback(async () => {
     const response = await axios.get(`${API}/caos/sessions`, { params: { user_email: userEmail } });
@@ -82,7 +82,7 @@ export const useCaosShell = () => {
     } finally {
       setBusy(false);
     }
-  }, [loadMessages]);
+  }, [loadArtifacts, loadFiles, loadMessages]);
 
   const createSession = useCallback(async (title = "New Thread") => {
     setBusy(true);
@@ -114,7 +114,7 @@ export const useCaosShell = () => {
     } finally {
       setBusy(false);
     }
-  }, [loadSessions, userEmail]);
+  }, [loadFiles, loadProfile, loadSessions, userEmail]);
 
   const sendMessage = useCallback(async (content) => {
     if (!content.trim()) return;
@@ -147,7 +147,7 @@ export const useCaosShell = () => {
     } finally {
       setBusy(false);
     }
-  }, [createSession, currentSession, loadMessages, loadSessions, userEmail]);
+  }, [createSession, currentSession, loadArtifacts, loadFiles, loadMessages, loadProfile, loadSessions, userEmail]);
 
   useEffect(() => {
     const hydrate = async () => {
@@ -174,7 +174,7 @@ export const useCaosShell = () => {
       }
     };
     hydrate();
-  }, [loadMessages, loadSessions]);
+  }, [loadArtifacts, loadFiles, loadMessages, loadProfile, loadSessions]);
 
   const filteredMessages = useMemo(() => {
     if (!searchQuery.trim()) return messages;

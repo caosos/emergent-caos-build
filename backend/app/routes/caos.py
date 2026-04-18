@@ -224,7 +224,8 @@ async def chat(input: ChatRequest):
     except ValueError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     except Exception as error:
-        raise HTTPException(status_code=500, detail=str(error)) from error
+        print(f"CAOS chat pipeline error: {error}")
+        raise HTTPException(status_code=500, detail="CAOS chat pipeline failed") from error
 
 
 @router.post("/voice/tts", response_model=TTSResponse)
