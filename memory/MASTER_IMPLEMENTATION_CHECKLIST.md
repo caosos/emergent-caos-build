@@ -35,7 +35,7 @@ Goal: Make the main shell structurally match the intended CAOS operating experie
 - [~] `/chat` layout closer to screenshot reference
 - [~] Denser message cards with inline action controls
 - [~] White/slim bottom composer parity
-- [ ] Overlay-style previous threads behavior where appropriate
+- [x] Overlay-style previous threads behavior where appropriate
 - [~] Compact right search/context strip parity
 
 ### 1.3 First-run / welcome
@@ -184,3 +184,6 @@ Goal: Connect CAOS to the user’s external systems and tools.
 - [~] Remove the wrong top menu pattern and make one canonical identity/menu control
 - [~] Tighten the sidebar behavior and hierarchy to match the intended CAOS shell
 - [~] Start `/chat` visual parity pass before moving deeper into the welcome flow
+
+## Current Note
+- The current chat strip exposes working-packet information using existing receipt/context estimates. True token-derived WCW accounting remains a Phase 2 contract item and is not considered complete yet.
