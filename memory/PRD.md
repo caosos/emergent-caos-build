@@ -36,6 +36,7 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Added visible lane surfaces in the shell so thread cards and the inspector expose lane + worker usage instead of hiding continuity decisions.
 - Started the canonical shell/menu rewrite: the sidebar remains collapsible and visible by default, while a new rail account menu now holds the user identity, grouped actions, side-panel options, and session token access instead of relying on competing menu patterns.
 - Simplified the top bar into a cleaner CAOS header so the identity model is anchored in the sidebar and the chat surface can move closer to screenshot parity.
+- Continued the `/chat` visual parity pass: added a compact in-surface chat strip for working packet/lane/continuity/actions, tightened message cards, moved search/context/files actions into the chat surface, and reshaped the composer into a slimmer bright control surface while keeping all existing functionality intact.
 
 ## Prioritized Backlog
 ### P0
@@ -57,7 +58,7 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Deeper anchor maps, campaign memory, and long-horizon project continuity.
 
 ## Next Tasks
-1. Continue the `/chat` visual parity pass: tighter message cards, composer parity, search/context strip refinement, and cleanup of any remaining duplicate menu cues.
+1. Continue the `/chat` visual parity pass: clean up any remaining overlap cues, refine previous-threads behavior, and keep tightening the surface toward the screenshot contract.
 2. Deepen receipts/summaries/seeds again so subject bins, continuity packets, and cross-thread rehydration become first-class long-horizon memory primitives with stricter cost budgets.
 3. Build the secure BYO-provider credential attachment flow so Grok/xAI and future non-Universal engines can be plugged into CAOS without changing the memory architecture.
 

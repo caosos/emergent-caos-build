@@ -32,11 +32,11 @@ Goal: Make the main shell structurally match the intended CAOS operating experie
 - [~] Compact top bar aligned to screenshot direction
 
 ### 1.2 Chat surface parity
-- [ ] `/chat` layout closer to screenshot reference
-- [ ] Denser message cards with inline action controls
-- [ ] White/slim bottom composer parity
+- [~] `/chat` layout closer to screenshot reference
+- [~] Denser message cards with inline action controls
+- [~] White/slim bottom composer parity
 - [ ] Overlay-style previous threads behavior where appropriate
-- [ ] Compact right search/context strip parity
+- [~] Compact right search/context strip parity
 
 ### 1.3 First-run / welcome
 - [ ] `/Welcome` landing with starfield hero and feature tiles
@@ -183,4 +183,4 @@ Goal: Connect CAOS to the user’s external systems and tools.
 ## Immediate Next Contract Slice
 - [~] Remove the wrong top menu pattern and make one canonical identity/menu control
 - [~] Tighten the sidebar behavior and hierarchy to match the intended CAOS shell
-- [ ] Start `/chat` visual parity pass before moving deeper into the welcome flow
+- [~] Start `/chat` visual parity pass before moving deeper into the welcome flow
