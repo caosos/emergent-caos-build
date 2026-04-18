@@ -11,6 +11,14 @@ const DEFAULT_RUNTIME = {
   enabled_providers: ["openai", "anthropic", "gemini", "xai"],
   provider_catalog: [],
 };
+const DEFAULT_VOICE = {
+  stt_primary_model: "gpt-4o-transcribe",
+  stt_fallback_model: "whisper-1",
+  stt_language: "en",
+  tts_model: "tts-1-hd",
+  tts_voice: "nova",
+  tts_speed: 1.0,
+};
 
 
 export const useCaosShell = () => {
@@ -28,6 +36,7 @@ export const useCaosShell = () => {
   const [status, setStatus] = useState("Loading CAOS shell...");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const voiceSettings = profile?.voice_preferences || DEFAULT_VOICE;
 
   const commitUserEmail = useCallback((value) => {
     const nextValue = value.trim();
@@ -164,6 +173,30 @@ export const useCaosShell = () => {
     }
   }, [runtimeSettings.enabled_providers, runtimeSettings.key_source, userEmail]);
 
+  const updateVoiceSettings = useCallback(async (changes) => {
+    setBusy(true);
+    setError("");
+    try {
+      const payload = {
+        user_email: userEmail,
+        ...voiceSettings,
+        ...changes,
+      };
+      const response = await axios.post(`${API}/caos/voice/settings`, payload);
+      setProfile((previous) => ({
+        ...(previous || { user_email: userEmail, structured_memory: [] }),
+        voice_preferences: response.data.voice_preferences,
+      }));
+      setStatus(`Voice settings updated: ${response.data.voice_preferences.stt_primary_model} → ${response.data.voice_preferences.tts_voice}.`);
+    } catch (issue) {
+      const message = issue?.response?.data?.detail || issue?.message || "Updating voice settings failed.";
+      setError(message);
+      setStatus(`Updating voice settings failed: ${message}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [userEmail, voiceSettings]);
+
   const sendMessage = useCallback(async (content) => {
     if (!content.trim()) return;
     setBusy(true);
@@ -278,17 +311,38 @@ export const useCaosShell = () => {
 
   const transcribeAudio = useCallback(async (blob, filename = "caos-voice-note.webm") => {
     const form = new FormData();
+    form.append("user_email", userEmail);
+    form.append("model", voiceSettings.stt_primary_model);
+    form.append("fallback_model", voiceSettings.stt_fallback_model);
+    form.append("language", voiceSettings.stt_language);
     form.append("file", new File([blob], filename, { type: blob.type || "audio/webm" }));
     const response = await axios.post(`${API}/caos/voice/transcribe`, form);
-    return response.data.text || "";
-  }, []);
+    return response.data;
+  }, [userEmail, voiceSettings.stt_fallback_model, voiceSettings.stt_language, voiceSettings.stt_primary_model]);
+
+  const transcribeAudioChunk = useCallback(async (blob, prompt = "", filename = "caos-voice-chunk.webm") => {
+    const form = new FormData();
+    form.append("user_email", userEmail);
+    form.append("model", voiceSettings.stt_primary_model);
+    form.append("fallback_model", voiceSettings.stt_fallback_model);
+    form.append("language", voiceSettings.stt_language);
+    if (prompt.trim()) form.append("prompt", prompt.slice(-180));
+    form.append("file", new File([blob], filename, { type: blob.type || "audio/webm" }));
+    const response = await axios.post(`${API}/caos/voice/transcribe`, form);
+    return response.data;
+  }, [userEmail, voiceSettings.stt_fallback_model, voiceSettings.stt_language, voiceSettings.stt_primary_model]);
 
   const speakText = useCallback(async (text) => {
-    const response = await axios.post(`${API}/caos/voice/tts`, { text, voice: "nova", model: "tts-1-hd", speed: 1.0 });
+    const response = await axios.post(`${API}/caos/voice/tts`, {
+      text,
+      voice: voiceSettings.tts_voice,
+      model: voiceSettings.tts_model,
+      speed: voiceSettings.tts_speed,
+    });
     const audio = new Audio(`data:${response.data.content_type};base64,${response.data.audio_base64}`);
     await audio.play();
     return audio;
-  }, []);
+  }, [voiceSettings.tts_model, voiceSettings.tts_speed, voiceSettings.tts_voice]);
 
   return {
     artifacts,
@@ -313,8 +367,11 @@ export const useCaosShell = () => {
     speakText,
     status,
     transcribeAudio,
+    transcribeAudioChunk,
     updateRuntimeSelection,
+    updateVoiceSettings,
     uploadFile,
     userEmail,
+    voiceSettings,
   };
 };

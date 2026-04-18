@@ -30,6 +30,9 @@ from app.schemas.caos import (
     TTSRequest,
     TTSResponse,
     TranscriptionResponse,
+    VoicePreferences,
+    VoiceSettingsResponse,
+    VoiceSettingsUpsertRequest,
     LinkCreateRequest,
     UserFileRecord,
     UserProfileRecord,
@@ -188,6 +191,34 @@ async def upsert_runtime_settings(input: RuntimeSettingsUpsertRequest):
     return build_runtime_settings_response(input.user_email, preferences)
 
 
+@router.get("/voice/settings/{user_email}", response_model=VoiceSettingsResponse)
+async def get_voice_settings(user_email: str):
+    profile = await collection("user_profiles").find_one({"user_email": user_email}, {"_id": 0})
+    preferences = VoicePreferences(**(profile or {}).get("voice_preferences", {}))
+    return VoiceSettingsResponse(user_email=user_email, voice_preferences=preferences)
+
+
+@router.post("/voice/settings", response_model=VoiceSettingsResponse)
+async def upsert_voice_settings(input: VoiceSettingsUpsertRequest):
+    preferences = VoicePreferences(**input.model_dump(exclude={"user_email"}))
+    existing = await collection("user_profiles").find_one({"user_email": input.user_email}, {"_id": 0})
+    if existing:
+        await collection("user_profiles").update_one(
+            {"user_email": input.user_email},
+            {"$set": {"voice_preferences": preferences.model_dump(), "updated_at": datetime.now(timezone.utc).isoformat()}},
+        )
+    else:
+        profile = UserProfileRecord(user_email=input.user_email, voice_preferences=preferences)
+        doc = profile.model_dump()
+        doc["created_at"] = doc["created_at"].isoformat()
+        doc["updated_at"] = doc["updated_at"].isoformat()
+        doc["structured_memory"] = []
+        doc["runtime_preferences"] = profile.runtime_preferences.model_dump()
+        doc["voice_preferences"] = preferences.model_dump()
+        await collection("user_profiles").insert_one(doc)
+    return VoiceSettingsResponse(user_email=input.user_email, voice_preferences=preferences)
+
+
 @router.get("/files", response_model=list[UserFileRecord])
 async def list_files(user_email: str, kind: str | None = None, session_id: str | None = None):
     query = {"user_email": user_email}
@@ -297,6 +328,27 @@ async def text_to_speech(input: TTSRequest):
 
 
 @router.post("/voice/transcribe", response_model=TranscriptionResponse)
-async def speech_to_text(file: UploadFile = File(...)):
-    data = await transcribe_upload(file)
-    return TranscriptionResponse(text=data["text"])
+async def speech_to_text(
+    file: UploadFile = File(...),
+    user_email: str | None = Form(default=None),
+    model: str = Form(default="gpt-4o-transcribe"),
+    fallback_model: str = Form(default="whisper-1"),
+    language: str | None = Form(default="en"),
+    prompt: str | None = Form(default=None),
+):
+    profile = None
+    if user_email:
+        profile = await collection("user_profiles").find_one({"user_email": user_email}, {"_id": 0})
+    preferences = VoicePreferences(**(profile or {}).get("voice_preferences", {}))
+    data = await transcribe_upload(
+        file,
+        model=model or preferences.stt_primary_model,
+        fallback_model=fallback_model or preferences.stt_fallback_model,
+        language=language or preferences.stt_language,
+        prompt=prompt,
+    )
+    return TranscriptionResponse(
+        text=data["text"],
+        model_used=data["model_used"],
+        fallback_used=data["fallback_used"],
+    )

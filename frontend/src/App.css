@@ -557,6 +557,11 @@
     color: #eff6ff;
 }
 
+.drawer-option-active {
+    border-color: rgba(59, 130, 246, 0.4);
+    background: rgba(30, 64, 175, 0.45);
+}
+
 .drawer-list-item-rich span,
 .context-list-item span,
 .receipt-inline span {
@@ -692,6 +697,20 @@
 
 .composer-status {
     margin-top: 10px;
+}
+
+.composer-live-status,
+.composer-live-transcript {
+    margin-top: 10px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(15, 23, 42, 0.74);
+    border-radius: 14px;
+    color: rgba(191, 219, 254, 0.82);
+    padding: 10px 12px;
+}
+
+.composer-live-transcript {
+    line-height: 1.6;
 }
 
 .composer-send {

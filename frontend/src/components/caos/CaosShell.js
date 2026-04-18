@@ -39,11 +39,14 @@ export const CaosShell = () => {
     speakText,
     status,
     transcribeAudio,
+    transcribeAudioChunk,
     uploadFile,
     userEmail,
     profile,
     runtimeSettings,
     updateRuntimeSelection,
+    updateVoiceSettings,
+    voiceSettings,
   } = useCaosShell();
   const latestReceipt = lastTurn?.receipt || (artifacts.receipts[0]
     ? {
@@ -122,8 +125,10 @@ export const CaosShell = () => {
           onSend={sendMessage}
           onSpeak={speakText}
           onTranscribe={transcribeAudio}
+          onTranscribeChunk={transcribeAudioChunk}
           onUploadFile={uploadFile}
           status={status}
+          voiceSettings={voiceSettings}
         />
       </div>
 
@@ -156,7 +161,9 @@ export const CaosShell = () => {
         profile={profile}
         runtimeSettings={runtimeSettings}
         sessionsCount={sessions.length}
+        updateVoiceSettings={updateVoiceSettings}
         userEmail={userEmail}
+        voiceSettings={voiceSettings}
       />
       <ArtifactsDrawer
         artifacts={artifacts}

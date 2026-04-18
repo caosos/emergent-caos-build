@@ -100,6 +100,30 @@ class RuntimeSettingsResponse(BaseModel):
     provider_catalog: list[RuntimeProviderRecord] = Field(default_factory=list)
 
 
+class VoicePreferences(BaseModel):
+    stt_primary_model: str = "gpt-4o-transcribe"
+    stt_fallback_model: str = "whisper-1"
+    stt_language: str = "en"
+    tts_model: str = "tts-1-hd"
+    tts_voice: str = "nova"
+    tts_speed: float = 1.0
+
+
+class VoiceSettingsUpsertRequest(BaseModel):
+    user_email: str
+    stt_primary_model: str = "gpt-4o-transcribe"
+    stt_fallback_model: str = "whisper-1"
+    stt_language: str = "en"
+    tts_model: str = "tts-1-hd"
+    tts_voice: str = "nova"
+    tts_speed: float = 1.0
+
+
+class VoiceSettingsResponse(BaseModel):
+    user_email: str
+    voice_preferences: VoicePreferences
+
+
 class UserProfileRecord(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_email: str
@@ -108,6 +132,7 @@ class UserProfileRecord(BaseModel):
     environment_name: str = "CAOS"
     structured_memory: list[MemoryEntry] = Field(default_factory=list)
     runtime_preferences: RuntimePreferences = Field(default_factory=RuntimePreferences)
+    voice_preferences: VoicePreferences = Field(default_factory=VoicePreferences)
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
 
@@ -265,3 +290,5 @@ class TTSResponse(BaseModel):
 
 class TranscriptionResponse(BaseModel):
     text: str
+    model_used: str = "whisper-1"
+    fallback_used: bool = False

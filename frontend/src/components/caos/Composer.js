@@ -1,10 +1,20 @@
-import { Mic, Paperclip, SendHorizontal, Volume2 } from "lucide-react";
-import { useState } from "react";
+import { Mic, Paperclip, SendHorizontal, Square, Volume2 } from "lucide-react";
+import { useRef, useState } from "react";
 
 
-export const Composer = ({ busy, lastAssistantMessage, onSend, onSpeak, onTranscribe, onUploadFile, status }) => {
+const joinDraft = (base, addition) => [base, addition].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+
+
+export const Composer = ({ busy, lastAssistantMessage, onSend, onSpeak, onTranscribe, onTranscribeChunk, onUploadFile, status, voiceSettings }) => {
   const [draft, setDraft] = useState("");
   const [recording, setRecording] = useState(false);
+  const [liveStatus, setLiveStatus] = useState("");
+  const [liveTranscript, setLiveTranscript] = useState("");
+  const recorderRef = useRef(null);
+  const streamRef = useRef(null);
+  const chunksRef = useRef([]);
+  const initialDraftRef = useRef("");
+  const liveTranscriptRef = useRef("");
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -20,22 +30,65 @@ export const Composer = ({ busy, lastAssistantMessage, onSend, onSpeak, onTransc
     event.target.value = "";
   };
 
+  const stopRecording = () => {
+    if (recorderRef.current?.state !== "inactive") {
+      recorderRef.current.stop();
+    }
+  };
+
+  const mergeLiveChunk = (incoming) => {
+    const nextText = incoming.trim();
+    if (!nextText) return liveTranscriptRef.current;
+    const previous = liveTranscriptRef.current.trim();
+    if (!previous) return nextText;
+    if (previous.endsWith(nextText)) return previous;
+    if (nextText.startsWith(previous)) return nextText;
+    return `${previous} ${nextText}`.replace(/\s+/g, " ").trim();
+  };
+
   const handleRecord = async () => {
-    if (recording) return;
+    if (recording) {
+      stopRecording();
+      return;
+    }
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const recorder = new MediaRecorder(stream);
-    const chunks = [];
+    recorderRef.current = recorder;
+    streamRef.current = stream;
+    chunksRef.current = [];
+    initialDraftRef.current = draft;
+    liveTranscriptRef.current = "";
+    setLiveTranscript("");
+    setLiveStatus(`Listening with ${voiceSettings.stt_primary_model}...`);
     setRecording(true);
-    recorder.ondataavailable = (event) => chunks.push(event.data);
-    recorder.onstop = async () => {
-      const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
-      const text = await onTranscribe(blob);
-      setDraft((previous) => [previous, text].filter(Boolean).join(" ").trim());
-      setRecording(false);
-      stream.getTracks().forEach((track) => track.stop());
+    recorder.ondataavailable = async (event) => {
+      if (!event.data?.size) return;
+      chunksRef.current.push(event.data);
+      try {
+        const response = await onTranscribeChunk(event.data, liveTranscriptRef.current || initialDraftRef.current);
+        const merged = mergeLiveChunk(response.text || "");
+        liveTranscriptRef.current = merged;
+        setLiveTranscript(merged);
+        setDraft(joinDraft(initialDraftRef.current, merged));
+        setLiveStatus(`Streaming with ${response.model_used}${response.fallback_used ? " (fallback)" : ""}`);
+      } catch {
+        setLiveStatus("Streaming unavailable — final transcript will still be added.");
+      }
     };
-    recorder.start();
-    setTimeout(() => recorder.state !== "inactive" && recorder.stop(), 5000);
+    recorder.onstop = async () => {
+      const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
+      const response = await onTranscribe(blob);
+      const text = response.text || "";
+      liveTranscriptRef.current = text;
+      setLiveTranscript(text);
+      setDraft(joinDraft(initialDraftRef.current, text));
+      setLiveStatus(`Transcript ready via ${response.model_used}${response.fallback_used ? " (fallback)" : ""}`);
+      setRecording(false);
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      recorderRef.current = null;
+    };
+    recorder.start(1400);
   };
 
   const handleReadLastAssistant = async () => {
@@ -70,14 +123,16 @@ export const Composer = ({ busy, lastAssistantMessage, onSend, onSpeak, onTransc
           onChange={(event) => setDraft(event.target.value)}
         />
         <button className="message-action-button composer-mic" data-testid="caos-composer-mic-button" onClick={handleRecord} type="button">
-          <Mic size={16} />
-          <span>{recording ? "Recording" : "Mic"}</span>
+          {recording ? <Square size={16} /> : <Mic size={16} />}
+          <span>{recording ? "Stop" : "Mic"}</span>
         </button>
         <button className="primary-shell-button composer-send" data-testid="caos-composer-send-button" disabled={busy || !draft.trim()}>
           <SendHorizontal size={16} />
           <span>Send</span>
         </button>
       </div>
+      {liveStatus ? <div className="composer-live-status" data-testid="caos-composer-live-status">{liveStatus}</div> : null}
+      {liveTranscript ? <div className="composer-live-transcript" data-testid="caos-composer-live-transcript">{liveTranscript}</div> : null}
       <div className="composer-status" data-testid="caos-composer-status">{status}</div>
     </form>
   );
