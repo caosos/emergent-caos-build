@@ -29,6 +29,8 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Deepened the memory pipeline with subject-bin inference, continuity packet selection from prior summaries/seeds, and deterministic reinjection metadata returned in chat receipts.
 - Finished the shell’s viewport-lock pass: the app now runs as a viewport-contained workspace with a collapsible left rail, a bottom-spanning command footer, and refreshed model routing controls in the shell UI.
 - Added runtime visibility to the profile drawer and exposed provider chips in the model bar so the user can switch between supported engines from the CAOS shell.
+- Added the Phase 1 voice/settings pass: profile-based voice preferences, GPT-4o Transcribe as the preferred STT target, whisper-1 fallback handling, selectable TTS voices, and composer draft-preservation during mic capture.
+- Added a streaming-style transcription UX in the composer: chunk-based interim transcript updates are shown live while recording, then replaced with the finalized transcript on stop so typed draft text is preserved.
 
 ## Prioritized Backlog
 ### P0
@@ -36,12 +38,13 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Build the actual BYO-provider credential attachment flow for non-Universal engines like Grok/xAI instead of the current placeholder-only registration.
 - Port the remaining repo bubble/menu surfaces still missing: richer receipt detail, metadata rows, expanded reply/reaction parity, and deeper command-center home states.
 - Build stronger observability/error-envelope handling and reduce any remaining startup noise.
+- Validate whether `gpt-4o-transcribe` can be made fully primary in the current STT integration path; today the system attempts it first and falls back honestly to `whisper-1` when required.
 
 ### P1
-- Port the original TTS/STT settings surfaces and voice preference controls.
 - Build thread rehydration workers, memory summaries, and controlled cross-thread retrieval policy on top of the new lineage model.
 - Add better retrieval ranking, metadata tagging, bin governance, and thread title generation.
 - Bring over full files/photos/links parity and richer message evidence surfaces from the repo.
+- Deepen the voice surface further with true streaming transcription transport, richer recording state controls, and transcript receipts tied to artifacts.
 
 ### P2
 - Connector framework for Gmail/Workspace/home automation actions.
@@ -51,4 +54,4 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 ## Next Tasks
 1. Build the secure BYO-provider credential attachment flow so Grok/xAI and future non-Universal engines can be plugged into CAOS without changing the memory architecture.
 2. Deepen receipts/summaries/seeds again so subject bins, continuity packets, and cross-thread rehydration become first-class long-horizon memory primitives.
-3. Push the shell from improved parity to true parity: deeper home-state command center, richer metadata rows, voice settings, and stronger files/photos/links parity.
+3. Push the shell from improved parity to true parity: deeper home-state command center, richer metadata rows, stronger files/photos/links parity, and then revisit true GPT-4o streaming transport.
