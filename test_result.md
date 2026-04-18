@@ -102,7 +102,92 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the CAOS frontend on https://deno-env-review.preview.emergentagent.com after a major shell/runtime update. Focus areas: viewport-lock shell, left rail collapse/reopen, command footer, search drawer, runtime model bar, profile drawer, and no blank states/crashes/console errors."
+user_problem_statement: "Test the CAOS backend routing and memory update after a major portable-runtime implementation. Focus areas: runtime settings endpoints, session creation, chat with runtime resolution, response field validation, BYO key handling, and no 500 errors."
+
+backend:
+  - task: "GET /caos/runtime/settings/{user_email} default hybrid runtime settings"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/caos.py, /app/backend/app/services/runtime_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "GET runtime settings endpoint verified successfully. Returns default hybrid runtime settings with all required fields: user_email, key_source, default_provider, default_model, enabled_providers, provider_catalog. Provider catalog includes openai, anthropic, gemini, xai with correct configuration. xAI properly marked as requires_custom_key: true."
+
+  - task: "POST /caos/runtime/settings persist preferred provider/model"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/caos.py, /app/backend/app/services/runtime_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "POST runtime settings endpoint verified successfully. Can persist preferred provider/model settings. Tested with anthropic + claude-sonnet-4-5-20250929 configuration. Settings are correctly saved and returned in response."
+
+  - task: "POST /caos/sessions create session for test user"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/caos.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "POST sessions endpoint verified successfully. Creates session with correct structure including session_id, user_email, title, created_at, updated_at. Session ID properly generated and returned for subsequent operations."
+
+  - task: "POST /caos/chat with runtime resolution from stored settings"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/caos.py, /app/backend/app/services/chat_pipeline.py, /app/backend/app/services/runtime_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "POST chat endpoint verified successfully. Works correctly when provider/model are omitted from request body, proving backend resolution from stored settings. Used stored anthropic + claude-sonnet-4-5-20250929 configuration correctly. Chat pipeline executed without errors."
+
+  - task: "Chat response includes provider, model, subject_bins, receipt fields"
+    implemented: true
+    working: true
+    file: "/app/backend/app/services/chat_pipeline.py, /app/backend/app/schemas/caos.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Chat response field validation verified successfully. Response includes all required fields: provider, model, subject_bins (as list), receipt with selected_summary_ids and selected_seed_ids. All fields properly populated and structured according to schema."
+
+  - task: "xAI + grok-byo-placeholder BYO key handling"
+    implemented: true
+    working: true
+    file: "/app/backend/app/services/runtime_service.py, /app/backend/app/routes/caos.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "BYO key handling verified successfully. POST runtime settings with xai + grok-byo-placeholder succeeds as settings save. POST chat with xAI fails cleanly with 404 status and honest BYO-key-required message mentioning bring-your-own credentials. No crashes or 500 errors."
+
+  - task: "No 500 errors in CAOS backend flow"
+    implemented: true
+    working: true
+    file: "All CAOS backend endpoints"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Error handling verified successfully. No 500 errors encountered during complete test flow. All endpoints handle errors gracefully with appropriate HTTP status codes. BYO key scenarios fail with 404 instead of 500. Backend demonstrates robust error handling."
 
 frontend:
   - task: "Viewport-lock shell design"
@@ -191,13 +276,13 @@ frontend:
 
 metadata:
   created_by: "testing_agent"
-  version: "1.0"
-  test_sequence: 1
-  run_ui: true
+  version: "1.1"
+  test_sequence: 2
+  run_ui: false
 
 test_plan:
   current_focus:
-    - "All tests completed successfully"
+    - "All backend tests completed successfully"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
@@ -205,3 +290,5 @@ test_plan:
 agent_communication:
     - agent: "testing"
       message: "Completed comprehensive testing of CAOS frontend after major shell/runtime update. All 7 focus areas tested successfully: viewport-lock shell, left rail collapse/reopen, command footer positioning, search drawer, runtime model bar with all 4 provider chips (including xAI/Grok as BYO placeholder), profile drawer with runtime routing info, and verified no console errors or crashes. All functionality working as expected. No critical or major issues found. Ready for production."
+    - agent: "testing"
+      message: "Completed comprehensive testing of CAOS backend routing and memory update after portable-runtime implementation. All 7 backend focus areas tested successfully: GET runtime settings with default hybrid configuration and provider catalog, POST runtime settings persistence, POST session creation, POST chat with runtime resolution from stored settings, chat response field validation (provider, model, subject_bins, receipt), xAI BYO key handling with clean failure, and verified no 500 errors in complete flow. Backend demonstrates robust error handling and proper runtime resolution. All endpoints working correctly."
