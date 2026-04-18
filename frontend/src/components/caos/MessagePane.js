@@ -1,11 +1,13 @@
 import { Copy, CornerDownLeft, Receipt, ThumbsUp, Volume2 } from "lucide-react";
 import { useState } from "react";
 
+import { ChatSurfaceStrip } from "@/components/caos/ChatSurfaceStrip";
+
 
 const formatRole = (role) => (role === "assistant" ? "CAOS" : role === "user" ? "You" : "System");
 
 
-export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts }) => {
+export const MessagePane = ({ busy, currentSession, latestReceipt, messages, onOpenArtifacts, onOpenInspector, onOpenSearch, onSpeak, receipts }) => {
   const [actionStatus, setActionStatus] = useState("");
   const [messageMeta, setMessageMeta] = useState({});
   const [speakingId, setSpeakingId] = useState("");
@@ -52,6 +54,8 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
         </div>
         {busy ? <span className="busy-chip" data-testid="caos-busy-chip">Thinking…</span> : null}
       </div>
+
+      <ChatSurfaceStrip latestReceipt={latestReceipt} onOpenArtifacts={onOpenArtifacts} onOpenInspector={onOpenInspector} onOpenSearch={onOpenSearch} />
 
       <div className="message-scroll" data-testid="caos-message-scroll">
         {messages.length === 0 ? (

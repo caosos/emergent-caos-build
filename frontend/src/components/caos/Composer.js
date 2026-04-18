@@ -98,6 +98,10 @@ export const Composer = ({ busy, lastAssistantMessage, onSend, onSpeak, onTransc
 
   return (
     <form className="composer-shell" data-testid="caos-composer-shell" onSubmit={handleSubmit}>
+      <div className="composer-shell-topline" data-testid="caos-composer-topline">
+        <span data-testid="caos-composer-topline-mode">Primary STT · {voiceSettings.stt_primary_model}</span>
+        <span data-testid="caos-composer-topline-hint">Draft-safe voice capture is active</span>
+      </div>
       <div className="composer-row">
         <label className="message-action-button composer-upload" data-testid="caos-composer-upload-button">
           <Paperclip size={16} />
@@ -118,7 +122,7 @@ export const Composer = ({ busy, lastAssistantMessage, onSend, onSpeak, onTransc
           data-testid="caos-composer-textarea"
           id="caos-draft"
           placeholder="Type into the real CAOS shell..."
-          rows={3}
+          rows={2}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
         />

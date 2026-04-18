@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the latest CAOS sidebar + identity/menu architecture update on https://deno-env-review.preview.emergentagent.com. Focus areas: (1) Sidebar is visible on load and can collapse/reopen cleanly, (2) The rail footer account trigger (data-testid='caos-rail-user-card') opens the new account/menu popover, (3) In the account popover, verify primary items exist: desktop, profile, search, session token, bootloader, (4) Verify the secondary panel exists for the desktop section with tiles for files, photos, links, new thread, settings, (5) Clicking profile from the account menu opens the profile drawer without crash, (6) Clicking search from the account menu opens the search drawer without crash, (7) Overall header should remain usable and no duplicate/competing menu behavior should appear during the flow, (8) Check for console errors, broken layout, or failed network requests."
+user_problem_statement: "Test the latest CAOS /chat visual parity pass on https://deno-env-review.preview.emergentagent.com. Focus areas: (1) Chat shell still loads without regressions, (2) New compact chat surface strip exists with: caos-chat-surface-wcw-chip, caos-chat-surface-lane-chip, caos-chat-surface-continuity-chip, caos-chat-surface-search-button, caos-chat-surface-inspector-button, caos-chat-surface-files-button, (3) Search button from the strip opens the search drawer, (4) Context button from the strip opens the inspector panel, (5) Files button from the strip opens artifacts, (6) Composer remains usable after the white/slim redesign, (7) Message actions (copy/reply/useful/receipt when present) still render and remain clickable, (8) Watch for layout breakage, overlap that blocks interaction, console errors, or failed requests."
 
 backend:
   - task: "GET /caos/runtime/settings/{user_email} default hybrid runtime settings"
@@ -514,6 +514,102 @@ frontend:
           agent: "testing"
           comment: "POST voice transcribe endpoint verified successfully. Accepts multipart form fields: user_email, model, fallback_model, language, prompt, and file. Returns correct response structure with text, model_used, and fallback_used fields. Tested with real TTS-generated audio."
 
+  - task: "Chat shell loads without regressions"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/CaosShell.js, /app/frontend/src/App.css"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Chat shell verified successfully. Shell root (data-testid='caos-shell-root') and shell grid (data-testid='caos-shell-grid') are both visible and rendering correctly. No regressions detected in shell loading. Layout remains stable and functional."
+
+  - task: "ChatSurfaceStrip component with all chips and buttons"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/ChatSurfaceStrip.js, /app/frontend/src/components/caos/MessagePane.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "ChatSurfaceStrip component verified successfully. All required elements present and visible: (1) WCW chip (data-testid='caos-chat-surface-wcw-chip') showing working packet chars, (2) Lane chip (data-testid='caos-chat-surface-lane-chip') showing lane name 'test', (3) Continuity chip (data-testid='caos-chat-surface-continuity-chip') showing '4 packets', (4) Search button (data-testid='caos-chat-surface-search-button'), (5) Inspector/Context button (data-testid='caos-chat-surface-inspector-button'), (6) Files button (data-testid='caos-chat-surface-files-button'). All chips display correct data from latestReceipt prop. Component renders cleanly in compact strip layout."
+
+  - task: "Search button opens search drawer"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/ChatSurfaceStrip.js, /app/frontend/src/components/caos/SearchDrawer.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Search button integration verified successfully. Clicking search button (data-testid='caos-chat-surface-search-button') from chat surface strip opens search drawer (data-testid='caos-search-drawer') correctly. Drawer renders with search interface. Close functionality works via header toggle button. No errors during interaction."
+
+  - task: "Context button opens inspector panel"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/ChatSurfaceStrip.js, /app/frontend/src/components/caos/InspectorPanel.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Context button integration verified successfully. Clicking context/inspector button (data-testid='caos-chat-surface-inspector-button') from chat surface strip opens inspector panel (data-testid='caos-inspector-panel') correctly. Panel renders with context information including runtime, used for recall, subject bins, lane, and continuity packets. No errors during opening."
+
+  - task: "Files button opens artifacts drawer"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/ChatSurfaceStrip.js, /app/frontend/src/components/caos/ArtifactsDrawer.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Files button integration verified successfully. Clicking files button (data-testid='caos-chat-surface-files-button') from chat surface strip opens artifacts drawer (data-testid='caos-artifacts-drawer') correctly. Drawer renders with files/photos/links section, receipts section, and summaries section. All content displays properly. No errors during interaction."
+
+  - task: "Composer usability after white/slim redesign"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/Composer.js, /app/frontend/src/App.css"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Composer usability verified successfully after white/slim redesign. All composer elements visible and functional: (1) Textarea (data-testid='caos-composer-textarea') accepts input correctly, (2) Send button (data-testid='caos-composer-send-button') visible and enables when text present, (3) Attach button (data-testid='caos-composer-upload-button') visible, (4) Mic button (data-testid='caos-composer-mic-button') visible, (5) Read Last button (data-testid='caos-composer-read-last-button') visible. Composer shell (data-testid='caos-composer-shell') renders with new white/slim styling. No usability issues detected."
+
+  - task: "Message actions render and remain clickable"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/MessagePane.js, /app/frontend/src/App.css"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Message actions verified successfully. All message action buttons render correctly and remain clickable: (1) Copy button (data-testid='caos-message-copy-{message.id}') visible and clickable, (2) Reply button (data-testid='caos-message-reply-{message.id}') visible and clickable, (3) Useful button (data-testid='caos-message-react-{message.id}') visible and clickable, (4) Read button (data-testid='caos-message-read-{message.id}') visible and clickable for assistant messages, (5) Receipt button (data-testid='caos-message-receipt-{message.id}') conditionally renders when linkedReceipt exists. All buttons properly styled and functional. No interaction issues detected."
+
+  - task: "No layout breakage, overlap, console errors, or failed requests"
+    implemented: true
+    working: true
+    file: "All CAOS frontend components"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Layout stability and error checking verified successfully. All critical layout elements visible and functional: shell root, shell grid, message pane, composer. No console errors detected during testing. No network request failures (4xx/5xx responses). No error messages found on page. Composer textarea remains clickable with no blocking overlays. Layout remains stable throughout all interactions with chat surface strip buttons and drawers. No meaningful blockers found."
+
   - task: "End-to-end round-trip TTS to transcribe"
     implemented: true
     working: true
@@ -636,13 +732,13 @@ frontend:
 
 metadata:
   created_by: "testing_agent"
-  version: "1.5"
-  test_sequence: 6
+  version: "1.6"
+  test_sequence: 7
   run_ui: false
 
 test_plan:
   current_focus:
-    - "CAOS sidebar + identity/menu architecture testing completed successfully"
+    - "CAOS /chat visual parity pass testing completed successfully"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
@@ -666,3 +762,5 @@ agent_communication:
       message: "PRE-DEPLOY BACKEND SANITY PASS COMPLETE (April 18, 2026) - Tested all 8 critical backend endpoints on https://deno-env-review.preview.emergentagent.com/api: (1) Session creation endpoint works - POST /caos/sessions returns session_id and user_email, (2) Chat/message endpoint works for normal turn - POST /caos/chat returns reply, provider, and model, (3) Sessions listing works after chat - GET /caos/sessions returns list of sessions, (4) Artifacts endpoint works - GET /caos/sessions/{session_id}/artifacts returns receipts, summaries, and seeds, (5) Continuity endpoint works - GET /caos/sessions/{session_id}/continuity returns session_id and lineage_depth, (6) Runtime settings endpoint works - GET/POST /caos/runtime/settings handles user preferences correctly, (7) Voice settings endpoint works - GET/POST /caos/voice/settings handles voice preferences correctly, (8) No 500 errors or contract-breaking responses detected in sanity flow. All 35/35 tests passed. DEPLOYMENT READY - No blockers found."
     - agent: "testing"
       message: "CAOS SIDEBAR + IDENTITY/MENU ARCHITECTURE TEST COMPLETE (April 18, 2026) - Tested latest sidebar + identity/menu architecture update on https://deno-env-review.preview.emergentagent.com. All 8 focus areas verified successfully: (1) Sidebar visible on load and collapse/reopen works cleanly, (2) Rail footer account trigger (data-testid='caos-rail-user-card') opens account/menu popover correctly, (3) All 5 primary items exist in account popover: desktop, profile, search, session token, bootloader - all visible and functional, (4) Secondary panel for desktop section displays all tiles: files, photos, links, new thread, settings - all visible and functional, (5) Profile drawer opens from account menu without crash - drawer renders correctly with overlay, (6) Search drawer opens from account menu without crash - drawer renders correctly, (7) Header remains usable with all elements present - no duplicate/competing menu behavior detected, (8) No console errors, no network failures, layout remains stable - shell grid and command footer visible. New RailAccountMenu component architecture working perfectly. No critical or major issues found. READY FOR PRODUCTION."
+    - agent: "testing"
+      message: "CAOS /CHAT VISUAL PARITY PASS COMPLETE (April 18, 2026) - Tested latest /chat visual parity pass on https://deno-env-review.preview.emergentagent.com. All 8 focus areas verified successfully: (1) Chat shell loads without regressions - shell root and grid visible and functional, (2) New compact chat surface strip exists with all required chips and buttons: WCW chip showing working packet chars, Lane chip showing 'test', Continuity chip showing '4 packets', Search button, Context/Inspector button, Files button - all visible and functional, (3) Search button from strip opens search drawer correctly, (4) Context button from strip opens inspector panel correctly, (5) Files button from strip opens artifacts drawer correctly, (6) Composer remains usable after white/slim redesign - all elements (textarea, send, attach, mic, read last) visible and functional, textarea accepts input correctly, (7) Message actions (copy/reply/useful/read) render and remain clickable - all buttons visible and functional, receipt button conditionally renders when linkedReceipt exists, (8) No layout breakage, overlap blocking interaction, console errors, or failed requests detected. All critical layout elements visible and stable. Visual parity pass working perfectly. No meaningful blockers found. READY FOR PRODUCTION."

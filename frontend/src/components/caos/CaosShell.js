@@ -111,7 +111,17 @@ export const CaosShell = () => {
             </div>
           ) : null}
 
-          <MessagePane busy={busy} currentSession={currentSession} messages={filteredMessages} onSpeak={speakText} receipts={artifacts.receipts} />
+          <MessagePane
+            busy={busy}
+            currentSession={currentSession}
+            latestReceipt={runtimeReceipt}
+            messages={filteredMessages}
+            onOpenArtifacts={() => setShowArtifacts(true)}
+            onOpenInspector={() => setShowInspector(true)}
+            onOpenSearch={() => setShowSearch(true)}
+            onSpeak={speakText}
+            receipts={artifacts.receipts}
+          />
         </section>
       </div>
 
@@ -136,13 +146,6 @@ export const CaosShell = () => {
           voiceSettings={voiceSettings}
         />
       </div>
-
-      {!showSearch ? (
-        <button className="inspector-toggle-button" data-testid="caos-inspector-toggle-button" onClick={() => setShowInspector((value) => !value)}>
-          Insights
-        </button>
-      ) : null}
-
       <InspectorPanel
         continuity={continuity}
         isOpen={showInspector && !showSearch}
