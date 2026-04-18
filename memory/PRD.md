@@ -31,17 +31,19 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Added runtime visibility to the profile drawer and exposed provider chips in the model bar so the user can switch between supported engines from the CAOS shell.
 - Added the Phase 1 voice/settings pass: profile-based voice preferences, GPT-4o Transcribe as the preferred STT target, whisper-1 fallback handling, selectable TTS voices, and composer draft-preservation during mic capture.
 - Added a streaming-style transcription UX in the composer: chunk-based interim transcript updates are shown live while recording, then replaced with the finalized transcript on stop so typed draft text is preserved.
+- Added Phase 2A lane-aware memory: sessions now persist a derived lane, receipts carry lane/worker/context-budget metadata, cross-thread continuity now ranks prior summaries/seeds across the user’s sessions, and lane worker snapshots are rebuilt into `/api/caos/memory/workers/*` endpoints.
+- Added visible lane surfaces in the shell so thread cards and the inspector expose lane + worker usage instead of hiding continuity decisions.
 
 ## Prioritized Backlog
 ### P0
-- Deepen the artifact contracts further so receipts, summaries, seeds, and subject bins can support longer-horizon rehydration across multiple threads and lanes.
+- Deepen the artifact contracts further so receipts, summaries, seeds, and subject bins can support longer-horizon rehydration across multiple threads and lanes with stronger lane heuristics and worker summarization.
 - Build the actual BYO-provider credential attachment flow for non-Universal engines like Grok/xAI instead of the current placeholder-only registration.
 - Port the remaining repo bubble/menu surfaces still missing: richer receipt detail, metadata rows, expanded reply/reaction parity, and deeper command-center home states.
 - Build stronger observability/error-envelope handling and reduce any remaining startup noise.
 - Validate whether `gpt-4o-transcribe` can be made fully primary in the current STT integration path; today the system attempts it first and falls back honestly to `whisper-1` when required.
 
 ### P1
-- Build thread rehydration workers, memory summaries, and controlled cross-thread retrieval policy on top of the new lineage model.
+- Build richer thread rehydration workers, memory summaries, and controlled cross-thread retrieval policy on top of the new lane-aware lineage model.
 - Add better retrieval ranking, metadata tagging, bin governance, and thread title generation.
 - Bring over full files/photos/links parity and richer message evidence surfaces from the repo.
 - Deepen the voice surface further with true streaming transcription transport, richer recording state controls, and transcript receipts tied to artifacts.
@@ -52,6 +54,6 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Deeper anchor maps, campaign memory, and long-horizon project continuity.
 
 ## Next Tasks
-1. Build the secure BYO-provider credential attachment flow so Grok/xAI and future non-Universal engines can be plugged into CAOS without changing the memory architecture.
-2. Deepen receipts/summaries/seeds again so subject bins, continuity packets, and cross-thread rehydration become first-class long-horizon memory primitives.
-3. Push the shell from improved parity to true parity: deeper home-state command center, richer metadata rows, stronger files/photos/links parity, and then revisit true GPT-4o streaming transport.
+1. Deepen receipts/summaries/seeds again so subject bins, continuity packets, and cross-thread rehydration become first-class long-horizon memory primitives with stricter cost budgets.
+2. Push the shell from improved parity to true parity: deeper home-state command center, richer metadata rows, stronger files/photos/links parity, and better worker/receipt drill-down.
+3. Build the secure BYO-provider credential attachment flow so Grok/xAI and future non-Universal engines can be plugged into CAOS without changing the memory architecture.
