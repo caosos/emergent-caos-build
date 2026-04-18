@@ -358,15 +358,99 @@ frontend:
           agent: "testing"
           comment: "Voice settings UI stability verified successfully. No console errors detected during voice settings interactions. No network request failures. UI remains stable after clicking STT and TTS buttons. Profile drawer functions correctly throughout voice settings changes. Composer layout remains intact. No crashes or blank states observed."
 
+  - task: "POST /caos/voice/settings persists voice preferences"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/caos.py, /app/backend/app/services/voice_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "POST voice settings endpoint verified successfully. Persists voice preferences for fresh test user with gpt-4o-transcribe primary model, whisper-1 fallback, en language, and TTS voice/model settings (nova, tts-1-hd, 1.0 speed). All fields saved and retrieved correctly."
+
+  - task: "GET /caos/voice/settings/{user_email} returns saved preferences"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/caos.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "GET voice settings endpoint verified successfully. Returns saved preferences correctly for test user. All voice preference fields match exactly what was persisted: stt_primary_model, stt_fallback_model, stt_language, tts_model, tts_voice, tts_speed."
+
+  - task: "POST /caos/voice/tts returns audio for short known phrase"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/caos.py, /app/backend/app/services/voice_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "POST voice TTS endpoint verified successfully. Returns audio for short known phrase 'Hello, this is a test of the text to speech system.' Generated 63840 bytes of valid base64-encoded audio data with correct response structure including audio_base64, content_type, voice, model, speed fields."
+
+  - task: "POST /caos/voice/transcribe accepts multipart form fields"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/caos.py, /app/backend/app/services/voice_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "POST voice transcribe endpoint verified successfully. Accepts multipart form fields: user_email, model, fallback_model, language, prompt, and file. Returns correct response structure with text, model_used, and fallback_used fields. Tested with real TTS-generated audio."
+
+  - task: "End-to-end round-trip TTS to transcribe"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/caos.py, /app/backend/app/services/voice_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "End-to-end round-trip verified successfully. Used TTS-generated audio as uploaded file to /voice/transcribe endpoint. Returned valid text result 'Hello, this is a test of the text to speech system.' with model_used and fallback_used fields correctly populated. Complete audio processing pipeline working."
+
+  - task: "Fallback from gpt-4o-transcribe to whisper-1"
+    implemented: true
+    working: true
+    file: "/app/backend/app/services/voice_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Fallback behavior verified successfully. When gpt-4o-transcribe is not accepted by underlying integration, endpoint falls back cleanly to whisper-1 instead of returning 500 errors. Fallback mechanism working correctly with proper model_used and fallback_used field reporting."
+
+  - task: "No internal errors or unsafe failures in voice endpoints"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/caos.py, /app/backend/app/services/voice_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Error handling verified successfully. No internal errors or unsafe failures detected in voice endpoints. Edge cases tested: non-existent user voice settings (returns defaults), very long text TTS (handled gracefully). All endpoints handle errors appropriately without 500 responses. Robust error handling implemented."
+
 metadata:
   created_by: "testing_agent"
-  version: "1.2"
-  test_sequence: 3
+  version: "1.3"
+  test_sequence: 4
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Voice settings testing completed successfully"
+    - "CAOS backend voice/settings testing completed successfully"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
@@ -378,3 +462,5 @@ agent_communication:
       message: "Completed comprehensive testing of CAOS backend routing and memory update after portable-runtime implementation. All 7 backend focus areas tested successfully: GET runtime settings with default hybrid configuration and provider catalog, POST runtime settings persistence, POST session creation, POST chat with runtime resolution from stored settings, chat response field validation (provider, model, subject_bins, receipt), xAI BYO key handling with clean failure, and verified no 500 errors in complete flow. Backend demonstrates robust error handling and proper runtime resolution. All endpoints working correctly."
     - agent: "testing"
       message: "Completed comprehensive testing of CAOS frontend voice/settings pass. All 7 voice-related focus areas tested successfully: (1) Profile drawer voice settings section exists and is accessible with correct data-testid, (2) STT model buttons for gpt-4o-transcribe and whisper-1 are present and functional with proper active state toggling, (3) TTS voice buttons for nova/alloy/verse are present and functional with proper active state toggling, (4) Voice settings backend integration works correctly with POST /api/caos/voice/settings endpoint and status confirmation, (5) Composer mic button is visible and properly positioned, (6) Live status/transcript surfaces are correctly implemented as conditionally rendered elements (appear during recording), (7) No console errors or network failures detected during voice settings interactions. UI remains stable throughout all voice settings changes. All functionality working as expected. No critical or major issues found."
+    - agent: "testing"
+      message: "Completed comprehensive testing of CAOS backend voice/settings endpoints as requested in review. All 7 requirements verified successfully: (1) POST /caos/voice/settings persists voice preferences for fresh test user with gpt-4o-transcribe primary, whisper-1 fallback, en language, and TTS voice/model settings, (2) GET /caos/voice/settings/{user_email} returns saved preferences correctly, (3) POST /caos/voice/tts returns audio for short known phrase (generated 63840 bytes), (4) POST /caos/voice/transcribe accepts multipart form fields (user_email, model, fallback_model, language, prompt, file), (5) End-to-end round-trip using TTS-generated audio for transcription works correctly with valid text result and model_used/fallback_used fields, (6) gpt-4o-transcribe falls back cleanly to whisper-1 without 500 errors, (7) No internal errors or unsafe failures detected in edge case testing. All endpoints working correctly with proper error handling. No contract mismatches or regressions found."
