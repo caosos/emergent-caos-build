@@ -544,7 +544,7 @@
 .surface-button-row,
 .message-actions-row {
     display: flex;
-    gap: 10px;
+    gap: 6px;
     flex-wrap: wrap;
 }
 
@@ -567,7 +567,24 @@
 }
 
 .message-actions-row {
-    margin-top: 14px;
+    margin-top: 10px;
+}
+
+.message-actions-row .message-action-button {
+    padding: 7px 12px;
+    gap: 6px;
+    background: rgba(15, 23, 42, 0.58);
+    border-color: rgba(148, 163, 184, 0.12);
+    font-size: 0.84rem;
+}
+
+.message-actions-row .message-action-button span {
+    line-height: 1;
+}
+
+.reaction-chip {
+    padding: 8px 10px;
+    font-size: 0.82rem;
 }
 
 .message-pane {
@@ -691,30 +708,33 @@
 
 .message-scroll {
     margin-top: 0;
-    width: min(100%, 860px);
+    width: min(100%, 840px);
     height: 100%;
     margin-inline: auto;
     padding-bottom: 240px;
 }
 
 .message-bubble {
-    padding: 14px 16px 12px;
-    border-radius: 22px;
+    padding: 12px 14px 10px;
+    border-radius: 20px;
     box-shadow: 0 14px 40px rgba(0, 0, 0, 0.14);
 }
 
 .message-bubble-user {
     border-color: rgba(59, 130, 246, 0.28);
     background: linear-gradient(180deg, rgba(37, 99, 235, 0.6), rgba(30, 64, 175, 0.48));
+    margin-left: 44px;
 }
 
 .message-bubble-assistant {
     border-color: rgba(148, 163, 184, 0.16);
     background: rgba(11, 18, 32, 0.82);
+    margin-right: 44px;
 }
 
 .message-bubble-system {
     border-style: dashed;
+    margin-right: 44px;
 }
 
 .thread-card-lane {
@@ -731,14 +751,20 @@
     white-space: pre-wrap;
 }
 
+.message-bubble p {
+    font-size: 0.98rem;
+}
+
 .message-bubble-topline strong {
-    font-size: 0.88rem;
-    letter-spacing: 0.04em;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(191, 219, 254, 0.82);
 }
 
 .message-bubble-topline span {
     color: rgba(191, 219, 254, 0.64);
-    font-size: 0.78rem;
+    font-size: 0.74rem;
 }
 
 .message-action-status {
@@ -753,7 +779,7 @@
 .reaction-row,
 .reply-shell,
 .receipt-inline {
-    margin-top: 12px;
+    margin-top: 10px;
 }
 
 .reaction-row {

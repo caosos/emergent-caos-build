@@ -5,6 +5,7 @@ import { ChatSurfaceStrip } from "@/components/caos/ChatSurfaceStrip";
 
 
 const formatRole = (role) => (role === "assistant" ? "CAOS" : role === "user" ? "You" : "System");
+const formatTimestamp = (value) => new Date(value).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 
 export const MessagePane = ({ busy, currentSession, latestReceipt, messages, onOpenArtifacts, onOpenInspector, onOpenSearch, onOpenThreads, onSpeak, receipts }) => {
@@ -78,7 +79,7 @@ export const MessagePane = ({ busy, currentSession, latestReceipt, messages, onO
               >
                 <div className="message-bubble-topline">
                   <strong data-testid={`caos-message-role-${message.id}`}>{formatRole(message.role)}</strong>
-                  <span data-testid={`caos-message-time-${message.id}`}>{new Date(message.timestamp).toLocaleString()}</span>
+                  <span data-testid={`caos-message-time-${message.id}`}>{formatTimestamp(message.timestamp)}</span>
                 </div>
                 <p data-testid={`caos-message-content-${message.id}`}>{message.content}</p>
                 <div className="message-actions-row" data-testid={`caos-message-actions-${message.id}`}>
