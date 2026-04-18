@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the CAOS frontend after Phase 2A lane-aware memory update on https://deno-env-review.preview.emergentagent.com. Focus areas: (1) Verify shell loads for seeded user and recent thread cards render without errors, (2) Confirm each thread card shows lane label via data-testid pattern caos-thread-lane-{session_id}, (3) Open inspector (Insights toggle) and verify receipt lane and lane worker counts render with caos-inspector-receipt-lane and caos-inspector-receipt-worker-count, (4) Confirm no layout breakage or console errors from new lane UI fields, (5) App should remain viewport-stable and usable."
+user_problem_statement: "Test the latest CAOS sidebar + identity/menu architecture update on https://deno-env-review.preview.emergentagent.com. Focus areas: (1) Sidebar is visible on load and can collapse/reopen cleanly, (2) The rail footer account trigger (data-testid='caos-rail-user-card') opens the new account/menu popover, (3) In the account popover, verify primary items exist: desktop, profile, search, session token, bootloader, (4) Verify the secondary panel exists for the desktop section with tiles for files, photos, links, new thread, settings, (5) Clicking profile from the account menu opens the profile drawer without crash, (6) Clicking search from the account menu opens the search drawer without crash, (7) Overall header should remain usable and no duplicate/competing menu behavior should appear during the flow, (8) Check for console errors, broken layout, or failed network requests."
 
 backend:
   - task: "GET /caos/runtime/settings/{user_email} default hybrid runtime settings"
@@ -406,6 +406,66 @@ frontend:
           agent: "testing"
           comment: "Phase 2A lane-aware memory integration verified successfully. All 5 focus areas tested and working: (1) Shell loads for seeded user with 2 thread cards rendering without errors, (2) All thread cards show lane labels with correct data-testid pattern 'caos-thread-lane-{session_id}', (3) Inspector panel opens via Insights toggle and displays receipt lane (data-testid: caos-inspector-receipt-lane) and lane worker count (data-testid: caos-inspector-receipt-worker-count), (4) No layout breakage or console errors from new lane UI fields, (5) App remains viewport-stable and usable. No critical or major issues found."
 
+  - task: "RailAccountMenu component with account/menu popover"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/RailAccountMenu.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "RailAccountMenu component verified successfully. Rail footer account trigger (data-testid='caos-rail-user-card') opens account/menu popover correctly. Popover toggles open/close on click. All 5 primary items present and visible: desktop, profile, search, session token, bootloader. Engine label displays correctly showing 'ChatGPT · gpt-5.2'. No duplicate popovers detected. Component working as expected."
+
+  - task: "Account popover desktop secondary panel with tiles"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/RailAccountMenu.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Desktop secondary panel verified successfully. Panel is visible when desktop is active (default state). All 5 tiles present and visible: files, photos, links, new-thread, settings. Tiles render correctly with proper data-testids. Secondary panel layout working as expected."
+
+  - task: "Profile drawer opens from account menu"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/RailAccountMenu.js, /app/frontend/src/components/caos/ProfileDrawer.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Profile drawer integration with account menu verified successfully. Clicking profile item (data-testid='caos-rail-account-item-profile') from account popover opens profile drawer without crash. Drawer renders correctly with overlay. Close button works properly. No errors during interaction."
+
+  - task: "Search drawer opens from account menu"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/RailAccountMenu.js, /app/frontend/src/components/caos/SearchDrawer.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Search drawer integration with account menu verified successfully. Clicking search item (data-testid='caos-rail-account-item-search') from account popover opens search drawer without crash. Drawer renders correctly. Search drawer can be closed via header search toggle button. No errors during interaction."
+
+  - task: "Sidebar + identity/menu architecture integration"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/ThreadRail.js, /app/frontend/src/components/caos/RailAccountMenu.js, /app/frontend/src/components/caos/ShellHeader.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Complete sidebar + identity/menu architecture verified successfully. All 8 focus areas tested and working: (1) Sidebar visible on load and collapse/reopen works cleanly, (2) Rail footer account trigger opens account/menu popover, (3) All 5 primary items exist in popover (desktop, profile, search, session token, bootloader), (4) Secondary panel shows all desktop tiles (files, photos, links, new thread, settings), (5) Profile drawer opens from account menu without crash, (6) Search drawer opens from account menu without crash, (7) Header remains usable with no duplicate/competing menu behavior, (8) No console errors, no network failures, layout remains stable. New architecture working perfectly."
+
   - task: "POST /caos/voice/settings persists voice preferences"
     implemented: true
     working: true
@@ -576,13 +636,13 @@ frontend:
 
 metadata:
   created_by: "testing_agent"
-  version: "1.4"
-  test_sequence: 5
+  version: "1.5"
+  test_sequence: 6
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Phase 2A lane-aware memory testing completed successfully"
+    - "CAOS sidebar + identity/menu architecture testing completed successfully"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
@@ -604,3 +664,5 @@ agent_communication:
       message: "PRE-DEPLOY SANITY PASS COMPLETE (April 18, 2026) - Tested all 9 critical user-facing flows on https://deno-env-review.preview.emergentagent.com: (1) App loads without blank screen - shell root and grid visible, (2) Sidebar collapse/reopen works perfectly - rail toggles correctly and work surface remains usable, (3) New chat creation works - session count increased from 14 to 15, new session created successfully, (4) Message sending works - message typed, sent, appeared in chat surface, composer cleared, backend responded correctly, (5) Thread list remains usable - 6 thread cards visible and clickable after message sent, (6) Profile/settings drawer opens and closes correctly, (7) Search drawer opens successfully showing 'Search Thread' interface, Insights panel opens successfully, Artifacts drawer opens successfully with full content display, (8) Bottom composer remains visible and usable - textarea accepts input, send button visible and functional, (9) No console errors, no network failures (4xx/5xx), no serious layout regressions - all critical layout elements verified visible. DEPLOYMENT READY - No blockers found."
     - agent: "testing"
       message: "PRE-DEPLOY BACKEND SANITY PASS COMPLETE (April 18, 2026) - Tested all 8 critical backend endpoints on https://deno-env-review.preview.emergentagent.com/api: (1) Session creation endpoint works - POST /caos/sessions returns session_id and user_email, (2) Chat/message endpoint works for normal turn - POST /caos/chat returns reply, provider, and model, (3) Sessions listing works after chat - GET /caos/sessions returns list of sessions, (4) Artifacts endpoint works - GET /caos/sessions/{session_id}/artifacts returns receipts, summaries, and seeds, (5) Continuity endpoint works - GET /caos/sessions/{session_id}/continuity returns session_id and lineage_depth, (6) Runtime settings endpoint works - GET/POST /caos/runtime/settings handles user preferences correctly, (7) Voice settings endpoint works - GET/POST /caos/voice/settings handles voice preferences correctly, (8) No 500 errors or contract-breaking responses detected in sanity flow. All 35/35 tests passed. DEPLOYMENT READY - No blockers found."
+    - agent: "testing"
+      message: "CAOS SIDEBAR + IDENTITY/MENU ARCHITECTURE TEST COMPLETE (April 18, 2026) - Tested latest sidebar + identity/menu architecture update on https://deno-env-review.preview.emergentagent.com. All 8 focus areas verified successfully: (1) Sidebar visible on load and collapse/reopen works cleanly, (2) Rail footer account trigger (data-testid='caos-rail-user-card') opens account/menu popover correctly, (3) All 5 primary items exist in account popover: desktop, profile, search, session token, bootloader - all visible and functional, (4) Secondary panel for desktop section displays all tiles: files, photos, links, new thread, settings - all visible and functional, (5) Profile drawer opens from account menu without crash - drawer renders correctly with overlay, (6) Search drawer opens from account menu without crash - drawer renders correctly, (7) Header remains usable with all elements present - no duplicate/competing menu behavior detected, (8) No console errors, no network failures, layout remains stable - shell grid and command footer visible. New RailAccountMenu component architecture working perfectly. No critical or major issues found. READY FOR PRODUCTION."

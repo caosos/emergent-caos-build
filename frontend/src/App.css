@@ -38,23 +38,47 @@
 
 .caos-header {
     display: flex;
+    align-items: center;
     justify-content: space-between;
     gap: 24px;
-    padding: 10px 16px;
+    padding: 10px 14px;
     margin-bottom: 18px;
     overflow: visible;
 }
 
-.caos-header-context {
+.caos-header-left,
+.caos-header-center {
     display: grid;
     gap: 4px;
 }
 
-.caos-header-context h1 {
+.caos-header-left {
+    grid-template-columns: auto auto;
+    align-items: center;
+    gap: 10px;
+}
+
+.caos-header-center {
+    justify-items: center;
+    text-align: center;
+    flex: 1 1 auto;
+}
+
+.caos-header-route,
+.caos-thread-pill {
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(15, 23, 42, 0.74);
+    color: rgba(191, 219, 254, 0.82);
+    border-radius: 999px;
+    padding: 10px 14px;
+    font-size: 0.84rem;
+}
+
+.caos-header-center h1 {
     font-size: 1rem;
 }
 
-.caos-header-context p {
+.caos-header-center p {
     font-size: 0.82rem;
 }
 
@@ -273,6 +297,107 @@
     font-size: 0.88rem;
     color: rgba(226, 232, 240, 0.9);
     word-break: break-word;
+}
+
+.rail-account-menu {
+    position: relative;
+}
+
+.rail-account-trigger-copy {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.rail-account-trigger-copy strong,
+.rail-account-trigger-copy span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rail-account-popover {
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 12px);
+    min-width: 420px;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(7, 15, 31, 0.96);
+    backdrop-filter: blur(22px);
+    border-radius: 22px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+    z-index: 30;
+}
+
+.rail-account-popover-collapsed {
+    left: calc(100% + 12px);
+    bottom: 0;
+}
+
+.rail-account-primary,
+.rail-account-secondary {
+    display: grid;
+    gap: 10px;
+}
+
+.rail-account-item,
+.rail-account-tile {
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(15, 23, 42, 0.78);
+    color: #eff6ff;
+    border-radius: 16px;
+    cursor: pointer;
+}
+
+.rail-account-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+}
+
+.rail-account-item span,
+.rail-account-tile span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rail-account-item-active {
+    border-color: rgba(56, 189, 248, 0.35);
+    background: rgba(8, 47, 73, 0.9);
+}
+
+.rail-account-item-muted,
+.rail-account-tile-muted {
+    opacity: 0.7;
+}
+
+.rail-account-secondary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+}
+
+.rail-account-tile {
+    display: grid;
+    justify-items: start;
+    gap: 10px;
+    padding: 14px;
+    min-height: 86px;
+}
+
+.rail-account-engine,
+.rail-account-status {
+    padding: 10px 12px;
+    border-radius: 14px;
+    color: rgba(191, 219, 254, 0.82);
+    background: rgba(15, 23, 42, 0.74);
+    border: 1px solid rgba(148, 163, 184, 0.14);
 }
 
 .rail-nav,
@@ -984,6 +1109,20 @@
         left: auto;
         right: auto;
         bottom: auto;
+    }
+
+    .rail-account-popover {
+        position: static;
+        min-width: 0;
+        grid-template-columns: 1fr;
+        margin-top: 12px;
+    }
+
+    .caos-thread-pill,
+    .caos-header-route {
+        width: 100%;
+        box-sizing: border-box;
+        text-align: center;
     }
 
     .caos-shell-root,

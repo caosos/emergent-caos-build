@@ -94,8 +94,11 @@ export const CaosShell = () => {
           onNewSession={() => createSession()}
           onOpenArtifacts={() => setShowArtifacts(true)}
           onOpenProfile={() => setShowProfile(true)}
+          onOpenSearch={() => setShowSearch(true)}
           onSelectSession={selectSession}
           onToggleRail={() => setIsRailOpen((value) => !value)}
+          profile={profile}
+          runtimeSettings={runtimeSettings}
           sessions={sessions}
           userEmail={userEmail}
         />

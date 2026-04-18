@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import { Clock3, FolderKanban, MessageSquareText, PanelLeftOpen, Sparkles, Wrench } from "lucide-react";
 
+import { RailAccountMenu } from "@/components/caos/RailAccountMenu";
 
-export const ThreadRail = ({ currentSessionId, isCollapsed, onNewSession, onOpenArtifacts, onOpenProfile, onSelectSession, onToggleRail, sessions, userEmail }) => {
-  const initial = (userEmail || "U").trim().charAt(0).toUpperCase() || "U";
+
+export const ThreadRail = ({ currentSessionId, isCollapsed, onNewSession, onOpenArtifacts, onOpenProfile, onOpenSearch, onSelectSession, onToggleRail, profile, runtimeSettings, sessions, userEmail }) => {
+  const displayName = profile?.preferred_name || userEmail?.split("@")[0] || "Michael";
   const [railSearch, setRailSearch] = useState("");
   const visibleSessions = useMemo(() => {
     if (!railSearch.trim()) return sessions;
@@ -32,10 +34,17 @@ export const ThreadRail = ({ currentSessionId, isCollapsed, onNewSession, onOpen
             </button>
           ))}
         </div>
-        <button className="rail-footer-button rail-icon-button" data-testid="caos-rail-files-button" onClick={onOpenArtifacts}>F</button>
-        <button className="rail-user-card rail-user-card-collapsed" data-testid="caos-rail-user-card" onClick={onOpenProfile}>
-          <span className="rail-user-avatar" data-testid="caos-rail-user-avatar">{initial}</span>
-        </button>
+        <RailAccountMenu
+          currentSessionId={currentSessionId}
+          displayName={displayName}
+          email={userEmail}
+          isCollapsed
+          onNewSession={onNewSession}
+          onOpenArtifacts={onOpenArtifacts}
+          onOpenProfile={onOpenProfile}
+          onOpenSearch={onOpenSearch}
+          runtimeSettings={runtimeSettings}
+        />
       </aside>
     );
   }
@@ -107,13 +116,17 @@ export const ThreadRail = ({ currentSessionId, isCollapsed, onNewSession, onOpen
       </div>
 
       <div className="rail-footer" data-testid="caos-rail-footer">
-        <button className="rail-user-card" data-testid="caos-rail-user-card" onClick={onOpenProfile}>
-          <span className="rail-user-avatar" data-testid="caos-rail-user-avatar">{initial}</span>
-          <span className="rail-user-meta" data-testid="caos-rail-user-meta">{userEmail}</span>
-        </button>
-        <button className="rail-footer-button" data-testid="caos-rail-files-button" onClick={onOpenArtifacts}>Files</button>
-        <button className="rail-footer-button" data-testid="caos-rail-settings-button" onClick={onOpenProfile}>Settings</button>
-        <button className="rail-footer-button" data-testid="caos-rail-logout-button">Log Out</button>
+        <RailAccountMenu
+          currentSessionId={currentSessionId}
+          displayName={displayName}
+          email={userEmail}
+          isCollapsed={false}
+          onNewSession={onNewSession}
+          onOpenArtifacts={onOpenArtifacts}
+          onOpenProfile={onOpenProfile}
+          onOpenSearch={onOpenSearch}
+          runtimeSettings={runtimeSettings}
+        />
       </div>
     </aside>
   );

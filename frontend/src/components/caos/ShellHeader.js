@@ -15,17 +15,20 @@ export const ShellHeader = ({ activeModel, activeProvider, currentSession, isRai
 
   return (
     <header className="caos-header" data-testid="caos-shell-header">
-      <div className="caos-header-context" data-testid="caos-header-context">
-        <div>
-          <h1 data-testid="caos-header-title">{currentSession?.title || "Chat"}</h1>
-          <p data-testid="caos-header-subtitle">{currentSession?.session_id || "Start a thread from the left rail."}</p>
-        </div>
-      </div>
-
-      <div className="caos-header-actions">
+      <div className="caos-header-left" data-testid="caos-header-left">
         <button className="search-icon-button" data-testid="caos-rail-toggle-button" onClick={onToggleRail}>
           {isRailOpen ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
         </button>
+        <div className="caos-header-route" data-testid="caos-header-route">Chat surface</div>
+      </div>
+
+      <div className="caos-header-center" data-testid="caos-header-center">
+        <h1 data-testid="caos-header-title">CAOS</h1>
+        <p data-testid="caos-header-subtitle">Cognitive Adaptive Operating System</p>
+      </div>
+
+      <div className="caos-header-actions">
+        <div className="caos-thread-pill" data-testid="caos-header-thread-pill">{currentSession?.title || "No active thread"}</div>
 
         <button className="search-icon-button" data-testid="caos-search-toggle-button" onClick={onToggleSearch}>
           <Search size={14} />
