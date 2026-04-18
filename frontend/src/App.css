@@ -316,6 +316,16 @@
     padding: 12px 14px;
 }
 
+.context-metric {
+    display: grid;
+    gap: 6px;
+}
+
+.context-metric strong {
+    line-height: 1.5;
+    word-break: break-word;
+}
+
 .context-list-placeholder {
     color: rgba(191, 219, 254, 0.54);
 }
