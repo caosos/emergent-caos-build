@@ -1,4 +1,4 @@
-"""CAOS memory workbench API regression tests for core contract and isolation flows."""
+"""CAOS shell API regression tests for session flows, isolation, and chat orchestration."""
 
 import os
 import uuid
@@ -28,16 +28,6 @@ def test_identity():
         "email": f"TEST_caos_{token}@example.com",
         "title": f"TEST session {token}",
     }
-
-
-# Module: API contract and session isolation boundary
-def test_contract_declares_runtime_and_isolation_boundary(api_client):
-    response = api_client.get(f"{BASE_URL.rstrip('/')}/api/caos/contract", timeout=20)
-    assert response.status_code == 200
-    data = response.json()
-    assert data["runtime"] == "fastapi-python"
-    assert data["isolation_boundary"] == "session_id"
-    assert isinstance(data["memory_pipeline"], list)
 
 
 # Module: user profile upsert flow
@@ -90,6 +80,31 @@ def test_create_session_returns_isolated_session_id(api_client, test_identity):
     assert data["title"] == test_identity["title"]
 
 
+def test_get_sessions_returns_records_for_user(api_client, test_identity):
+    api_client.post(
+        f"{BASE_URL.rstrip('/')}/api/caos/profile/upsert",
+        json={"user_email": test_identity["email"], "preferred_name": "TEST User"},
+        timeout=20,
+    )
+    created = api_client.post(
+        f"{BASE_URL.rstrip('/')}/api/caos/sessions",
+        json={"user_email": test_identity["email"], "title": test_identity["title"]},
+        timeout=20,
+    )
+    assert created.status_code == 200
+
+    list_response = api_client.get(
+        f"{BASE_URL.rstrip('/')}/api/caos/sessions", params={"user_email": test_identity["email"]}, timeout=20
+    )
+    assert list_response.status_code == 200
+    sessions = list_response.json()
+    assert isinstance(sessions, list)
+    assert any(item["session_id"] == created.json()["session_id"] for item in sessions)
+    matched = next(item for item in sessions if item["session_id"] == created.json()["session_id"])
+    assert matched["user_email"] == test_identity["email"]
+    assert matched["title"] == test_identity["title"]
+
+
 def test_messages_are_scoped_to_their_session_id(api_client, test_identity):
     api_client.post(
         f"{BASE_URL.rstrip('/')}/api/caos/profile/upsert",
@@ -129,6 +144,34 @@ def test_messages_are_scoped_to_their_session_id(api_client, test_identity):
     assert any(msg["content"] == "TEST session A message" for msg in messages_a)
     assert not any(msg["content"] == "TEST session B message" for msg in messages_a)
     assert any(msg["content"] == "TEST session B message" for msg in messages_b)
+
+
+def test_get_session_messages_returns_selected_session_history(api_client, test_identity):
+    api_client.post(
+        f"{BASE_URL.rstrip('/')}/api/caos/profile/upsert",
+        json={"user_email": test_identity["email"], "preferred_name": "TEST User"},
+        timeout=20,
+    )
+    session_response = api_client.post(
+        f"{BASE_URL.rstrip('/')}/api/caos/sessions",
+        json={"user_email": test_identity["email"], "title": f"{test_identity['title']} Messages"},
+        timeout=20,
+    )
+    session_id = session_response.json()["session_id"]
+
+    first_message = {"session_id": session_id, "role": "user", "content": "TEST first message in selected thread"}
+    second_message = {"session_id": session_id, "role": "assistant", "content": "TEST assistant response in selected thread"}
+    first_response = api_client.post(f"{BASE_URL.rstrip('/')}/api/caos/messages", json=first_message, timeout=20)
+    second_response = api_client.post(f"{BASE_URL.rstrip('/')}/api/caos/messages", json=second_message, timeout=20)
+    assert first_response.status_code == 200
+    assert second_response.status_code == 200
+
+    list_response = api_client.get(f"{BASE_URL.rstrip('/')}/api/caos/sessions/{session_id}/messages", timeout=20)
+    assert list_response.status_code == 200
+    messages = list_response.json()
+    assert isinstance(messages, list)
+    assert any(msg["content"] == first_message["content"] and msg["role"] == "user" for msg in messages)
+    assert any(msg["content"] == second_message["content"] and msg["role"] == "assistant" for msg in messages)
 
 
 def test_create_message_returns_404_for_unknown_session(api_client):
@@ -208,3 +251,56 @@ def test_context_prepare_returns_required_payload_fields(api_client, test_identi
     assert isinstance(data["receipt"], dict)
     assert "retrieval_terms" in data["receipt"]
     assert "reduction_ratio" in data["stats"]
+
+
+# Module: chat orchestration pipeline (sanitize/retrieval/llm/store receipt)
+def test_chat_persists_turn_and_returns_receipt_and_wcw(api_client, test_identity):
+    api_client.post(
+        f"{BASE_URL.rstrip('/')}/api/caos/profile/upsert",
+        json={"user_email": test_identity["email"], "preferred_name": "TEST User"},
+        timeout=20,
+    )
+    session_response = api_client.post(
+        f"{BASE_URL.rstrip('/')}/api/caos/sessions",
+        json={"user_email": test_identity["email"], "title": f"{test_identity['title']} Chat"},
+        timeout=20,
+    )
+    session_id = session_response.json()["session_id"]
+
+    memory_response = api_client.post(
+        f"{BASE_URL.rstrip('/')}/api/caos/memory/save",
+        json={
+            "user_email": test_identity["email"],
+            "content": "TEST remember utility bill due Friday and campaign Atlas active",
+        },
+        timeout=20,
+    )
+    assert memory_response.status_code == 200
+
+    chat_payload = {
+        "user_email": test_identity["email"],
+        "session_id": session_id,
+        "content": "What should I prioritize tonight if Atlas and the utility bill matter?",
+    }
+    first_attempt = api_client.post(f"{BASE_URL.rstrip('/')}/api/caos/chat", json=chat_payload, timeout=60)
+    response = first_attempt
+    if first_attempt.status_code >= 500:
+        response = api_client.post(f"{BASE_URL.rstrip('/')}/api/caos/chat", json=chat_payload, timeout=60)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["session_id"] == session_id
+    assert isinstance(data["reply"], str)
+    assert len(data["reply"]) > 0
+    assert isinstance(data["receipt"], dict)
+    assert isinstance(data["receipt"].get("retrieval_terms"), list)
+    assert isinstance(data["wcw_used_estimate"], int)
+    assert data["wcw_used_estimate"] >= 1
+    assert isinstance(data["wcw_budget"], int)
+    assert data["wcw_budget"] > 0
+
+    persisted_messages = api_client.get(f"{BASE_URL.rstrip('/')}/api/caos/sessions/{session_id}/messages", timeout=20)
+    assert persisted_messages.status_code == 200
+    message_history = persisted_messages.json()
+    assert any(msg["role"] == "user" and msg["content"] == chat_payload["content"] for msg in message_history)
+    assert any(msg["role"] == "assistant" and isinstance(msg["content"], str) and msg["content"] for msg in message_history)

@@ -4,6 +4,8 @@ from fastapi import APIRouter, HTTPException
 
 from app.db import collection
 from app.schemas.caos import (
+    ChatRequest,
+    ChatResponse,
     ContextPrepareRequest,
     ContextPrepareResponse,
     ContextStats,
@@ -16,6 +18,7 @@ from app.schemas.caos import (
     UserProfileRecord,
     UserProfileUpsertRequest,
 )
+from app.services.chat_pipeline import run_chat_turn
 from app.services.context_engine import (
     build_context_receipt,
     compress_history,
@@ -36,6 +39,12 @@ async def create_session(input: SessionCreate):
     doc["updated_at"] = doc["updated_at"].isoformat()
     await collection("sessions").insert_one(doc)
     return session
+
+
+@router.get("/sessions", response_model=list[SessionRecord])
+async def list_sessions(user_email: str):
+    docs = await collection("sessions").find({"user_email": user_email}, {"_id": 0}).sort("updated_at", -1).to_list(200)
+    return [SessionRecord(**doc) for doc in docs]
 
 
 @router.post("/messages", response_model=MessageRecord)
@@ -129,3 +138,13 @@ async def prepare_context(input: ContextPrepareRequest):
         stats=stats_payload,
         receipt=receipt,
     )
+
+
+@router.post("/chat", response_model=ChatResponse)
+async def chat(input: ChatRequest):
+    try:
+        return await run_chat_turn(input)
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error)) from error

@@ -101,3 +101,25 @@ class ContextPrepareResponse(BaseModel):
     injected_memories: list[MemoryEntry]
     stats: ContextStats
     receipt: dict
+
+
+class ChatRequest(BaseModel):
+    user_email: str
+    session_id: str
+    content: str
+    provider: str = "openai"
+    model: str = "gpt-5.2"
+    hot_head: int = 10
+    hot_tail: int = 20
+    memory_limit: int = 5
+
+
+class ChatResponse(BaseModel):
+    session_id: str
+    reply: str
+    assistant_message: MessageRecord
+    sanitized_history: list[MessageRecord]
+    injected_memories: list[MemoryEntry]
+    receipt: dict
+    wcw_used_estimate: int
+    wcw_budget: int

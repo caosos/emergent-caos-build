@@ -1,0 +1,90 @@
+import os
+import uuid
+from datetime import datetime, timezone
+
+from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+from app.db import collection
+from app.schemas.caos import (
+    ChatRequest,
+    ChatResponse,
+    MemoryEntry,
+    MessageRecord,
+    UserProfileRecord,
+)
+from app.services.context_engine import (
+    build_context_receipt,
+    compress_history,
+    rank_memories,
+    sanitize_history,
+)
+from app.services.prompt_builder import build_system_prompt
+
+
+async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
+    session = await collection("sessions").find_one({"session_id": payload.session_id}, {"_id": 0})
+    if not session:
+        raise ValueError("Session not found")
+
+    profile_doc = await collection("user_profiles").find_one({"user_email": payload.user_email}, {"_id": 0})
+    if not profile_doc:
+        profile = UserProfileRecord(user_email=payload.user_email)
+        doc = profile.model_dump()
+        doc["created_at"] = doc["created_at"].isoformat()
+        doc["updated_at"] = doc["updated_at"].isoformat()
+        doc["structured_memory"] = []
+        await collection("user_profiles").insert_one(doc)
+    else:
+        profile = UserProfileRecord(**profile_doc)
+
+    user_message = MessageRecord(session_id=payload.session_id, role="user", content=payload.content)
+    user_doc = user_message.model_dump()
+    user_doc["timestamp"] = user_doc["timestamp"].isoformat()
+    await collection("messages").insert_one(user_doc)
+
+    docs = await collection("messages").find({"session_id": payload.session_id}, {"_id": 0}).sort("timestamp", 1).to_list(1000)
+    messages = [MessageRecord(**doc) for doc in docs]
+    sanitized, stats = sanitize_history(messages)
+    compressed = compress_history(sanitized, payload.hot_head, payload.hot_tail)
+    memories = list(profile.structured_memory)
+    injected_memories, retrieval_terms = rank_memories(payload.content, compressed, memories, payload.memory_limit)
+    receipt = build_context_receipt(stats, messages, compressed, injected_memories, retrieval_terms)
+
+    llm_key = os.environ["EMERGENT_LLM_KEY"]
+    chat = LlmChat(
+        api_key=llm_key,
+        session_id=f"{payload.session_id}-{uuid.uuid4()}",
+        system_message=build_system_prompt(profile, compressed, injected_memories),
+    ).with_model(payload.provider, payload.model)
+    reply = await chat.send_message(UserMessage(text=payload.content))
+
+    assistant_message = MessageRecord(
+        session_id=payload.session_id,
+        role="assistant",
+        content=reply,
+        inference_provider=f"{payload.provider}:{payload.model}",
+        metadata_tags=["SESSION_MEMORY", "SANITIZED_CONTEXT"],
+    )
+    assistant_doc = assistant_message.model_dump()
+    assistant_doc["timestamp"] = assistant_doc["timestamp"].isoformat()
+    await collection("messages").insert_one(assistant_doc)
+    await collection("sessions").update_one(
+        {"session_id": payload.session_id},
+        {
+            "$set": {
+                "last_message_preview": reply[:140],
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        },
+    )
+
+    return ChatResponse(
+        session_id=payload.session_id,
+        reply=reply,
+        assistant_message=assistant_message,
+        sanitized_history=compressed,
+        injected_memories=injected_memories,
+        receipt=receipt,
+        wcw_used_estimate=max(1, sum(len(message.content) for message in compressed) // 4),
+        wcw_budget=200000,
+    )
