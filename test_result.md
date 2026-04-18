@@ -490,17 +490,89 @@ frontend:
           agent: "testing"
           comment: "Error handling verified successfully. No internal errors or unsafe failures detected in voice endpoints. Edge cases tested: non-existent user voice settings (returns defaults), very long text TTS (handled gracefully). All endpoints handle errors appropriately without 500 responses. Robust error handling implemented."
 
-  - task: "Phase 2A lane-aware memory backend support"
+  - task: "POST /caos/sessions accepts/returns lane field with default general"
     implemented: true
-    working: "NA"
-    file: "/app/backend/app/routes/caos.py, /app/backend/app/services/chat_pipeline.py"
+    working: true
+    file: "/app/backend/app/routes/caos.py, /app/backend/app/schemas/caos.py"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
-        - working: "NA"
+        - working: true
           agent: "testing"
-          comment: "Backend support for lane-aware memory not tested directly. Frontend testing confirms backend is returning lane and selected_worker_ids fields correctly in session and receipt data."
+          comment: "POST sessions endpoint verified successfully. Accepts lane field in request and returns it in response. When lane is omitted, defaults to 'general' as expected. Session creation with explicit lane (ml) and without lane both work correctly."
+
+  - task: "Chat turn derives and persists lane on session"
+    implemented: true
+    working: true
+    file: "/app/backend/app/services/chat_pipeline.py, /app/backend/app/services/memory_worker_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Chat lane derivation verified successfully. First chat turn about neural networks and deep learning derived lane 'ml' from content. Session was updated with derived lane and persisted correctly. Lane derivation logic working as expected."
+
+  - task: "POST /caos/memory/workers/{user_email}/rebuild returns lane worker records"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/memory_workers.py, /app/backend/app/services/memory_worker_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Memory workers rebuild endpoint verified successfully. Returns MemoryWorkersResponse with user_email and workers array. Worker records include all required fields: id, user_email, lane, subject_bins, summary_text, source_session_ids. Endpoint handles both existing and non-existent users correctly."
+
+  - task: "GET /caos/memory/workers/{user_email} returns worker records with required fields"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/memory_workers.py, /app/backend/app/services/memory_worker_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Memory workers get endpoint verified successfully. Returns worker records with all required fields: lane, subject_bins (list), summary_text (string), source_session_ids (list). Field types are correct and data structure matches schema requirements."
+
+  - task: "Cross-thread retrieval with continuity from prior summaries/seeds/workers"
+    implemented: true
+    working: true
+    file: "/app/backend/app/services/chat_pipeline.py, /app/backend/app/services/continuity_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Cross-thread retrieval verified successfully. Created two sessions for same user with related content (Python/FastAPI programming). Second session chat response included continuity from first session. Receipt contains all required fields: selected_summary_ids, selected_seed_ids, selected_worker_ids, lane, continuity_chars, estimated_context_chars. Lane consistency maintained across sessions."
+
+  - task: "Chat response receipt includes all required continuity fields"
+    implemented: true
+    working: true
+    file: "/app/backend/app/services/context_engine.py, /app/backend/app/schemas/caos.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Chat response receipt fields verified successfully. Receipt includes all required fields: selected_summary_ids, selected_seed_ids, selected_worker_ids, lane, continuity_chars, estimated_context_chars. Fields are properly populated with continuity data from prior sessions and workers."
+
+  - task: "No 500 errors or contract mismatches in lane-aware memory endpoints"
+    implemented: true
+    working: true
+    file: "All lane-aware memory endpoints"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Error handling verified successfully. No 500 errors encountered during comprehensive testing. Edge cases tested: non-existent users, invalid sessions, missing fields. All endpoints handle errors gracefully with appropriate HTTP status codes (404, 422). No contract mismatches or regressions found."
 
 metadata:
   created_by: "testing_agent"
@@ -526,3 +598,5 @@ agent_communication:
       message: "Completed comprehensive testing of CAOS backend voice/settings endpoints as requested in review. All 7 requirements verified successfully: (1) POST /caos/voice/settings persists voice preferences for fresh test user with gpt-4o-transcribe primary, whisper-1 fallback, en language, and TTS voice/model settings, (2) GET /caos/voice/settings/{user_email} returns saved preferences correctly, (3) POST /caos/voice/tts returns audio for short known phrase (generated 63840 bytes), (4) POST /caos/voice/transcribe accepts multipart form fields (user_email, model, fallback_model, language, prompt, file), (5) End-to-end round-trip using TTS-generated audio for transcription works correctly with valid text result and model_used/fallback_used fields, (6) gpt-4o-transcribe falls back cleanly to whisper-1 without 500 errors, (7) No internal errors or unsafe failures detected in edge case testing. All endpoints working correctly with proper error handling. No contract mismatches or regressions found."
     - agent: "testing"
       message: "Completed comprehensive testing of CAOS frontend Phase 2A lane-aware memory update. All 5 focus areas tested successfully: (1) Shell loads correctly for seeded user (lane-worker-fix-4ffb7983@example.com) with 2 thread cards rendering without errors, (2) All thread cards display lane labels with correct data-testid pattern 'caos-thread-lane-{session_id}' showing 'Lane · atlas', (3) Inspector panel opens via Insights toggle and displays receipt lane (data-testid: caos-inspector-receipt-lane showing 'atlas') and lane worker count (data-testid: caos-inspector-receipt-worker-count showing '1'), (4) No layout breakage or console errors from new lane UI fields - shell grid, command footer, and thread rail remain visible and functional, (5) App remains viewport-stable and usable with body overflow hidden and no scrolling. No critical or major issues found. Phase 2A lane-aware memory implementation working correctly."
+    - agent: "testing"
+      message: "Completed comprehensive testing of CAOS backend Phase 2A lane-aware memory update as requested in review. All 6 requirements verified successfully: (1) POST /caos/sessions accepts/returns lane field with default 'general' when omitted, (2) First chat turn derives and persists lane on session (tested with ML content deriving 'ml' lane), (3) POST /caos/memory/workers/{user_email}/rebuild returns lane worker records with all required fields, (4) GET /caos/memory/workers/{user_email} returns worker records with lane, subject_bins, summary_text, source_session_ids, (5) Cross-thread retrieval works with continuity from prior summaries/seeds/workers - chat response receipt includes selected_summary_ids, selected_seed_ids, selected_worker_ids, lane, continuity_chars, estimated_context_chars, (6) No 500 errors or contract mismatches found. All lane-aware memory endpoints working correctly with proper error handling. Phase 2A implementation complete and functional."

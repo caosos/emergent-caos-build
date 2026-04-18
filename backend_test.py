@@ -1,429 +1,345 @@
 #!/usr/bin/env python3
 """
-CAOS Backend Voice/Settings Testing Script
-Tests the voice/settings endpoints as specified in the review request.
+CAOS Backend Phase 2A Lane-Aware Memory Testing
+Tests the lane-aware memory implementation as specified in the review request.
 """
 
 import asyncio
-import base64
-import io
 import json
-import requests
-import tempfile
-from pathlib import Path
+import os
+import sys
+import time
+from typing import Any, Dict, List
+
+import aiohttp
+
 
 # Configuration
-BASE_URL = "https://deno-env-review.preview.emergentagent.com/api"
-TEST_USER_EMAIL = "voice.test@emergentagent.com"
+BACKEND_URL = "https://deno-env-review.preview.emergentagent.com/api"
+TEST_USER_EMAIL = "lane-test-user-phase2a@example.com"
+TEST_USER_EMAIL_2 = "lane-test-user-2-phase2a@example.com"
 
-def log_test(test_name, status, details=""):
-    """Log test results with consistent formatting"""
-    status_symbol = "✅" if status == "PASS" else "❌" if status == "FAIL" else "⚠️"
-    print(f"{status_symbol} {test_name}: {status}")
-    if details:
-        print(f"   {details}")
-    print()
 
-def test_post_voice_settings():
-    """Test 1: POST /caos/voice/settings persists voice preferences"""
-    print("=== Test 1: POST /caos/voice/settings ===")
-    
-    try:
-        # Test data with specified requirements
-        payload = {
-            "user_email": TEST_USER_EMAIL,
-            "stt_primary_model": "gpt-4o-transcribe",
-            "stt_fallback_model": "whisper-1", 
-            "stt_language": "en",
-            "tts_model": "tts-1-hd",
-            "tts_voice": "nova",
-            "tts_speed": 1.0
-        }
+class TestResult:
+    def __init__(self):
+        self.passed = 0
+        self.failed = 0
+        self.errors = []
         
-        response = requests.post(f"{BASE_URL}/caos/voice/settings", json=payload)
-        
-        if response.status_code == 200:
-            data = response.json()
-            
-            # Verify response structure
-            if "user_email" in data and "voice_preferences" in data:
-                prefs = data["voice_preferences"]
-                
-                # Verify all required fields are present and correct
-                expected_fields = {
-                    "stt_primary_model": "gpt-4o-transcribe",
-                    "stt_fallback_model": "whisper-1",
-                    "stt_language": "en",
-                    "tts_model": "tts-1-hd", 
-                    "tts_voice": "nova",
-                    "tts_speed": 1.0
-                }
-                
-                all_correct = True
-                for field, expected_value in expected_fields.items():
-                    if prefs.get(field) != expected_value:
-                        all_correct = False
-                        log_test("POST voice settings", "FAIL", f"Field {field}: expected {expected_value}, got {prefs.get(field)}")
-                        break
-                
-                if all_correct:
-                    log_test("POST voice settings", "PASS", f"Voice preferences saved successfully for {TEST_USER_EMAIL}")
-                    return True
-            else:
-                log_test("POST voice settings", "FAIL", f"Invalid response structure: {data}")
+    def assert_true(self, condition: bool, message: str):
+        if condition:
+            self.passed += 1
+            print(f"✅ {message}")
         else:
-            log_test("POST voice settings", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            self.failed += 1
+            self.errors.append(message)
+            print(f"❌ {message}")
             
-    except Exception as e:
-        log_test("POST voice settings", "FAIL", f"Exception: {str(e)}")
-    
-    return False
-
-def test_get_voice_settings():
-    """Test 2: GET /caos/voice/settings/{user_email} returns saved preferences"""
-    print("=== Test 2: GET /caos/voice/settings/{user_email} ===")
-    
-    try:
-        response = requests.get(f"{BASE_URL}/caos/voice/settings/{TEST_USER_EMAIL}")
-        
-        if response.status_code == 200:
-            data = response.json()
-            
-            # Verify response structure
-            if "user_email" in data and "voice_preferences" in data:
-                prefs = data["voice_preferences"]
-                
-                # Verify the saved preferences match what we set in test 1
-                expected_fields = {
-                    "stt_primary_model": "gpt-4o-transcribe",
-                    "stt_fallback_model": "whisper-1",
-                    "stt_language": "en",
-                    "tts_model": "tts-1-hd",
-                    "tts_voice": "nova", 
-                    "tts_speed": 1.0
-                }
-                
-                all_correct = True
-                for field, expected_value in expected_fields.items():
-                    if prefs.get(field) != expected_value:
-                        all_correct = False
-                        log_test("GET voice settings", "FAIL", f"Field {field}: expected {expected_value}, got {prefs.get(field)}")
-                        break
-                
-                if all_correct:
-                    log_test("GET voice settings", "PASS", f"Retrieved correct voice preferences for {TEST_USER_EMAIL}")
-                    return True
-            else:
-                log_test("GET voice settings", "FAIL", f"Invalid response structure: {data}")
+    def assert_equal(self, actual: Any, expected: Any, message: str):
+        if actual == expected:
+            self.passed += 1
+            print(f"✅ {message}")
         else:
-            log_test("GET voice settings", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            self.failed += 1
+            error_msg = f"{message} - Expected: {expected}, Got: {actual}"
+            self.errors.append(error_msg)
+            print(f"❌ {error_msg}")
             
-    except Exception as e:
-        log_test("GET voice settings", "FAIL", f"Exception: {str(e)}")
-    
-    return False
-
-def test_post_voice_tts():
-    """Test 3: POST /caos/voice/tts returns audio for a short known phrase"""
-    print("=== Test 3: POST /caos/voice/tts ===")
-    
-    try:
-        # Test with a short known phrase
-        payload = {
-            "text": "Hello, this is a test of the text to speech system.",
-            "voice": "nova",
-            "speed": 1.0,
-            "model": "tts-1-hd"
-        }
-        
-        response = requests.post(f"{BASE_URL}/caos/voice/tts", json=payload)
-        
-        if response.status_code == 200:
-            data = response.json()
-            
-            # Verify response structure
-            required_fields = ["audio_base64", "content_type", "voice", "model", "speed"]
-            missing_fields = [field for field in required_fields if field not in data]
-            
-            if not missing_fields:
-                # Verify audio_base64 is valid base64 and not empty
-                try:
-                    audio_data = base64.b64decode(data["audio_base64"])
-                    if len(audio_data) > 0:
-                        log_test("POST voice TTS", "PASS", f"Generated {len(audio_data)} bytes of audio data")
-                        return data["audio_base64"]  # Return for use in round-trip test
-                    else:
-                        log_test("POST voice TTS", "FAIL", "Audio data is empty")
-                except Exception as decode_error:
-                    log_test("POST voice TTS", "FAIL", f"Invalid base64 audio data: {decode_error}")
-            else:
-                log_test("POST voice TTS", "FAIL", f"Missing required fields: {missing_fields}")
+    def assert_in(self, item: Any, container: Any, message: str):
+        if item in container:
+            self.passed += 1
+            print(f"✅ {message}")
         else:
-            log_test("POST voice TTS", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            self.failed += 1
+            error_msg = f"{message} - {item} not found in {container}"
+            self.errors.append(error_msg)
+            print(f"❌ {error_msg}")
             
-    except Exception as e:
-        log_test("POST voice TTS", "FAIL", f"Exception: {str(e)}")
-    
-    return None
-
-def test_post_voice_transcribe():
-    """Test 4: POST /caos/voice/transcribe accepts multipart form fields"""
-    print("=== Test 4: POST /caos/voice/transcribe ===")
-    
-    try:
-        # Create a small test audio file (we'll use a minimal WAV file)
-        # This is a minimal valid WAV file with silence
-        wav_header = b'RIFF$\x00\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00D\xac\x00\x00\x88X\x01\x00\x02\x00\x10\x00data\x00\x00\x00\x00'
-        
-        files = {
-            'file': ('test_audio.wav', io.BytesIO(wav_header), 'audio/wav')
-        }
-        
-        data = {
-            'user_email': TEST_USER_EMAIL,
-            'model': 'gpt-4o-transcribe',
-            'fallback_model': 'whisper-1',
-            'language': 'en',
-            'prompt': 'This is a test audio file'
-        }
-        
-        response = requests.post(f"{BASE_URL}/caos/voice/transcribe", files=files, data=data)
-        
-        if response.status_code == 200:
-            result = response.json()
-            
-            # Verify response structure
-            required_fields = ["text", "model_used", "fallback_used"]
-            missing_fields = [field for field in required_fields if field not in result]
-            
-            if not missing_fields:
-                log_test("POST voice transcribe", "PASS", f"Transcription completed with model: {result['model_used']}, fallback_used: {result['fallback_used']}")
-                return True
-            else:
-                log_test("POST voice transcribe", "FAIL", f"Missing required fields: {missing_fields}")
+    def assert_not_none(self, value: Any, message: str):
+        if value is not None:
+            self.passed += 1
+            print(f"✅ {message}")
         else:
-            log_test("POST voice transcribe", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            self.failed += 1
+            self.errors.append(message)
+            print(f"❌ {message}")
             
-    except Exception as e:
-        log_test("POST voice transcribe", "FAIL", f"Exception: {str(e)}")
-    
-    return False
+    def summary(self):
+        total = self.passed + self.failed
+        print(f"\n📊 Test Summary: {self.passed}/{total} passed")
+        if self.errors:
+            print("\n🔍 Failed Tests:")
+            for error in self.errors:
+                print(f"  - {error}")
+        return self.failed == 0
 
-def test_end_to_end_roundtrip(tts_audio_base64):
-    """Test 5: End-to-end round-trip using TTS-generated audio for transcription"""
-    print("=== Test 5: End-to-end round-trip ===")
-    
-    if not tts_audio_base64:
-        log_test("End-to-end round-trip", "FAIL", "No TTS audio available from previous test")
-        return False
-    
+
+async def make_request(session: aiohttp.ClientSession, method: str, endpoint: str, data: Dict = None, json_data: Dict = None) -> Dict:
+    """Make HTTP request and return JSON response"""
+    url = f"{BACKEND_URL}{endpoint}"
     try:
-        # Decode the base64 audio from TTS
-        audio_data = base64.b64decode(tts_audio_base64)
-        
-        # Use the TTS-generated audio for transcription
-        files = {
-            'file': ('tts_generated.mp3', io.BytesIO(audio_data), 'audio/mpeg')
-        }
-        
-        data = {
-            'user_email': TEST_USER_EMAIL,
-            'model': 'gpt-4o-transcribe',
-            'fallback_model': 'whisper-1',
-            'language': 'en',
-            'prompt': 'Hello, this is a test of the text to speech system.'
-        }
-        
-        response = requests.post(f"{BASE_URL}/caos/voice/transcribe", files=files, data=data)
-        
-        if response.status_code == 200:
-            result = response.json()
-            
-            # Verify response structure
-            required_fields = ["text", "model_used", "fallback_used"]
-            missing_fields = [field for field in required_fields if field not in result]
-            
-            if not missing_fields:
-                # Check if we got reasonable text back
-                transcribed_text = result["text"].strip()
-                if len(transcribed_text) > 0:
-                    log_test("End-to-end round-trip", "PASS", 
-                           f"Round-trip successful. Transcribed: '{transcribed_text}', Model: {result['model_used']}, Fallback used: {result['fallback_used']}")
-                    return True
-                else:
-                    log_test("End-to-end round-trip", "FAIL", "Transcription returned empty text")
-            else:
-                log_test("End-to-end round-trip", "FAIL", f"Missing required fields: {missing_fields}")
-        else:
-            log_test("End-to-end round-trip", "FAIL", f"HTTP {response.status_code}: {response.text}")
-            
+        async with session.request(method, url, json=json_data, data=data) as response:
+            if response.status >= 400:
+                text = await response.text()
+                print(f"❌ HTTP {response.status} for {method} {endpoint}: {text}")
+                return {"error": f"HTTP {response.status}", "detail": text}
+            return await response.json()
     except Exception as e:
-        log_test("End-to-end round-trip", "FAIL", f"Exception: {str(e)}")
-    
-    return False
+        print(f"❌ Request failed for {method} {endpoint}: {e}")
+        return {"error": "request_failed", "detail": str(e)}
 
-def test_fallback_behavior():
-    """Test 6: Verify fallback from gpt-4o-transcribe to whisper-1"""
-    print("=== Test 6: Fallback behavior testing ===")
-    
-    try:
-        # Create a test audio file
-        wav_header = b'RIFF$\x00\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00D\xac\x00\x00\x88X\x01\x00\x02\x00\x10\x00data\x00\x00\x00\x00'
-        
-        files = {
-            'file': ('test_audio.wav', io.BytesIO(wav_header), 'audio/wav')
-        }
-        
-        # Test with gpt-4o-transcribe as primary and whisper-1 as fallback
-        data = {
-            'user_email': TEST_USER_EMAIL,
-            'model': 'gpt-4o-transcribe',
-            'fallback_model': 'whisper-1',
-            'language': 'en',
-            'prompt': 'Test fallback behavior'
-        }
-        
-        response = requests.post(f"{BASE_URL}/caos/voice/transcribe", files=files, data=data)
-        
-        if response.status_code == 200:
-            result = response.json()
-            
-            # Check if the endpoint handles the request without 500 errors
-            if "model_used" in result and "fallback_used" in result:
-                model_used = result["model_used"]
-                fallback_used = result["fallback_used"]
-                
-                # If gpt-4o-transcribe is not supported, it should fall back to whisper-1
-                if model_used == "whisper-1" and fallback_used:
-                    log_test("Fallback behavior", "PASS", "Successfully fell back from gpt-4o-transcribe to whisper-1")
-                elif model_used == "gpt-4o-transcribe" and not fallback_used:
-                    log_test("Fallback behavior", "PASS", "gpt-4o-transcribe worked directly (no fallback needed)")
-                else:
-                    log_test("Fallback behavior", "WARNING", f"Unexpected model behavior: used {model_used}, fallback_used: {fallback_used}")
-                
-                return True
-            else:
-                log_test("Fallback behavior", "FAIL", "Missing model_used or fallback_used fields")
-        else:
-            # Check if it's a clean failure (not a 500 error)
-            if response.status_code != 500:
-                log_test("Fallback behavior", "PASS", f"Clean failure with HTTP {response.status_code} (not a 500 error)")
-                return True
-            else:
-                log_test("Fallback behavior", "FAIL", f"HTTP 500 error: {response.text}")
-            
-    except Exception as e:
-        log_test("Fallback behavior", "FAIL", f"Exception: {str(e)}")
-    
-    return False
 
-def test_no_internal_errors():
-    """Test 7: Verify no internal errors or unsafe failures"""
-    print("=== Test 7: No internal errors verification ===")
+async def test_session_lane_field(session: aiohttp.ClientSession, result: TestResult):
+    """Test 1: POST /caos/sessions accepts/returns a `lane` field (default general if omitted)"""
+    print("\n🧪 Test 1: Session lane field handling")
     
-    error_count = 0
+    # Test session creation with explicit lane
+    session_data = {
+        "user_email": TEST_USER_EMAIL,
+        "title": "Machine Learning Discussion",
+        "lane": "ml"
+    }
+    response = await make_request(session, "POST", "/caos/sessions", json_data=session_data)
+    result.assert_true("error" not in response, "Session creation with explicit lane should succeed")
+    result.assert_equal(response.get("lane"), "ml", "Session should return specified lane")
+    session_id_1 = response.get("session_id")
     
-    # Test various edge cases that might cause internal errors
-    test_cases = [
-        {
-            "name": "Empty text TTS",
-            "endpoint": "/caos/voice/tts",
-            "method": "POST",
-            "data": {"text": "", "voice": "nova"}
-        },
-        {
-            "name": "Invalid voice TTS", 
-            "endpoint": "/caos/voice/tts",
-            "method": "POST",
-            "data": {"text": "test", "voice": "invalid_voice"}
-        },
-        {
-            "name": "Non-existent user voice settings",
-            "endpoint": "/caos/voice/settings/nonexistent@example.com",
-            "method": "GET"
-        }
+    # Test session creation without lane (should default to general)
+    session_data_no_lane = {
+        "user_email": TEST_USER_EMAIL,
+        "title": "General Chat"
+    }
+    response = await make_request(session, "POST", "/caos/sessions", json_data=session_data_no_lane)
+    result.assert_true("error" not in response, "Session creation without lane should succeed")
+    result.assert_equal(response.get("lane"), "general", "Session should default to 'general' lane when omitted")
+    session_id_2 = response.get("session_id")
+    
+    return session_id_1, session_id_2
+
+
+async def test_chat_lane_derivation(session: aiohttp.ClientSession, result: TestResult, session_id: str):
+    """Test 2: A first chat turn in a new session derives and persists a lane on the session"""
+    print("\n🧪 Test 2: Chat turn lane derivation and persistence")
+    
+    # Send first chat message about machine learning
+    chat_data = {
+        "user_email": TEST_USER_EMAIL,
+        "session_id": session_id,
+        "content": "I want to discuss neural networks and deep learning algorithms for computer vision tasks."
+    }
+    response = await make_request(session, "POST", "/caos/chat", json_data=chat_data)
+    result.assert_true("error" not in response, "Chat request should succeed")
+    result.assert_not_none(response.get("lane"), "Chat response should include lane field")
+    
+    # Verify lane is derived from content (should be related to ML/neural networks)
+    chat_lane = response.get("lane")
+    result.assert_true(chat_lane != "general", f"Lane should be derived from content, not general. Got: {chat_lane}")
+    
+    # Verify session is updated with the derived lane
+    sessions_response = await make_request(session, "GET", f"/caos/sessions?user_email={TEST_USER_EMAIL}")
+    result.assert_true("error" not in sessions_response, "Sessions list should be retrievable")
+    
+    # Find our session and check its lane
+    target_session = None
+    for sess in sessions_response:
+        if sess.get("session_id") == session_id:
+            target_session = sess
+            break
+    
+    result.assert_not_none(target_session, "Session should be found in sessions list")
+    if target_session:
+        result.assert_equal(target_session.get("lane"), chat_lane, "Session lane should be updated to match chat-derived lane")
+    
+    return chat_lane
+
+
+async def test_memory_workers_rebuild(session: aiohttp.ClientSession, result: TestResult):
+    """Test 3: POST /caos/memory/workers/{user_email}/rebuild returns lane worker records"""
+    print("\n🧪 Test 3: Memory workers rebuild endpoint")
+    
+    response = await make_request(session, "POST", f"/caos/memory/workers/{TEST_USER_EMAIL}/rebuild")
+    result.assert_true("error" not in response, "Memory workers rebuild should succeed")
+    result.assert_equal(response.get("user_email"), TEST_USER_EMAIL, "Response should include correct user_email")
+    result.assert_not_none(response.get("workers"), "Response should include workers array")
+    
+    workers = response.get("workers", [])
+    result.assert_true(len(workers) > 0, "Should return at least one worker record")
+    
+    # Verify worker record structure
+    if workers:
+        worker = workers[0]
+        required_fields = ["id", "user_email", "lane", "subject_bins", "summary_text", "source_session_ids"]
+        for field in required_fields:
+            result.assert_not_none(worker.get(field), f"Worker should have {field} field")
+    
+    return workers
+
+
+async def test_memory_workers_get(session: aiohttp.ClientSession, result: TestResult):
+    """Test 4: GET /caos/memory/workers/{user_email} returns worker records with required fields"""
+    print("\n🧪 Test 4: Memory workers get endpoint")
+    
+    response = await make_request(session, "GET", f"/caos/memory/workers/{TEST_USER_EMAIL}")
+    result.assert_true("error" not in response, "Memory workers get should succeed")
+    result.assert_equal(response.get("user_email"), TEST_USER_EMAIL, "Response should include correct user_email")
+    result.assert_not_none(response.get("workers"), "Response should include workers array")
+    
+    workers = response.get("workers", [])
+    result.assert_true(len(workers) > 0, "Should return at least one worker record")
+    
+    # Verify all required fields are present
+    if workers:
+        worker = workers[0]
+        required_fields = ["lane", "subject_bins", "summary_text", "source_session_ids"]
+        for field in required_fields:
+            result.assert_not_none(worker.get(field), f"Worker should have {field} field")
+            
+        # Verify field types
+        result.assert_true(isinstance(worker.get("subject_bins", []), list), "subject_bins should be a list")
+        result.assert_true(isinstance(worker.get("source_session_ids", []), list), "source_session_ids should be a list")
+        result.assert_true(isinstance(worker.get("summary_text", ""), str), "summary_text should be a string")
+    
+    return workers
+
+
+async def test_cross_thread_retrieval(session: aiohttp.ClientSession, result: TestResult):
+    """Test 5: Cross-thread retrieval works with continuity from prior summaries/seeds/workers"""
+    print("\n🧪 Test 5: Cross-thread retrieval and continuity")
+    
+    # Create first session and chat about a specific topic
+    session_1_data = {
+        "user_email": TEST_USER_EMAIL_2,
+        "title": "Python Programming Discussion",
+        "lane": "programming"
+    }
+    session_1_response = await make_request(session, "POST", "/caos/sessions", json_data=session_1_data)
+    result.assert_true("error" not in session_1_response, "First session creation should succeed")
+    session_1_id = session_1_response.get("session_id")
+    
+    # Chat in first session about Python
+    chat_1_data = {
+        "user_email": TEST_USER_EMAIL_2,
+        "session_id": session_1_id,
+        "content": "I'm working on a Python project using FastAPI and need help with async database operations and connection pooling."
+    }
+    chat_1_response = await make_request(session, "POST", "/caos/chat", json_data=chat_1_data)
+    result.assert_true("error" not in chat_1_response, "First chat should succeed")
+    
+    # Wait a moment for processing
+    await asyncio.sleep(2)
+    
+    # Create second session for the same user
+    session_2_data = {
+        "user_email": TEST_USER_EMAIL_2,
+        "title": "FastAPI Database Help",
+        "lane": "programming"
+    }
+    session_2_response = await make_request(session, "POST", "/caos/sessions", json_data=session_2_data)
+    result.assert_true("error" not in session_2_response, "Second session creation should succeed")
+    session_2_id = session_2_response.get("session_id")
+    
+    # Chat in second session about related topic
+    chat_2_data = {
+        "user_email": TEST_USER_EMAIL_2,
+        "session_id": session_2_id,
+        "content": "Can you help me optimize my FastAPI database queries? I'm having performance issues."
+    }
+    chat_2_response = await make_request(session, "POST", "/caos/chat", json_data=chat_2_data)
+    result.assert_true("error" not in chat_2_response, "Second chat should succeed")
+    
+    # Verify continuity fields in response
+    receipt = chat_2_response.get("receipt", {})
+    required_receipt_fields = [
+        "selected_summary_ids", "selected_seed_ids", "selected_worker_ids", 
+        "lane", "continuity_chars", "estimated_context_chars"
     ]
     
-    for test_case in test_cases:
+    for field in required_receipt_fields:
+        result.assert_not_none(receipt.get(field), f"Chat receipt should include {field}")
+    
+    # Verify lane consistency
+    result.assert_equal(chat_2_response.get("lane"), "programming", "Second chat should maintain programming lane")
+    result.assert_equal(receipt.get("lane"), "programming", "Receipt lane should match chat lane")
+    
+    # Verify continuity is working (should have some selected items)
+    selected_summaries = receipt.get("selected_summary_ids", [])
+    selected_seeds = receipt.get("selected_seed_ids", [])
+    selected_workers = receipt.get("selected_worker_ids", [])
+    
+    total_continuity_items = len(selected_summaries) + len(selected_seeds) + len(selected_workers)
+    result.assert_true(total_continuity_items > 0, "Should have some continuity items selected from prior sessions")
+    
+    # Verify continuity chars is reasonable
+    continuity_chars = receipt.get("continuity_chars", 0)
+    result.assert_true(continuity_chars > 0, "Should have some continuity characters")
+    
+    return session_1_id, session_2_id
+
+
+async def test_no_500_errors(session: aiohttp.ClientSession, result: TestResult):
+    """Test 6: No 500s or contract mismatches"""
+    print("\n🧪 Test 6: Error handling and contract compliance")
+    
+    # Test various edge cases that should not cause 500 errors
+    
+    # Test with non-existent user
+    response = await make_request(session, "GET", f"/caos/memory/workers/nonexistent@example.com")
+    result.assert_true(response.get("error") != "HTTP 500", "Non-existent user should not cause 500 error")
+    
+    # Test rebuild for non-existent user
+    response = await make_request(session, "POST", f"/caos/memory/workers/nonexistent@example.com/rebuild")
+    result.assert_true(response.get("error") != "HTTP 500", "Rebuild for non-existent user should not cause 500 error")
+    
+    # Test chat with invalid session
+    chat_data = {
+        "user_email": TEST_USER_EMAIL,
+        "session_id": "invalid-session-id",
+        "content": "Test message"
+    }
+    response = await make_request(session, "POST", "/caos/chat", json_data=chat_data)
+    result.assert_true(response.get("error") != "HTTP 500", "Chat with invalid session should not cause 500 error")
+    
+    # Test session creation with missing fields
+    response = await make_request(session, "POST", "/caos/sessions", json_data={})
+    result.assert_true(response.get("error") != "HTTP 500", "Session creation with missing fields should not cause 500 error")
+
+
+async def run_all_tests():
+    """Run all Phase 2A lane-aware memory tests"""
+    print("🚀 Starting CAOS Backend Phase 2A Lane-Aware Memory Tests")
+    print(f"🎯 Testing against: {BACKEND_URL}")
+    
+    result = TestResult()
+    
+    async with aiohttp.ClientSession() as session:
         try:
-            if test_case["method"] == "POST":
-                response = requests.post(f"{BASE_URL}{test_case['endpoint']}", json=test_case["data"])
-            else:
-                response = requests.get(f"{BASE_URL}{test_case['endpoint']}")
+            # Test 1: Session lane field handling
+            session_id_1, session_id_2 = await test_session_lane_field(session, result)
             
-            # Check for 500 errors (internal server errors)
-            if response.status_code == 500:
-                error_count += 1
-                log_test(f"Internal error check - {test_case['name']}", "FAIL", f"HTTP 500 error: {response.text}")
-            else:
-                log_test(f"Internal error check - {test_case['name']}", "PASS", f"No 500 error (got {response.status_code})")
-                
+            # Test 2: Chat lane derivation (using session with explicit lane)
+            if session_id_1:
+                derived_lane = await test_chat_lane_derivation(session, result, session_id_1)
+            
+            # Test 3: Memory workers rebuild
+            workers_rebuild = await test_memory_workers_rebuild(session, result)
+            
+            # Test 4: Memory workers get
+            workers_get = await test_memory_workers_get(session, result)
+            
+            # Test 5: Cross-thread retrieval
+            cross_thread_sessions = await test_cross_thread_retrieval(session, result)
+            
+            # Test 6: Error handling
+            await test_no_500_errors(session, result)
+            
         except Exception as e:
-            error_count += 1
-            log_test(f"Internal error check - {test_case['name']}", "FAIL", f"Exception: {str(e)}")
+            print(f"❌ Test execution failed: {e}")
+            result.errors.append(f"Test execution failed: {e}")
+            result.failed += 1
     
-    if error_count == 0:
-        log_test("No internal errors verification", "PASS", "All edge cases handled without 500 errors")
-        return True
-    else:
-        log_test("No internal errors verification", "FAIL", f"Found {error_count} internal errors")
-        return False
+    return result.summary()
 
-def main():
-    """Run all voice/settings backend tests"""
-    print("🎤 CAOS Backend Voice/Settings Testing")
-    print("=" * 50)
-    print(f"Testing against: {BASE_URL}")
-    print(f"Test user: {TEST_USER_EMAIL}")
-    print()
-    
-    results = []
-    
-    # Run all tests in sequence
-    results.append(test_post_voice_settings())
-    results.append(test_get_voice_settings())
-    
-    # TTS test returns audio data for round-trip test
-    tts_audio = test_post_voice_tts()
-    results.append(tts_audio is not None)
-    
-    results.append(test_post_voice_transcribe())
-    results.append(test_end_to_end_roundtrip(tts_audio))
-    results.append(test_fallback_behavior())
-    results.append(test_no_internal_errors())
-    
-    # Summary
-    print("=" * 50)
-    print("📊 TEST SUMMARY")
-    print("=" * 50)
-    
-    passed = sum(results)
-    total = len(results)
-    
-    test_names = [
-        "POST /caos/voice/settings",
-        "GET /caos/voice/settings/{user_email}",
-        "POST /caos/voice/tts",
-        "POST /caos/voice/transcribe",
-        "End-to-end round-trip",
-        "Fallback behavior",
-        "No internal errors"
-    ]
-    
-    for i, (name, result) in enumerate(zip(test_names, results)):
-        status = "✅ PASS" if result else "❌ FAIL"
-        print(f"{i+1}. {name}: {status}")
-    
-    print()
-    print(f"Overall: {passed}/{total} tests passed")
-    
-    if passed == total:
-        print("🎉 All tests passed! Voice/settings backend is working correctly.")
-        return True
-    else:
-        print(f"⚠️  {total - passed} test(s) failed. Please review the issues above.")
-        return False
 
 if __name__ == "__main__":
-    success = main()
-    exit(0 if success else 1)
+    success = asyncio.run(run_all_tests())
+    sys.exit(0 if success else 1)
