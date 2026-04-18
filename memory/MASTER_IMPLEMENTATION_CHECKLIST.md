@@ -26,10 +26,10 @@ CAOS is not a generic chatbot. It is a persistent cognitive operating system wit
 Goal: Make the main shell structurally match the intended CAOS operating experience.
 
 ### 1.1 Shell architecture
-- [~] Collapsible sidebar that is visible on entry and hideable for a clean surface
-- [ ] Remove duplicate/competing top identity/menu patterns
-- [ ] Canonical user/name/avatar dropdown with side-opening option panels
-- [ ] Compact top bar aligned to screenshot direction
+- [x] Collapsible sidebar that is visible on entry and hideable for a clean surface
+- [~] Remove duplicate/competing top identity/menu patterns
+- [~] Canonical user/name/avatar dropdown with side-opening option panels
+- [~] Compact top bar aligned to screenshot direction
 
 ### 1.2 Chat surface parity
 - [ ] `/chat` layout closer to screenshot reference
@@ -180,6 +180,6 @@ Goal: Connect CAOS to the user’s external systems and tools.
 7. Add Phase 7 connectors
 
 ## Immediate Next Contract Slice
-- [ ] Remove the wrong top menu pattern and make one canonical identity/menu control
-- [ ] Tighten the sidebar behavior and hierarchy to match the intended CAOS shell
+- [~] Remove the wrong top menu pattern and make one canonical identity/menu control
+- [~] Tighten the sidebar behavior and hierarchy to match the intended CAOS shell
 - [ ] Start `/chat` visual parity pass before moving deeper into the welcome flow
