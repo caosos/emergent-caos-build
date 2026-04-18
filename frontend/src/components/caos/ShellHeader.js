@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Plus, Search, Sparkles } from "lucide-react";
+import { Menu, Plus, Search, Sparkles } from "lucide-react";
 
 
-export const ShellHeader = ({ commitUserEmail, onNewSession, searchQuery, setSearchQuery, userEmail, wcwBudget, wcwUsed }) => {
+export const ShellHeader = ({ commitUserEmail, onNewSession, onOpenArtifacts, onOpenProfile, searchQuery, setSearchQuery, userEmail, wcwBudget, wcwUsed }) => {
   const [draftEmail, setDraftEmail] = useState(userEmail);
+  const [menuOpen, setMenuOpen] = useState(false);
   const percent = Math.min(100, Math.round(((wcwUsed || 0) / (wcwBudget || 1)) * 100));
 
   useEffect(() => {
@@ -63,6 +64,20 @@ export const ShellHeader = ({ commitUserEmail, onNewSession, searchQuery, setSea
           <Plus size={16} />
           <span>New Thread</span>
         </button>
+
+        <div className="header-menu-wrap" data-testid="caos-header-menu-wrap">
+          <button className="surface-button" data-testid="caos-header-menu-button" onClick={() => setMenuOpen((value) => !value)}>
+            <Menu size={16} />
+            <span>Menu</span>
+          </button>
+          {menuOpen ? (
+            <div className="header-menu" data-testid="caos-header-menu">
+              <button data-testid="caos-header-menu-new-thread" onClick={() => { setMenuOpen(false); onNewSession(); }}>New Thread</button>
+              <button data-testid="caos-header-menu-profile" onClick={() => { setMenuOpen(false); onOpenProfile(); }}>Profile</button>
+              <button data-testid="caos-header-menu-files" onClick={() => { setMenuOpen(false); onOpenArtifacts(); }}>Files & Artifacts</button>
+            </div>
+          ) : null}
+        </div>
       </div>
     </header>
   );

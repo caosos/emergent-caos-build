@@ -1,6 +1,9 @@
+from pathlib import Path
+
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 
 from app.db import collection
 from app.schemas.caos import (
@@ -19,9 +22,15 @@ from app.schemas.caos import (
     SessionArtifactsResponse,
     SessionRecord,
     SummaryRecord,
+    TTSRequest,
+    TTSResponse,
+    TranscriptionResponse,
+    LinkCreateRequest,
+    UserFileRecord,
     UserProfileRecord,
     UserProfileUpsertRequest,
 )
+from app.services.file_storage import build_link_record, save_upload_to_disk
 from app.services.chat_pipeline import run_chat_turn
 from app.services.context_engine import (
     build_context_receipt,
@@ -30,6 +39,7 @@ from app.services.context_engine import (
     rank_memories,
     sanitize_history,
 )
+from app.services.voice_service import generate_tts_base64, transcribe_upload
 
 
 router = APIRouter(prefix="/caos", tags=["caos"])
@@ -116,6 +126,49 @@ async def get_profile(user_email: str):
     return UserProfileRecord(**profile)
 
 
+@router.get("/files", response_model=list[UserFileRecord])
+async def list_files(user_email: str, kind: str | None = None, session_id: str | None = None):
+    query = {"user_email": user_email}
+    if kind:
+        query["kind"] = kind
+    if session_id:
+        query["session_id"] = session_id
+    docs = await collection("user_files").find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return [UserFileRecord(**doc) for doc in docs]
+
+
+@router.post("/files/upload", response_model=UserFileRecord)
+async def upload_file(
+    user_email: str = Form(...),
+    session_id: str | None = Form(default=None),
+    file: UploadFile = File(...),
+):
+    metadata = save_upload_to_disk(file, user_email, session_id)
+    metadata["url"] = f"/api/caos/files/{metadata['id']}/download"
+    await collection("user_files").insert_one(metadata)
+    return UserFileRecord(**metadata)
+
+
+@router.post("/files/link", response_model=UserFileRecord)
+async def save_link(input: LinkCreateRequest):
+    record = build_link_record(input.user_email, input.url, input.label, input.session_id)
+    await collection("user_files").insert_one(record)
+    return UserFileRecord(**record)
+
+
+@router.get("/files/{file_id}/download")
+async def download_file(file_id: str):
+    record = await collection("user_files").find_one({"id": file_id}, {"_id": 0})
+    if not record:
+        raise HTTPException(status_code=404, detail="File not found")
+    if record.get("kind") == "link":
+        raise HTTPException(status_code=400, detail="Links do not have downloadable files")
+    file_path = Path(record["storage_path"])
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Stored file is missing")
+    return FileResponse(path=file_path, media_type=record.get("mime_type"), filename=record.get("name"))
+
+
 @router.post("/memory/save", response_model=MemoryEntry)
 async def save_memory(input: MemorySaveRequest):
     profile = await collection("user_profiles").find_one({"user_email": input.user_email}, {"_id": 0})
@@ -172,3 +225,14 @@ async def chat(input: ChatRequest):
         raise HTTPException(status_code=404, detail=str(error)) from error
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.post("/voice/tts", response_model=TTSResponse)
+async def text_to_speech(input: TTSRequest):
+    return TTSResponse(**(await generate_tts_base64(input.text, input.voice, input.speed, input.model)))
+
+
+@router.post("/voice/transcribe", response_model=TranscriptionResponse)
+async def speech_to_text(file: UploadFile = File(...)):
+    data = await transcribe_upload(file)
+    return TranscriptionResponse(text=data["text"])

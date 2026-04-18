@@ -161,3 +161,42 @@ class SessionArtifactsResponse(BaseModel):
     receipts: list[ReceiptRecord] = Field(default_factory=list)
     summaries: list[SummaryRecord] = Field(default_factory=list)
     seeds: list[SeedRecord] = Field(default_factory=list)
+
+
+class UserFileRecord(BaseModel):
+    id: str
+    user_email: str
+    session_id: str | None = None
+    name: str
+    kind: str
+    mime_type: str
+    size: int
+    url: str | None = None
+    storage_path: str | None = None
+    created_at: datetime
+
+
+class LinkCreateRequest(BaseModel):
+    user_email: str
+    url: str
+    label: str
+    session_id: str | None = None
+
+
+class TTSRequest(BaseModel):
+    text: str
+    voice: str = "nova"
+    speed: float = 1.0
+    model: str = "tts-1-hd"
+
+
+class TTSResponse(BaseModel):
+    audio_base64: str
+    content_type: str
+    voice: str
+    model: str
+    speed: float
+
+
+class TranscriptionResponse(BaseModel):
+    text: str

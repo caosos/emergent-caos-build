@@ -5,7 +5,7 @@ import { useState } from "react";
 const formatRole = (role) => (role === "assistant" ? "CAOS" : role === "user" ? "You" : "System");
 
 
-export const MessagePane = ({ busy, currentSession, messages }) => {
+export const MessagePane = ({ busy, currentSession, messages, onSpeak }) => {
   const [actionStatus, setActionStatus] = useState("");
   const [speakingId, setSpeakingId] = useState("");
 
@@ -18,24 +18,19 @@ export const MessagePane = ({ busy, currentSession, messages }) => {
     }
   };
 
-  const handleReadAloud = (message) => {
+  const handleReadAloud = async (message) => {
     try {
-      window.speechSynthesis.cancel();
       if (speakingId === message.id) {
         setSpeakingId("");
         setActionStatus("Read aloud stopped.");
         return;
       }
-      const utterance = new SpeechSynthesisUtterance(message.content);
-      utterance.onend = () => setSpeakingId("");
-      utterance.onerror = () => {
-        setSpeakingId("");
-        setActionStatus("Read aloud is unavailable in this browser.");
-      };
       setSpeakingId(message.id);
       setActionStatus("Read aloud started.");
-      window.speechSynthesis.speak(utterance);
+      await onSpeak(message.content);
+      setSpeakingId("");
     } catch {
+      setSpeakingId("");
       setActionStatus("Read aloud is unavailable in this browser.");
     }
   };

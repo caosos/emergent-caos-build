@@ -13,6 +13,7 @@ export const useCaosShell = () => {
   const [messages, setMessages] = useState([]);
   const [profile, setProfile] = useState(null);
   const [artifacts, setArtifacts] = useState({ receipts: [], summaries: [], seeds: [] });
+  const [files, setFiles] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [lastTurn, setLastTurn] = useState(null);
   const [status, setStatus] = useState("Loading CAOS shell...");
@@ -49,6 +50,12 @@ export const useCaosShell = () => {
     }
   }, [userEmail]);
 
+  const loadFiles = useCallback(async () => {
+    const response = await axios.get(`${API}/caos/files`, { params: { user_email: userEmail } });
+    setFiles(response.data);
+    return response.data;
+  }, [userEmail]);
+
   const loadArtifacts = useCallback(async (sessionId) => {
     if (!sessionId) {
       setArtifacts({ receipts: [], summaries: [], seeds: [] });
@@ -66,6 +73,7 @@ export const useCaosShell = () => {
     try {
       await loadMessages(session.session_id);
       await loadArtifacts(session.session_id);
+      await loadFiles();
       setStatus(`Loaded session ${session.title}.`);
     } catch (issue) {
       const message = issue?.response?.data?.detail || issue?.message || "Failed to load session.";
@@ -85,6 +93,7 @@ export const useCaosShell = () => {
         preferred_name: "Michael",
       });
       await loadProfile();
+      await loadFiles();
       const response = await axios.post(`${API}/caos/sessions`, {
         user_email: userEmail,
         title,
@@ -129,6 +138,7 @@ export const useCaosShell = () => {
       await loadMessages(session.session_id);
       await loadArtifacts(session.session_id);
       await loadProfile();
+      await loadFiles();
       setStatus("CAOS replied with session-scoped context.");
     } catch (issue) {
       const message = issue?.response?.data?.detail || issue?.message || "Sending message failed.";
@@ -145,6 +155,7 @@ export const useCaosShell = () => {
       try {
         const foundSessions = await loadSessions();
         await loadProfile();
+        await loadFiles();
         if (foundSessions[0]) {
           setCurrentSession(foundSessions[0]);
           await loadMessages(foundSessions[0].session_id);
@@ -171,6 +182,63 @@ export const useCaosShell = () => {
     return messages.filter((message) => message.content?.toLowerCase().includes(lowered));
   }, [messages, searchQuery]);
 
+  const uploadFile = useCallback(async (file) => {
+    if (!file) return;
+    const form = new FormData();
+    form.append("user_email", userEmail);
+    if (currentSession?.session_id) form.append("session_id", currentSession.session_id);
+    form.append("file", file);
+    setBusy(true);
+    setError("");
+    try {
+      await axios.post(`${API}/caos/files/upload`, form);
+      await loadFiles();
+      setStatus(`Uploaded ${file.name}.`);
+    } catch (issue) {
+      const message = issue?.response?.data?.detail || issue?.message || "Upload failed.";
+      setError(message);
+      setStatus(`Upload failed: ${message}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [currentSession, loadFiles, userEmail]);
+
+  const saveLink = useCallback(async (url, label) => {
+    if (!url.trim() || !label.trim()) return;
+    setBusy(true);
+    setError("");
+    try {
+      await axios.post(`${API}/caos/files/link`, {
+        user_email: userEmail,
+        session_id: currentSession?.session_id || null,
+        url,
+        label,
+      });
+      await loadFiles();
+      setStatus(`Saved link ${label}.`);
+    } catch (issue) {
+      const message = issue?.response?.data?.detail || issue?.message || "Saving link failed.";
+      setError(message);
+      setStatus(`Saving link failed: ${message}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [currentSession, loadFiles, userEmail]);
+
+  const transcribeAudio = useCallback(async (blob, filename = "caos-voice-note.webm") => {
+    const form = new FormData();
+    form.append("file", new File([blob], filename, { type: blob.type || "audio/webm" }));
+    const response = await axios.post(`${API}/caos/voice/transcribe`, form);
+    return response.data.text || "";
+  }, []);
+
+  const speakText = useCallback(async (text) => {
+    const response = await axios.post(`${API}/caos/voice/tts`, { text, voice: "nova", model: "tts-1-hd", speed: 1.0 });
+    const audio = new Audio(`data:${response.data.content_type};base64,${response.data.audio_base64}`);
+    await audio.play();
+    return audio;
+  }, []);
+
   return {
     artifacts,
     busy,
@@ -178,6 +246,7 @@ export const useCaosShell = () => {
     currentSession,
     error,
     filteredMessages,
+    files,
     lastTurn,
     messages,
     profile,
@@ -187,7 +256,11 @@ export const useCaosShell = () => {
     sessions,
     setSearchQuery,
     commitUserEmail,
+    saveLink,
+    speakText,
     status,
+    transcribeAudio,
+    uploadFile,
     userEmail,
   };
 };

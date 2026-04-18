@@ -21,14 +21,18 @@ export const CaosShell = () => {
     currentSession,
     error,
     filteredMessages,
+    files,
     lastTurn,
     searchQuery,
+    saveLink,
     selectSession,
     sendMessage,
     sessions,
     setSearchQuery,
-    setUserEmail,
+    speakText,
     status,
+    transcribeAudio,
+    uploadFile,
     userEmail,
     profile,
   } = useCaosShell();
@@ -45,6 +49,8 @@ export const CaosShell = () => {
     <main className="caos-shell-root" data-testid="caos-shell-root">
       <ShellHeader
         onNewSession={() => createSession()}
+        onOpenArtifacts={() => setShowArtifacts(true)}
+        onOpenProfile={() => setShowProfile(true)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         commitUserEmail={commitUserEmail}
@@ -68,8 +74,8 @@ export const CaosShell = () => {
             </div>
           ) : null}
 
-          <MessagePane busy={busy} currentSession={currentSession} messages={filteredMessages} />
-          <Composer busy={busy} onSend={sendMessage} status={status} />
+          <MessagePane busy={busy} currentSession={currentSession} messages={filteredMessages} onSpeak={speakText} />
+          <Composer busy={busy} onSend={sendMessage} onTranscribe={transcribeAudio} onUploadFile={uploadFile} status={status} />
         </section>
 
         <aside className="context-column" data-testid="caos-context-column">
@@ -136,7 +142,14 @@ export const CaosShell = () => {
         sessionsCount={sessions.length}
         userEmail={userEmail}
       />
-      <ArtifactsDrawer artifacts={artifacts} isOpen={showArtifacts} onClose={() => setShowArtifacts(false)} />
+      <ArtifactsDrawer
+        artifacts={artifacts}
+        files={files}
+        isOpen={showArtifacts}
+        onClose={() => setShowArtifacts(false)}
+        onSaveLink={saveLink}
+        onUploadFile={uploadFile}
+      />
     </main>
   );
 };
