@@ -142,7 +142,7 @@ async def upsert_profile(input: UserProfileUpsertRequest):
 async def get_profile(user_email: str):
     profile = await collection("user_profiles").find_one({"user_email": user_email}, {"_id": 0})
     if not profile:
-        raise HTTPException(status_code=404, detail="User profile not found")
+        return UserProfileRecord(user_email=user_email)
     return UserProfileRecord(**profile)
 
 
