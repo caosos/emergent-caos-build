@@ -51,6 +51,7 @@ export const CaosShell = () => {
       }
     : null);
   const memorySurface = lastTurn?.injected_memories || [];
+  const lastAssistantMessage = [...filteredMessages].reverse().find((message) => message.role === "assistant") || null;
 
   return (
     <main className="caos-shell-root" data-testid="caos-shell-root">
@@ -81,10 +82,21 @@ export const CaosShell = () => {
           ) : null}
 
           <MessagePane busy={busy} currentSession={currentSession} messages={filteredMessages} onSpeak={speakText} receipts={artifacts.receipts} />
-          <Composer busy={busy} onSend={sendMessage} onTranscribe={transcribeAudio} onUploadFile={uploadFile} status={status} />
-          <QuickActionsStrip onContinueThread={() => createSession("Continued Thread")} onOpenArtifacts={() => setShowArtifacts(true)} />
-          <ModelBar />
         </section>
+      </div>
+
+      <div className="command-footer" data-testid="caos-command-footer">
+        <QuickActionsStrip onContinueThread={() => createSession("Continued Thread")} onOpenArtifacts={() => setShowArtifacts(true)} />
+        <ModelBar />
+        <Composer
+          busy={busy}
+          lastAssistantMessage={lastAssistantMessage}
+          onSend={sendMessage}
+          onSpeak={speakText}
+          onTranscribe={transcribeAudio}
+          onUploadFile={uploadFile}
+          status={status}
+        />
       </div>
 
       {!showSearch ? (

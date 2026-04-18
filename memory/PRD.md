@@ -22,6 +22,7 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Simplified the shell hierarchy based on latest feedback: left rail owns new-thread/navigation behavior, header is lighter, search is icon-first, and user identity is moving into the lower rail instead of living in the header.
 - Continued the shell cleanup: user identity now sits in the lower rail with settings/files/logout, and the top search surface has been reduced toward a compact inspector-style interaction.
 - Began the command-center parity shift: rail search, a calmer empty-state prompt, quick action pills, bottom model bar, and an on-demand inspector instead of a permanently heavy right column.
+- Locked the next shell move: sticky left rail, full-width fixed bottom command footer, and input-bar read-aloud for the last assistant message alongside per-bubble TTS.
 
 ## Prioritized Backlog
 ### P0

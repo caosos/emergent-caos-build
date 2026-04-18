@@ -11,6 +11,7 @@
     max-width: 1700px;
     margin: 0 auto;
     padding: 24px;
+    padding-bottom: 240px;
 }
 
 .caos-header,
@@ -205,6 +206,9 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+    position: sticky;
+    top: 24px;
+    height: calc(100vh - 48px);
 }
 
 .rail-brand {
@@ -382,7 +386,7 @@
 
 .message-pane {
     padding: 18px;
-    min-height: 66vh;
+    min-height: 60vh;
     background: transparent;
     box-shadow: none;
     border-color: transparent;
@@ -495,19 +499,36 @@
     padding: 8px 12px;
 }
 
+.command-footer {
+    position: fixed;
+    left: 318px;
+    right: 24px;
+    bottom: 18px;
+    display: grid;
+    gap: 10px;
+    z-index: 14;
+}
+
 .composer-shell {
-    padding: 16px;
-    max-width: 980px;
-    margin: 0 auto;
+    padding: 14px 16px;
+    max-width: none;
+    margin: 0;
 }
 
 .quick-actions-strip,
 .model-bar {
-    max-width: 980px;
-    margin: 0 auto;
-    display: flex;
+    width: 100%;
+    display: grid;
     gap: 10px;
-    flex-wrap: wrap;
+}
+
+.quick-actions-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.model-bar {
+    grid-template-columns: repeat(5, minmax(0, max-content));
+    justify-content: start;
 }
 
 .quick-action-pill,
@@ -540,7 +561,7 @@
 
 .composer-row {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-columns: auto auto minmax(0, 1fr) auto auto;
     gap: 12px;
     align-items: end;
 }
@@ -690,7 +711,7 @@
 .inspector-toggle-button {
     position: fixed;
     right: 170px;
-    bottom: 28px;
+    bottom: 180px;
     padding: 12px 16px;
     z-index: 16;
 }
@@ -819,6 +840,21 @@
     .inspector-toggle-button {
         position: static;
         width: auto;
+    }
+
+    .command-footer {
+        position: static;
+        left: auto;
+        right: auto;
+        bottom: auto;
+    }
+
+    .quick-actions-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .model-bar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 

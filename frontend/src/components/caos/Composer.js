@@ -1,8 +1,8 @@
-import { Mic, Paperclip, SendHorizontal } from "lucide-react";
+import { Mic, Paperclip, SendHorizontal, Volume2 } from "lucide-react";
 import { useState } from "react";
 
 
-export const Composer = ({ busy, onSend, onTranscribe, onUploadFile, status }) => {
+export const Composer = ({ busy, lastAssistantMessage, onSend, onSpeak, onTranscribe, onUploadFile, status }) => {
   const [draft, setDraft] = useState("");
   const [recording, setRecording] = useState(false);
 
@@ -38,17 +38,29 @@ export const Composer = ({ busy, onSend, onTranscribe, onUploadFile, status }) =
     setTimeout(() => recorder.state !== "inactive" && recorder.stop(), 5000);
   };
 
+  const handleReadLastAssistant = async () => {
+    if (!lastAssistantMessage?.content) return;
+    await onSpeak(lastAssistantMessage.content);
+  };
+
   return (
     <form className="composer-shell" data-testid="caos-composer-shell" onSubmit={handleSubmit}>
-      <label className="composer-label" htmlFor="caos-draft" data-testid="caos-composer-label">
-        Active prompt
-      </label>
       <div className="composer-row">
         <label className="message-action-button composer-upload" data-testid="caos-composer-upload-button">
           <Paperclip size={16} />
           <span>Attach</span>
           <input data-testid="caos-composer-upload-input" hidden type="file" onChange={handleUpload} />
         </label>
+        <button
+          className="message-action-button composer-read-last"
+          data-testid="caos-composer-read-last-button"
+          disabled={!lastAssistantMessage?.content}
+          onClick={handleReadLastAssistant}
+          type="button"
+        >
+          <Volume2 size={16} />
+          <span>Read Last</span>
+        </button>
         <textarea
           data-testid="caos-composer-textarea"
           id="caos-draft"
