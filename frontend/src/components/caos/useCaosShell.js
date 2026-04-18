@@ -19,9 +19,11 @@ export const useCaosShell = () => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const setUserEmail = useCallback((value) => {
-    localStorage.setItem(USER_KEY, value);
-    setUserEmailState(value);
+  const commitUserEmail = useCallback((value) => {
+    const nextValue = value.trim();
+    if (!nextValue || nextValue === userEmail) return;
+    localStorage.setItem(USER_KEY, nextValue);
+    setUserEmailState(nextValue);
   }, []);
 
   const loadSessions = useCallback(async () => {
@@ -184,7 +186,7 @@ export const useCaosShell = () => {
     sendMessage,
     sessions,
     setSearchQuery,
-    setUserEmail,
+    commitUserEmail,
     status,
     userEmail,
   };

@@ -1,8 +1,16 @@
+import { useEffect, useState } from "react";
 import { Plus, Search, Sparkles } from "lucide-react";
 
 
-export const ShellHeader = ({ onNewSession, searchQuery, setSearchQuery, userEmail, setUserEmail, wcwBudget, wcwUsed }) => {
+export const ShellHeader = ({ commitUserEmail, onNewSession, searchQuery, setSearchQuery, userEmail, wcwBudget, wcwUsed }) => {
+  const [draftEmail, setDraftEmail] = useState(userEmail);
   const percent = Math.min(100, Math.round(((wcwUsed || 0) / (wcwBudget || 1)) * 100));
+
+  useEffect(() => {
+    setDraftEmail(userEmail);
+  }, [userEmail]);
+
+  const commitIfNeeded = () => commitUserEmail(draftEmail);
 
   return (
     <header className="caos-header" data-testid="caos-shell-header">
@@ -20,7 +28,18 @@ export const ShellHeader = ({ onNewSession, searchQuery, setSearchQuery, userEma
       <div className="caos-header-actions">
         <label className="inline-field" data-testid="caos-email-field">
           <span>User</span>
-          <input data-testid="caos-user-email-input" value={userEmail} onChange={(event) => setUserEmail(event.target.value)} />
+          <input
+            data-testid="caos-user-email-input"
+            value={draftEmail}
+            onBlur={commitIfNeeded}
+            onChange={(event) => setDraftEmail(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                commitIfNeeded();
+              }
+            }}
+          />
         </label>
 
         <label className="inline-field search-field" data-testid="caos-search-field">

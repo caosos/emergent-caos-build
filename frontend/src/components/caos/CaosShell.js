@@ -16,6 +16,7 @@ export const CaosShell = () => {
   const {
     artifacts,
     busy,
+    commitUserEmail,
     createSession,
     currentSession,
     error,
@@ -46,7 +47,7 @@ export const CaosShell = () => {
         onNewSession={() => createSession()}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
-        setUserEmail={setUserEmail}
+        commitUserEmail={commitUserEmail}
         userEmail={userEmail}
         wcwBudget={lastTurn?.wcw_budget || 200000}
         wcwUsed={lastTurn?.wcw_used_estimate || 0}
