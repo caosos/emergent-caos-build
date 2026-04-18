@@ -11,6 +11,8 @@ export const useCaosShell = () => {
   const [sessions, setSessions] = useState([]);
   const [currentSession, setCurrentSession] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [profile, setProfile] = useState(null);
+  const [artifacts, setArtifacts] = useState({ receipts: [], summaries: [], seeds: [] });
   const [searchQuery, setSearchQuery] = useState("");
   const [lastTurn, setLastTurn] = useState(null);
   const [status, setStatus] = useState("Loading CAOS shell...");
@@ -34,12 +36,34 @@ export const useCaosShell = () => {
     return response.data;
   }, []);
 
+  const loadProfile = useCallback(async () => {
+    try {
+      const response = await axios.get(`${API}/caos/profile/${encodeURIComponent(userEmail)}`);
+      setProfile(response.data);
+      return response.data;
+    } catch {
+      setProfile(null);
+      return null;
+    }
+  }, [userEmail]);
+
+  const loadArtifacts = useCallback(async (sessionId) => {
+    if (!sessionId) {
+      setArtifacts({ receipts: [], summaries: [], seeds: [] });
+      return { receipts: [], summaries: [], seeds: [] };
+    }
+    const response = await axios.get(`${API}/caos/sessions/${sessionId}/artifacts`);
+    setArtifacts(response.data);
+    return response.data;
+  }, []);
+
   const selectSession = useCallback(async (session) => {
     setCurrentSession(session);
     setBusy(true);
     setError("");
     try {
       await loadMessages(session.session_id);
+      await loadArtifacts(session.session_id);
       setStatus(`Loaded session ${session.title}.`);
     } catch (issue) {
       const message = issue?.response?.data?.detail || issue?.message || "Failed to load session.";
@@ -58,6 +82,7 @@ export const useCaosShell = () => {
         user_email: userEmail,
         preferred_name: "Michael",
       });
+      await loadProfile();
       const response = await axios.post(`${API}/caos/sessions`, {
         user_email: userEmail,
         title,
@@ -66,6 +91,7 @@ export const useCaosShell = () => {
       const created = nextSessions.find((item) => item.session_id === response.data.session_id) || response.data;
       setCurrentSession(created);
       setMessages([]);
+      setArtifacts({ receipts: [], summaries: [], seeds: [] });
       setLastTurn(null);
       setStatus(`Created session ${created.title}.`);
       return created;
@@ -99,6 +125,8 @@ export const useCaosShell = () => {
       const refreshedSession = nextSessions.find((item) => item.session_id === session.session_id) || session;
       setCurrentSession(refreshedSession);
       await loadMessages(session.session_id);
+      await loadArtifacts(session.session_id);
+      await loadProfile();
       setStatus("CAOS replied with session-scoped context.");
     } catch (issue) {
       const message = issue?.response?.data?.detail || issue?.message || "Sending message failed.";
@@ -114,9 +142,11 @@ export const useCaosShell = () => {
       setBusy(true);
       try {
         const foundSessions = await loadSessions();
+        await loadProfile();
         if (foundSessions[0]) {
           setCurrentSession(foundSessions[0]);
           await loadMessages(foundSessions[0].session_id);
+          await loadArtifacts(foundSessions[0].session_id);
           setStatus(`Loaded ${foundSessions.length} saved sessions.`);
         } else {
           setMessages([]);
@@ -140,6 +170,7 @@ export const useCaosShell = () => {
   }, [messages, searchQuery]);
 
   return {
+    artifacts,
     busy,
     createSession,
     currentSession,
@@ -147,6 +178,7 @@ export const useCaosShell = () => {
     filteredMessages,
     lastTurn,
     messages,
+    profile,
     searchQuery,
     selectSession,
     sendMessage,

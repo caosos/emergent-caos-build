@@ -123,3 +123,41 @@ class ChatResponse(BaseModel):
     receipt: dict
     wcw_used_estimate: int
     wcw_budget: int
+
+
+class ReceiptRecord(BaseModel):
+    id: str
+    session_id: str
+    assistant_message_id: str
+    provider: str
+    model: str
+    retrieval_terms: list[str] = Field(default_factory=list)
+    selected_memory_ids: list[str] = Field(default_factory=list)
+    reduction_ratio: float = 0.0
+    final_message_count: int = 0
+    wcw_used_estimate: int = 0
+    wcw_budget: int = 0
+    created_at: datetime
+
+
+class SummaryRecord(BaseModel):
+    id: str
+    session_id: str
+    source_user_excerpt: str
+    summary: str
+    created_at: datetime
+
+
+class SeedRecord(BaseModel):
+    id: str
+    session_id: str
+    topics: list[str] = Field(default_factory=list)
+    seed_text: str
+    selected_memory_ids: list[str] = Field(default_factory=list)
+    created_at: datetime
+
+
+class SessionArtifactsResponse(BaseModel):
+    receipts: list[ReceiptRecord] = Field(default_factory=list)
+    summaries: list[SummaryRecord] = Field(default_factory=list)
+    seeds: list[SeedRecord] = Field(default_factory=list)

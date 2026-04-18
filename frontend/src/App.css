@@ -220,6 +220,35 @@
     background: rgba(8, 47, 73, 0.9);
 }
 
+.surface-button-row,
+.message-actions-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.surface-button,
+.message-action-button,
+.drawer-close-button {
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(15, 23, 42, 0.74);
+    color: #eff6ff;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.surface-button,
+.message-action-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+}
+
+.message-actions-row {
+    margin-top: 14px;
+}
+
 .message-pane {
     padding: 18px;
 }
@@ -252,6 +281,15 @@
     margin: 0;
     line-height: 1.7;
     white-space: pre-wrap;
+}
+
+.message-action-status {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(15, 23, 42, 0.74);
+    border-radius: 14px;
+    color: rgba(191, 219, 254, 0.82);
 }
 
 .message-empty,
@@ -308,6 +346,76 @@
     padding: 16px;
     display: grid;
     gap: 12px;
+}
+
+.drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.65);
+    backdrop-filter: blur(6px);
+    display: flex;
+    justify-content: flex-end;
+    z-index: 50;
+}
+
+.drawer-shell {
+    width: min(420px, 100%);
+    height: 100%;
+    background: rgba(8, 15, 31, 0.98);
+    border-left: 1px solid rgba(148, 163, 184, 0.16);
+    padding: 20px;
+    display: grid;
+    align-content: start;
+    gap: 12px;
+    overflow: auto;
+}
+
+.drawer-header,
+.drawer-section,
+.drawer-card,
+.drawer-list-item {
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(15, 23, 42, 0.74);
+    border-radius: 18px;
+}
+
+.drawer-header,
+.drawer-card,
+.drawer-section {
+    padding: 14px 16px;
+}
+
+.drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.drawer-close-button {
+    width: 38px;
+    height: 38px;
+}
+
+.drawer-card,
+.drawer-section {
+    display: grid;
+    gap: 8px;
+}
+
+.drawer-card span,
+.drawer-section h3 {
+    color: rgba(191, 219, 254, 0.76);
+    margin: 0;
+}
+
+.drawer-list {
+    display: grid;
+    gap: 10px;
+}
+
+.drawer-list-item {
+    padding: 12px 14px;
+    line-height: 1.65;
 }
 
 .context-metric,
@@ -368,5 +476,9 @@
     .context-card,
     .shell-error-banner {
         border-radius: 20px;
+    }
+
+    .drawer-shell {
+        width: 100%;
     }
 }

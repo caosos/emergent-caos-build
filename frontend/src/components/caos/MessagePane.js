@@ -1,7 +1,45 @@
+import { Copy, Volume2 } from "lucide-react";
+import { useState } from "react";
+
+
 const formatRole = (role) => (role === "assistant" ? "CAOS" : role === "user" ? "You" : "System");
 
 
 export const MessagePane = ({ busy, currentSession, messages }) => {
+  const [actionStatus, setActionStatus] = useState("");
+  const [speakingId, setSpeakingId] = useState("");
+
+  const handleCopy = async (message) => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setActionStatus("Message copied.");
+    } catch {
+      setActionStatus("Clipboard permission was denied.");
+    }
+  };
+
+  const handleReadAloud = (message) => {
+    try {
+      window.speechSynthesis.cancel();
+      if (speakingId === message.id) {
+        setSpeakingId("");
+        setActionStatus("Read aloud stopped.");
+        return;
+      }
+      const utterance = new SpeechSynthesisUtterance(message.content);
+      utterance.onend = () => setSpeakingId("");
+      utterance.onerror = () => {
+        setSpeakingId("");
+        setActionStatus("Read aloud is unavailable in this browser.");
+      };
+      setSpeakingId(message.id);
+      setActionStatus("Read aloud started.");
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      setActionStatus("Read aloud is unavailable in this browser.");
+    }
+  };
+
   return (
     <section className="message-pane" data-testid="caos-message-pane">
       <div className="message-pane-header" data-testid="caos-message-pane-header">
@@ -32,10 +70,27 @@ export const MessagePane = ({ busy, currentSession, messages }) => {
                 <span data-testid={`caos-message-time-${message.id}`}>{new Date(message.timestamp).toLocaleString()}</span>
               </div>
               <p data-testid={`caos-message-content-${message.id}`}>{message.content}</p>
+              <div className="message-actions-row" data-testid={`caos-message-actions-${message.id}`}>
+                <button className="message-action-button" data-testid={`caos-message-copy-${message.id}`} onClick={() => handleCopy(message)}>
+                  <Copy size={14} />
+                  <span>Copy</span>
+                </button>
+                {message.role === "assistant" ? (
+                  <button
+                    className="message-action-button"
+                    data-testid={`caos-message-read-${message.id}`}
+                    onClick={() => handleReadAloud(message)}
+                  >
+                    <Volume2 size={14} />
+                    <span>{speakingId === message.id ? "Stop" : "Read"}</span>
+                  </button>
+                ) : null}
+              </div>
             </article>
           ))
         )}
       </div>
+      {actionStatus ? <div className="message-action-status" data-testid="caos-message-action-status">{actionStatus}</div> : null}
     </section>
   );
 };

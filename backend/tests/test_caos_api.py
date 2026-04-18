@@ -304,3 +304,75 @@ def test_chat_persists_turn_and_returns_receipt_and_wcw(api_client, test_identit
     message_history = persisted_messages.json()
     assert any(msg["role"] == "user" and msg["content"] == chat_payload["content"] for msg in message_history)
     assert any(msg["role"] == "assistant" and isinstance(msg["content"], str) and msg["content"] for msg in message_history)
+
+
+# Module: profile retrieval and session artifact persistence surfaces
+def test_get_profile_returns_stored_user_profile(api_client, test_identity):
+    upsert_payload = {
+        "user_email": test_identity["email"],
+        "preferred_name": "TEST Profile Name",
+        "assistant_name": "Aria",
+        "environment_name": "CAOS",
+    }
+    upsert_response = api_client.post(
+        f"{BASE_URL.rstrip('/')}/api/caos/profile/upsert", json=upsert_payload, timeout=20
+    )
+    assert upsert_response.status_code == 200
+
+    get_response = api_client.get(
+        f"{BASE_URL.rstrip('/')}/api/caos/profile/{test_identity['email']}", timeout=20
+    )
+    assert get_response.status_code == 200
+    profile = get_response.json()
+    assert profile["user_email"] == test_identity["email"]
+    assert profile["preferred_name"] == "TEST Profile Name"
+    assert profile["assistant_name"] == "Aria"
+    assert isinstance(profile["structured_memory"], list)
+
+
+def test_chat_artifacts_endpoint_returns_receipts_summaries_and_seeds(api_client, test_identity):
+    api_client.post(
+        f"{BASE_URL.rstrip('/')}/api/caos/profile/upsert",
+        json={"user_email": test_identity["email"], "preferred_name": "TEST User"},
+        timeout=20,
+    )
+    session_response = api_client.post(
+        f"{BASE_URL.rstrip('/')}/api/caos/sessions",
+        json={"user_email": test_identity["email"], "title": f"{test_identity['title']} Artifacts"},
+        timeout=20,
+    )
+    assert session_response.status_code == 200
+    session_id = session_response.json()["session_id"]
+
+    chat_payload = {
+        "user_email": test_identity["email"],
+        "session_id": session_id,
+        "content": "Summarize this turn and persist receipt summary seed artifacts",
+    }
+    first_attempt = api_client.post(f"{BASE_URL.rstrip('/')}/api/caos/chat", json=chat_payload, timeout=60)
+    response = first_attempt
+    if first_attempt.status_code >= 500:
+        response = api_client.post(f"{BASE_URL.rstrip('/')}/api/caos/chat", json=chat_payload, timeout=60)
+    assert response.status_code == 200
+
+    artifacts_response = api_client.get(
+        f"{BASE_URL.rstrip('/')}/api/caos/sessions/{session_id}/artifacts", timeout=20
+    )
+    assert artifacts_response.status_code == 200
+    artifacts = artifacts_response.json()
+    assert isinstance(artifacts.get("receipts"), list)
+    assert isinstance(artifacts.get("summaries"), list)
+    assert isinstance(artifacts.get("seeds"), list)
+    assert len(artifacts["receipts"]) >= 1
+    assert len(artifacts["summaries"]) >= 1
+    assert len(artifacts["seeds"]) >= 1
+
+    first_receipt = artifacts["receipts"][0]
+    first_summary = artifacts["summaries"][0]
+    first_seed = artifacts["seeds"][0]
+    assert first_receipt["session_id"] == session_id
+    assert first_summary["session_id"] == session_id
+    assert first_seed["session_id"] == session_id
+    assert isinstance(first_receipt["retrieval_terms"], list)
+    assert isinstance(first_summary["summary"], str)
+    assert isinstance(first_seed["topics"], list)

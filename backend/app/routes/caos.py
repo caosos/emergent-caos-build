@@ -13,8 +13,12 @@ from app.schemas.caos import (
     MemorySaveRequest,
     MessageCreate,
     MessageRecord,
+    ReceiptRecord,
+    SeedRecord,
     SessionCreate,
+    SessionArtifactsResponse,
     SessionRecord,
+    SummaryRecord,
     UserProfileRecord,
     UserProfileUpsertRequest,
 )
@@ -72,6 +76,18 @@ async def get_session_messages(session_id: str):
     return [MessageRecord(**doc) for doc in docs]
 
 
+@router.get("/sessions/{session_id}/artifacts", response_model=SessionArtifactsResponse)
+async def get_session_artifacts(session_id: str):
+    receipt_docs = await collection("receipts").find({"session_id": session_id}, {"_id": 0}).sort("created_at", -1).to_list(50)
+    summary_docs = await collection("thread_summaries").find({"session_id": session_id}, {"_id": 0}).sort("created_at", -1).to_list(25)
+    seed_docs = await collection("context_seeds").find({"session_id": session_id}, {"_id": 0}).sort("created_at", -1).to_list(25)
+    return SessionArtifactsResponse(
+        receipts=[ReceiptRecord(**doc) for doc in receipt_docs],
+        summaries=[SummaryRecord(**doc) for doc in summary_docs],
+        seeds=[SeedRecord(**doc) for doc in seed_docs],
+    )
+
+
 @router.post("/profile/upsert", response_model=UserProfileRecord)
 async def upsert_profile(input: UserProfileUpsertRequest):
     existing = await collection("user_profiles").find_one({"user_email": input.user_email}, {"_id": 0})
@@ -90,6 +106,14 @@ async def upsert_profile(input: UserProfileUpsertRequest):
     doc["structured_memory"] = []
     await collection("user_profiles").insert_one(doc)
     return profile
+
+
+@router.get("/profile/{user_email}", response_model=UserProfileRecord)
+async def get_profile(user_email: str):
+    profile = await collection("user_profiles").find_one({"user_email": user_email}, {"_id": 0})
+    if not profile:
+        raise HTTPException(status_code=404, detail="User profile not found")
+    return UserProfileRecord(**profile)
 
 
 @router.post("/memory/save", response_model=MemoryEntry)

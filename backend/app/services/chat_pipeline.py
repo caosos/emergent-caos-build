@@ -12,6 +12,7 @@ from app.schemas.caos import (
     MessageRecord,
     UserProfileRecord,
 )
+from app.services.artifact_builder import build_receipt_record, build_seed_record, build_summary_record
 from app.services.context_engine import (
     build_context_receipt,
     compress_history,
@@ -68,11 +69,19 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     assistant_doc = assistant_message.model_dump()
     assistant_doc["timestamp"] = assistant_doc["timestamp"].isoformat()
     await collection("messages").insert_one(assistant_doc)
+    wcw_used_estimate = max(1, sum(len(message.content) for message in compressed) // 4)
+    wcw_budget = 200000
+    await collection("receipts").insert_one(
+        build_receipt_record(payload.session_id, assistant_message.id, payload.provider, payload.model, receipt, wcw_used_estimate, wcw_budget)
+    )
+    await collection("thread_summaries").insert_one(build_summary_record(payload.session_id, payload.content, reply))
+    await collection("context_seeds").insert_one(build_seed_record(payload.session_id, receipt, payload.content, reply))
     await collection("sessions").update_one(
         {"session_id": payload.session_id},
         {
             "$set": {
                 "last_message_preview": reply[:140],
+                "summary": reply[:220],
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }
         },
@@ -85,6 +94,6 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         sanitized_history=compressed,
         injected_memories=injected_memories,
         receipt=receipt,
-        wcw_used_estimate=max(1, sum(len(message.content) for message in compressed) // 4),
-        wcw_budget=200000,
+        wcw_used_estimate=wcw_used_estimate,
+        wcw_budget=wcw_budget,
     )
