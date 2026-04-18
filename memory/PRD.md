@@ -7,6 +7,7 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Backend runtime: FastAPI (Python) with MongoDB in this workspace.
 - Canonical isolation boundary: `session_id`.
 - Canonical context pipeline: ingest -> sanitize -> compress -> retrieve -> inject -> receipt.
+- Working Context Window (WCW) is a contract surface and must ultimately be derived from actual token usage inside the active session so hydration/sanitization effectiveness can be measured honestly.
 - Artifact model now includes receipts, thread summaries, context seeds, user files/links, and lineage fields across receipts/summaries/seeds.
 - LLM runtime for chat and voice: OpenAI services via the Emergent universal key (`gpt-5.2`, `tts-1-hd`, `whisper-1`).
 - Frontend migration path: CAOS shell with persistent app-style sidebar, open center canvas, live chat pane, composer, thread search drawer, WCW meter, receipt/continuity cards, profile drawer, files/artifacts drawer, and richer bubble controls.

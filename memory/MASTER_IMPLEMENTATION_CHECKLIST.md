@@ -16,7 +16,7 @@ CAOS is not a generic chatbot. It is a persistent cognitive operating system wit
 - fast, lean active context with sanitization + rehydration
 - cross-thread continuity without context bloat
 - editable persistent memory and personal facts bins
-- live working context visibility
+- live working context visibility derived from actual token usage
 - reusable cached/global knowledge to avoid unnecessary compute
 - action surfaces, logs, receipts, and eventually life-aware assistance
 
@@ -68,7 +68,8 @@ Goal: Keep active reasoning fast while continuity feels effectively endless.
 - [ ] Global info bin / lookup reuse cache
 
 ### 2.3 WCW / token governance
-- [ ] Live WCW monitor for sent / received / active packet counts
+- [ ] Live WCW monitor derived from actual token usage inside the session, not rough placeholders
+- [ ] Track sent tokens, received tokens, and currently active packet tokens per session
 - [ ] Distinguish thread total vs active context vs compressed memory vs rehydrated memory
 - [ ] Explain what was kept, dropped, compressed, and reused
 
