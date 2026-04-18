@@ -21,9 +21,23 @@ export const InspectorPanel = ({ continuity, isOpen, latestReceipt, memorySurfac
           <Brain size={16} />
           <h2 data-testid="caos-inspector-receipt-heading">Why this reply fits</h2>
         </div>
-        <div className="context-metric" data-testid="caos-inspector-receipt-reduction">
-          <span>Context trimmed</span>
-          <strong>{Math.round((latestReceipt?.reduction_ratio || 0) * 100)}%</strong>
+        <div className="context-metric-grid" data-testid="caos-inspector-receipt-grid">
+          <div className="context-metric" data-testid="caos-inspector-receipt-reduction">
+            <span>Trimmed</span>
+            <strong>{Math.round((latestReceipt?.reduction_ratio || 0) * 100)}%</strong>
+          </div>
+          <div className="context-metric" data-testid="caos-inspector-receipt-lane">
+            <span>Lane</span>
+            <strong>{latestReceipt?.lane || "general"}</strong>
+          </div>
+          <div className="context-metric" data-testid="caos-inspector-receipt-continuity-count">
+            <span>Continuity</span>
+            <strong>{continuityCount}</strong>
+          </div>
+          <div className="context-metric" data-testid="caos-inspector-receipt-worker-count">
+            <span>Workers</span>
+            <strong>{workerCount}</strong>
+          </div>
         </div>
         <div className="context-metric" data-testid="caos-inspector-receipt-runtime">
           <span>Runtime</span>
@@ -37,17 +51,15 @@ export const InspectorPanel = ({ continuity, isOpen, latestReceipt, memorySurfac
           <span>Subject bins</span>
           <strong>{latestReceipt?.subject_bins?.join(", ") || "No bins selected"}</strong>
         </div>
-        <div className="context-metric" data-testid="caos-inspector-receipt-lane">
-          <span>Lane</span>
-          <strong>{latestReceipt?.lane || "general"}</strong>
-        </div>
-        <div className="context-metric" data-testid="caos-inspector-receipt-continuity-count">
-          <span>Continuity packets</span>
-          <strong>{continuityCount}</strong>
-        </div>
-        <div className="context-metric" data-testid="caos-inspector-receipt-worker-count">
-          <span>Lane workers</span>
-          <strong>{workerCount}</strong>
+        <div className="context-metric-grid context-metric-grid-compact" data-testid="caos-inspector-packet-grid">
+          <div className="context-metric" data-testid="caos-inspector-packet-context-chars">
+            <span>Packet chars</span>
+            <strong>{latestReceipt?.estimated_context_chars || 0}</strong>
+          </div>
+          <div className="context-metric" data-testid="caos-inspector-packet-memory-count">
+            <span>Memories</span>
+            <strong>{latestReceipt?.selected_memory_ids?.length || 0}</strong>
+          </div>
         </div>
       </section>
 

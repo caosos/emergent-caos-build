@@ -170,6 +170,7 @@ export const CaosShell = () => {
       />
 
       <SearchDrawer
+        currentSession={currentSession}
         isOpen={showSearch}
         onClose={() => setShowSearch(false)}
         results={filteredMessages.slice(0, 8)}
