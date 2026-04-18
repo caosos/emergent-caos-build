@@ -481,6 +481,11 @@
     border-style: dashed;
 }
 
+.thread-card-lane {
+    color: rgba(125, 211, 252, 0.82);
+    font-size: 0.8rem;
+}
+
 .message-bubble p,
 .context-list-item,
 .message-empty h3,

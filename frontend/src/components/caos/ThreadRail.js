@@ -95,6 +95,9 @@ export const ThreadRail = ({ currentSessionId, isCollapsed, onNewSession, onOpen
                 <strong data-testid={`caos-thread-title-${session.session_id}`}>{session.title}</strong>
                 <Clock3 size={14} />
               </div>
+              <span className="thread-card-lane" data-testid={`caos-thread-lane-${session.session_id}`}>
+                Lane · {session.lane || "general"}
+              </span>
               <span data-testid={`caos-thread-preview-${session.session_id}`}>
                 {session.last_message_preview || "No messages yet"}
               </span>

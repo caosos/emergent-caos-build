@@ -52,11 +52,13 @@ export const CaosShell = () => {
     ? {
         provider: artifacts.receipts[0].provider,
         model: artifacts.receipts[0].model,
+        lane: artifacts.receipts[0].lane,
         retrieval_terms: artifacts.receipts[0].retrieval_terms,
         reduction_ratio: artifacts.receipts[0].reduction_ratio,
         injected_memory_count: artifacts.receipts[0].selected_memory_ids?.length || 0,
         selected_summary_ids: artifacts.receipts[0].selected_summary_ids,
         selected_seed_ids: artifacts.receipts[0].selected_seed_ids,
+        selected_worker_ids: artifacts.receipts[0].selected_worker_ids,
         subject_bins: artifacts.receipts[0].subject_bins,
       }
     : null);

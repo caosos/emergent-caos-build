@@ -20,6 +20,7 @@ from app.services.context_engine import (
     rank_memories,
     sanitize_history,
 )
+from app.services.memory_worker_service import derive_lane, list_lane_workers, rebuild_lane_workers
 from app.services.prompt_builder import build_system_prompt
 from app.services.runtime_service import resolve_chat_runtime
 
@@ -51,15 +52,24 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     compressed = compress_history(sanitized, payload.hot_head, payload.hot_tail)
     memories = list(profile.structured_memory)
     subject_bins = derive_subject_bins(payload.content, compressed)
+    session_lane = derive_lane(subject_bins, session.get("title"), session.get("lane"))
     injected_memories, retrieval_terms = rank_memories(payload.content, compressed, memories, payload.memory_limit, subject_bins)
     subject_bins = derive_subject_bins(payload.content, compressed, injected_memories)
-    summary_docs = await collection("thread_summaries").find({"session_id": payload.session_id}, {"_id": 0}).sort("created_at", -1).to_list(40)
-    seed_docs = await collection("context_seeds").find({"session_id": payload.session_id}, {"_id": 0}).sort("created_at", -1).to_list(40)
+    user_session_docs = await collection("sessions").find({"user_email": payload.user_email}, {"_id": 0}).to_list(200)
+    session_ids = [doc["session_id"] for doc in user_session_docs]
+    summary_docs = await collection("thread_summaries").find({"session_id": {"$in": session_ids}}, {"_id": 0}).sort("created_at", -1).to_list(120)
+    seed_docs = await collection("context_seeds").find({"session_id": {"$in": session_ids}}, {"_id": 0}).sort("created_at", -1).to_list(120)
+    workers = await list_lane_workers(payload.user_email)
+    if not workers:
+        workers = await rebuild_lane_workers(payload.user_email)
     continuity_packet = build_continuity_packet(
         payload.content,
         subject_bins,
         [SummaryRecord(**doc) for doc in summary_docs],
         [SeedRecord(**doc) for doc in seed_docs],
+        workers=workers,
+        lane=session_lane,
+        session_id=payload.session_id,
     )
     receipt = build_context_receipt(stats, messages, compressed, injected_memories, retrieval_terms, subject_bins, continuity_packet)
 
@@ -113,6 +123,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
             payload.session_id,
             payload.content,
             reply,
+            session_lane,
             subject_bins,
             source_message_ids,
             previous_summary_id=previous_summary["id"] if previous_summary else None,
@@ -125,6 +136,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
             receipt,
             payload.content,
             reply,
+            session_lane,
             subject_bins,
             source_message_ids,
             previous_seed_id=previous_seed["id"] if previous_seed else None,
@@ -136,12 +148,14 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         {"session_id": payload.session_id},
         {
             "$set": {
+                "lane": session_lane,
                 "last_message_preview": reply[:140],
                 "summary": reply[:220],
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }
         },
     )
+    await rebuild_lane_workers(payload.user_email)
 
     return ChatResponse(
         session_id=payload.session_id,
@@ -152,6 +166,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         receipt=receipt,
         provider=runtime["provider"],
         model=runtime["model"],
+        lane=session_lane,
         subject_bins=subject_bins,
         wcw_used_estimate=wcw_used_estimate,
         wcw_budget=wcw_budget,

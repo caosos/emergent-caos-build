@@ -122,18 +122,23 @@ def build_context_receipt(
 ) -> dict:
     chars_before = sum(len(message.content) for message in original_messages)
     sanitized_after = sum(len(message.content) for message in compressed)
+    continuity_chars = sum(len(line) for line in (continuity_packet or {}).get("continuity_lines", []))
     reduction_ratio = 0.0 if chars_before == 0 else round(1 - (sanitized_after / chars_before), 4)
     return {
         "retrieval_terms": retrieval_terms,
         "selected_memory_ids": [memory.id for memory in injected_memories],
         "selected_summary_ids": [summary.id for summary in (continuity_packet or {}).get("selected_summaries", [])],
         "selected_seed_ids": [seed.id for seed in (continuity_packet or {}).get("selected_seeds", [])],
+        "selected_worker_ids": [worker.id for worker in (continuity_packet or {}).get("selected_workers", [])],
+        "lane": (continuity_packet or {}).get("lane", "general"),
         "subject_bins": subject_bins or [],
         "injected_memory_count": len(injected_memories),
         "estimated_injected_memory_chars": sum(len(memory.content) for memory in injected_memories),
         "final_message_count": len(compressed),
         "estimated_chars_before": chars_before,
         "estimated_chars_after": sanitized_after,
+        "continuity_chars": continuity_chars,
+        "estimated_context_chars": sanitized_after + continuity_chars + sum(len(memory.content) for memory in injected_memories),
         "reduction_ratio": reduction_ratio,
         **stats,
     }

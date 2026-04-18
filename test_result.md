@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the CAOS frontend voice/settings pass on https://deno-env-review.preview.emergentagent.com. Focus areas: profile drawer voice settings section, STT buttons (gpt-4o-transcribe, whisper-1), TTS voice buttons (nova/alloy/verse), composer mic button, live status/transcript surfaces, and no console errors or broken network requests."
+user_problem_statement: "Test the CAOS frontend after Phase 2A lane-aware memory update on https://deno-env-review.preview.emergentagent.com. Focus areas: (1) Verify shell loads for seeded user and recent thread cards render without errors, (2) Confirm each thread card shows lane label via data-testid pattern caos-thread-lane-{session_id}, (3) Open inspector (Insights toggle) and verify receipt lane and lane worker counts render with caos-inspector-receipt-lane and caos-inspector-receipt-worker-count, (4) Confirm no layout breakage or console errors from new lane UI fields, (5) App should remain viewport-stable and usable."
 
 backend:
   - task: "GET /caos/runtime/settings/{user_email} default hybrid runtime settings"
@@ -358,6 +358,54 @@ frontend:
           agent: "testing"
           comment: "Voice settings UI stability verified successfully. No console errors detected during voice settings interactions. No network request failures. UI remains stable after clicking STT and TTS buttons. Profile drawer functions correctly throughout voice settings changes. Composer layout remains intact. No crashes or blank states observed."
 
+  - task: "Thread card lane labels display"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/ThreadRail.js, /app/frontend/src/App.css"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Thread card lane labels verified successfully. All thread cards display lane labels with correct data-testid pattern 'caos-thread-lane-{session_id}'. Tested with 2 thread cards, both showing 'Lane · atlas' labels. Lane labels render correctly with proper styling (color: rgba(125, 211, 252, 0.82), font-size: 0.8rem). No rendering issues detected."
+
+  - task: "Inspector panel lane receipt display"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/InspectorPanel.js, /app/frontend/src/App.css"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Inspector panel lane receipt display verified successfully. Receipt lane element present with data-testid 'caos-inspector-receipt-lane' displaying lane value 'atlas'. Lane worker count element present with data-testid 'caos-inspector-receipt-worker-count' displaying count '1'. Both elements render correctly in inspector panel with proper layout and styling. No rendering issues detected."
+
+  - task: "Phase 2A layout stability and viewport lock"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/CaosShell.js, /app/frontend/src/App.css"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Phase 2A layout stability verified successfully. Shell loads correctly for seeded user (lane-worker-fix-4ffb7983@example.com). Shell grid, command footer, and thread rail remain visible and functional. Body overflow is hidden, page is not scrollable (viewport-locked). No layout breakage detected from new lane UI fields. No console errors or failed network requests. App remains viewport-stable and usable."
+
+  - task: "Phase 2A complete integration test"
+    implemented: true
+    working: true
+    file: "All CAOS frontend components"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Phase 2A lane-aware memory integration verified successfully. All 5 focus areas tested and working: (1) Shell loads for seeded user with 2 thread cards rendering without errors, (2) All thread cards show lane labels with correct data-testid pattern 'caos-thread-lane-{session_id}', (3) Inspector panel opens via Insights toggle and displays receipt lane (data-testid: caos-inspector-receipt-lane) and lane worker count (data-testid: caos-inspector-receipt-worker-count), (4) No layout breakage or console errors from new lane UI fields, (5) App remains viewport-stable and usable. No critical or major issues found."
+
   - task: "POST /caos/voice/settings persists voice preferences"
     implemented: true
     working: true
@@ -442,15 +490,27 @@ frontend:
           agent: "testing"
           comment: "Error handling verified successfully. No internal errors or unsafe failures detected in voice endpoints. Edge cases tested: non-existent user voice settings (returns defaults), very long text TTS (handled gracefully). All endpoints handle errors appropriately without 500 responses. Robust error handling implemented."
 
+  - task: "Phase 2A lane-aware memory backend support"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/app/routes/caos.py, /app/backend/app/services/chat_pipeline.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Backend support for lane-aware memory not tested directly. Frontend testing confirms backend is returning lane and selected_worker_ids fields correctly in session and receipt data."
+
 metadata:
   created_by: "testing_agent"
-  version: "1.3"
-  test_sequence: 4
+  version: "1.4"
+  test_sequence: 5
   run_ui: false
 
 test_plan:
   current_focus:
-    - "CAOS backend voice/settings testing completed successfully"
+    - "Phase 2A lane-aware memory testing completed successfully"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
@@ -464,3 +524,5 @@ agent_communication:
       message: "Completed comprehensive testing of CAOS frontend voice/settings pass. All 7 voice-related focus areas tested successfully: (1) Profile drawer voice settings section exists and is accessible with correct data-testid, (2) STT model buttons for gpt-4o-transcribe and whisper-1 are present and functional with proper active state toggling, (3) TTS voice buttons for nova/alloy/verse are present and functional with proper active state toggling, (4) Voice settings backend integration works correctly with POST /api/caos/voice/settings endpoint and status confirmation, (5) Composer mic button is visible and properly positioned, (6) Live status/transcript surfaces are correctly implemented as conditionally rendered elements (appear during recording), (7) No console errors or network failures detected during voice settings interactions. UI remains stable throughout all voice settings changes. All functionality working as expected. No critical or major issues found."
     - agent: "testing"
       message: "Completed comprehensive testing of CAOS backend voice/settings endpoints as requested in review. All 7 requirements verified successfully: (1) POST /caos/voice/settings persists voice preferences for fresh test user with gpt-4o-transcribe primary, whisper-1 fallback, en language, and TTS voice/model settings, (2) GET /caos/voice/settings/{user_email} returns saved preferences correctly, (3) POST /caos/voice/tts returns audio for short known phrase (generated 63840 bytes), (4) POST /caos/voice/transcribe accepts multipart form fields (user_email, model, fallback_model, language, prompt, file), (5) End-to-end round-trip using TTS-generated audio for transcription works correctly with valid text result and model_used/fallback_used fields, (6) gpt-4o-transcribe falls back cleanly to whisper-1 without 500 errors, (7) No internal errors or unsafe failures detected in edge case testing. All endpoints working correctly with proper error handling. No contract mismatches or regressions found."
+    - agent: "testing"
+      message: "Completed comprehensive testing of CAOS frontend Phase 2A lane-aware memory update. All 5 focus areas tested successfully: (1) Shell loads correctly for seeded user (lane-worker-fix-4ffb7983@example.com) with 2 thread cards rendering without errors, (2) All thread cards display lane labels with correct data-testid pattern 'caos-thread-lane-{session_id}' showing 'Lane · atlas', (3) Inspector panel opens via Insights toggle and displays receipt lane (data-testid: caos-inspector-receipt-lane showing 'atlas') and lane worker count (data-testid: caos-inspector-receipt-worker-count showing '1'), (4) No layout breakage or console errors from new lane UI fields - shell grid, command footer, and thread rail remain visible and functional, (5) App remains viewport-stable and usable with body overflow hidden and no scrolling. No critical or major issues found. Phase 2A lane-aware memory implementation working correctly."

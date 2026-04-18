@@ -56,7 +56,7 @@ router = APIRouter(prefix="/caos", tags=["caos"])
 
 @router.post("/sessions", response_model=SessionRecord)
 async def create_session(input: SessionCreate):
-    session = SessionRecord(user_email=input.user_email, title=input.title)
+    session = SessionRecord(user_email=input.user_email, title=input.title, lane=input.lane)
     doc = session.model_dump()
     doc["created_at"] = doc["created_at"].isoformat()
     doc["updated_at"] = doc["updated_at"].isoformat()

@@ -12,12 +12,14 @@ def utc_now() -> datetime:
 class SessionCreate(BaseModel):
     user_email: str
     title: str
+    lane: str = "general"
 
 
 class SessionRecord(BaseModel):
     session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_email: str
     title: str
+    lane: str = "general"
     summary: str | None = None
     last_message_preview: str | None = None
     created_at: datetime = Field(default_factory=utc_now)
@@ -185,6 +187,7 @@ class ChatResponse(BaseModel):
     receipt: dict
     provider: str
     model: str
+    lane: str = "general"
     subject_bins: list[str] = Field(default_factory=list)
     wcw_used_estimate: int
     wcw_budget: int
@@ -201,6 +204,8 @@ class ReceiptRecord(BaseModel):
     selected_memory_ids: list[str] = Field(default_factory=list)
     selected_summary_ids: list[str] = Field(default_factory=list)
     selected_seed_ids: list[str] = Field(default_factory=list)
+    selected_worker_ids: list[str] = Field(default_factory=list)
+    lane: str = "general"
     subject_bins: list[str] = Field(default_factory=list)
     previous_receipt_id: str | None = None
     previous_summary_id: str | None = None
@@ -210,12 +215,15 @@ class ReceiptRecord(BaseModel):
     final_message_count: int = 0
     wcw_used_estimate: int = 0
     wcw_budget: int = 0
+    continuity_chars: int = 0
+    estimated_context_chars: int = 0
     created_at: datetime
 
 
 class SummaryRecord(BaseModel):
     id: str
     session_id: str
+    lane: str = "general"
     source_user_excerpt: str
     summary: str
     subject_bins: list[str] = Field(default_factory=list)
@@ -228,6 +236,7 @@ class SummaryRecord(BaseModel):
 class SeedRecord(BaseModel):
     id: str
     session_id: str
+    lane: str = "general"
     topics: list[str] = Field(default_factory=list)
     seed_text: str
     subject_bins: list[str] = Field(default_factory=list)
@@ -251,6 +260,23 @@ class ContinuityResponse(BaseModel):
     latest_seed: SeedRecord | None = None
     latest_receipt: ReceiptRecord | None = None
     lineage_depth: int = 0
+
+
+class LaneWorkerRecord(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_email: str
+    lane: str = "general"
+    subject_bins: list[str] = Field(default_factory=list)
+    summary_text: str
+    source_session_ids: list[str] = Field(default_factory=list)
+    source_summary_ids: list[str] = Field(default_factory=list)
+    source_seed_ids: list[str] = Field(default_factory=list)
+    refreshed_at: datetime = Field(default_factory=utc_now)
+
+
+class MemoryWorkersResponse(BaseModel):
+    user_email: str
+    workers: list[LaneWorkerRecord] = Field(default_factory=list)
 
 
 class UserFileRecord(BaseModel):

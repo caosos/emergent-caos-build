@@ -31,6 +31,8 @@ def build_receipt_record(
         "selected_memory_ids": receipt.get("selected_memory_ids", []),
         "selected_summary_ids": receipt.get("selected_summary_ids", []),
         "selected_seed_ids": receipt.get("selected_seed_ids", []),
+        "selected_worker_ids": receipt.get("selected_worker_ids", []),
+        "lane": receipt.get("lane", "general"),
         "subject_bins": receipt.get("subject_bins", []),
         "previous_receipt_id": previous_receipt_id,
         "previous_summary_id": previous_summary_id,
@@ -40,6 +42,8 @@ def build_receipt_record(
         "final_message_count": receipt.get("final_message_count", 0),
         "wcw_used_estimate": wcw_used_estimate,
         "wcw_budget": wcw_budget,
+        "continuity_chars": receipt.get("continuity_chars", 0),
+        "estimated_context_chars": receipt.get("estimated_context_chars", 0),
         "created_at": utc_now_iso(),
     }
 
@@ -48,6 +52,7 @@ def build_summary_record(
     session_id: str,
     user_text: str,
     assistant_text: str,
+    lane: str,
     subject_bins: list[str],
     source_message_ids: list[str],
     previous_summary_id: str | None = None,
@@ -57,6 +62,7 @@ def build_summary_record(
     return {
         "id": str(uuid.uuid4()),
         "session_id": session_id,
+        "lane": lane,
         "source_user_excerpt": user_text[:180],
         "summary": summary,
         "subject_bins": subject_bins,
@@ -72,6 +78,7 @@ def build_seed_record(
     receipt: dict,
     user_text: str,
     assistant_text: str,
+    lane: str,
     subject_bins: list[str],
     source_message_ids: list[str],
     previous_seed_id: str | None = None,
@@ -82,6 +89,7 @@ def build_seed_record(
     return {
         "id": str(uuid.uuid4()),
         "session_id": session_id,
+        "lane": lane,
         "topics": topics,
         "seed_text": f"User: {user_text[:140]} | Assistant: {assistant_text[:220]}",
         "subject_bins": subject_bins,

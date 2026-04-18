@@ -5,6 +5,7 @@ export const InspectorPanel = ({ continuity, isOpen, latestReceipt, memorySurfac
   if (!isOpen) return null;
 
   const continuityCount = (latestReceipt?.selected_summary_ids?.length || 0) + (latestReceipt?.selected_seed_ids?.length || 0);
+  const workerCount = latestReceipt?.selected_worker_ids?.length || 0;
 
   return (
     <aside className="inspector-panel" data-testid="caos-inspector-panel">
@@ -36,9 +37,17 @@ export const InspectorPanel = ({ continuity, isOpen, latestReceipt, memorySurfac
           <span>Subject bins</span>
           <strong>{latestReceipt?.subject_bins?.join(", ") || "No bins selected"}</strong>
         </div>
+        <div className="context-metric" data-testid="caos-inspector-receipt-lane">
+          <span>Lane</span>
+          <strong>{latestReceipt?.lane || "general"}</strong>
+        </div>
         <div className="context-metric" data-testid="caos-inspector-receipt-continuity-count">
           <span>Continuity packets</span>
           <strong>{continuityCount}</strong>
+        </div>
+        <div className="context-metric" data-testid="caos-inspector-receipt-worker-count">
+          <span>Lane workers</span>
+          <strong>{workerCount}</strong>
         </div>
       </section>
 
