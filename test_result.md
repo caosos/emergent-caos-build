@@ -101,3 +101,107 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Test the CAOS frontend on https://deno-env-review.preview.emergentagent.com after a major shell/runtime update. Focus areas: viewport-lock shell, left rail collapse/reopen, command footer, search drawer, runtime model bar, profile drawer, and no blank states/crashes/console errors."
+
+frontend:
+  - task: "Viewport-lock shell design"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.css, /app/frontend/src/components/caos/CaosShell.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Viewport-lock shell verified successfully. Shell has overflow: hidden and height: 1080px. Body overflow is hidden. Page does not feel like full-page scrolling site on desktop. Main shell renders cleanly in viewport."
+
+  - task: "Left rail collapse/reopen functionality"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/ThreadRail.js, /app/frontend/src/components/caos/ShellHeader.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Left rail collapse/reopen works perfectly. Toggle button (data-testid='caos-rail-toggle-button') in header successfully collapses and expands the rail. Rail classes change correctly between 'thread-rail' and 'thread-rail thread-rail-collapsed'. No layout breakage detected. Shell grid maintains proper display: grid throughout."
+
+  - task: "Command footer positioning and usability"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/CaosShell.js, /app/frontend/src/App.css"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Command footer spans main shell width correctly and remains usable after rail toggle. Footer positioning adjusts properly: left position changes from 332px (rail open) to 134px (rail collapsed), width adjusts from 1564px to 1762px. Footer remains visible and functional throughout rail state changes."
+
+  - task: "Search drawer functionality"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/SearchDrawer.js, /app/frontend/src/components/caos/ShellHeader.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Search drawer opens and closes correctly via data-testid='caos-search-toggle-button'. Drawer renders properly with search input field present. No rendering issues detected."
+
+  - task: "Runtime model bar with provider chips"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/ModelBar.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Runtime model bar verified successfully. All 4 provider chips present and visible: openai (ChatGPT gpt-5.2), anthropic (Claude claude-sonnet-4-5-20250929), gemini (Gemini gemini-3-flash-preview), and xai (Grok Bring key). Grok/xAI correctly shown as disabled BYO placeholder with requires_custom_key: true. All chips have correct data-testids: caos-model-chip-openai, caos-model-chip-anthropic, caos-model-chip-gemini, caos-model-chip-xai."
+
+  - task: "Profile drawer with runtime routing info"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/caos/ProfileDrawer.js, /app/frontend/src/components/caos/ThreadRail.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Profile drawer opens correctly through rail user card (data-testid='caos-rail-user-card'). Runtime routing info displays properly showing 'Inference routing: hybrid' and 'Active engine: openai · gpt-5.2'. All profile cards render correctly including email, environment, companion intelligence, saved threads, permanent memories, and runtime settings."
+
+  - task: "No blank states/crashes/console errors"
+    implemented: true
+    working: true
+    file: "All CAOS components"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "No console errors detected during testing. No network failures (4xx/5xx responses). No error messages found on page. Shell grid remains visible throughout all interactions. No blank states or crashes observed during any of the tested interactions."
+
+metadata:
+  created_by: "testing_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: true
+
+test_plan:
+  current_focus:
+    - "All tests completed successfully"
+  stuck_tasks: []
+  test_all: true
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "testing"
+      message: "Completed comprehensive testing of CAOS frontend after major shell/runtime update. All 7 focus areas tested successfully: viewport-lock shell, left rail collapse/reopen, command footer positioning, search drawer, runtime model bar with all 4 provider chips (including xAI/Grok as BYO placeholder), profile drawer with runtime routing info, and verified no console errors or crashes. All functionality working as expected. No critical or major issues found. Ready for production."

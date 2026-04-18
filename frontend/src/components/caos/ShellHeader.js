@@ -1,8 +1,17 @@
-import { Cpu, Search } from "lucide-react";
+import { Cpu, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 
 
-export const ShellHeader = ({ currentSession, onToggleSearch, wcwBudget, wcwUsed }) => {
+const PROVIDER_LABELS = {
+  openai: "ChatGPT",
+  anthropic: "Claude",
+  gemini: "Gemini",
+  xai: "Grok",
+};
+
+
+export const ShellHeader = ({ activeModel, activeProvider, currentSession, isRailOpen, keySource, onToggleRail, onToggleSearch, wcwBudget, wcwUsed }) => {
   const percent = Math.min(100, Math.round(((wcwUsed || 0) / (wcwBudget || 1)) * 100));
+  const providerLabel = PROVIDER_LABELS[activeProvider] || activeProvider || "ChatGPT";
 
   return (
     <header className="caos-header" data-testid="caos-shell-header">
@@ -14,13 +23,18 @@ export const ShellHeader = ({ currentSession, onToggleSearch, wcwBudget, wcwUsed
       </div>
 
       <div className="caos-header-actions">
+        <button className="search-icon-button" data-testid="caos-rail-toggle-button" onClick={onToggleRail}>
+          {isRailOpen ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
+        </button>
+
         <button className="search-icon-button" data-testid="caos-search-toggle-button" onClick={onToggleSearch}>
           <Search size={14} />
         </button>
 
         <div className="engine-chip" data-testid="caos-engine-chip">
           <Cpu size={14} />
-          <span>OpenAI · GPT-5.2</span>
+          <span>{providerLabel} · {activeModel}</span>
+          <small data-testid="caos-engine-key-source">{keySource}</small>
         </div>
 
         <div className="token-chip" data-testid="caos-token-meter">

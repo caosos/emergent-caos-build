@@ -23,6 +23,10 @@ from app.schemas.caos import (
     SessionArtifactsResponse,
     SessionRecord,
     SummaryRecord,
+    RuntimePreferences,
+    RuntimeSettingsResponse,
+    RuntimeSettingsUpsertRequest,
+    RuntimeProviderRecord,
     TTSRequest,
     TTSResponse,
     TranscriptionResponse,
@@ -40,6 +44,7 @@ from app.services.context_engine import (
     rank_memories,
     sanitize_history,
 )
+from app.services.runtime_service import build_runtime_settings_response, get_provider_catalog
 from app.services.voice_service import generate_tts_base64, transcribe_upload
 
 
@@ -146,6 +151,43 @@ async def get_profile(user_email: str):
     return UserProfileRecord(**profile)
 
 
+@router.get("/runtime/catalog", response_model=list[RuntimeProviderRecord])
+async def get_runtime_catalog():
+    return get_provider_catalog()
+
+
+@router.get("/runtime/settings/{user_email}", response_model=RuntimeSettingsResponse)
+async def get_runtime_settings(user_email: str):
+    profile = await collection("user_profiles").find_one({"user_email": user_email}, {"_id": 0})
+    preferences = RuntimePreferences(**(profile or {}).get("runtime_preferences", {}))
+    return build_runtime_settings_response(user_email, preferences)
+
+
+@router.post("/runtime/settings", response_model=RuntimeSettingsResponse)
+async def upsert_runtime_settings(input: RuntimeSettingsUpsertRequest):
+    existing = await collection("user_profiles").find_one({"user_email": input.user_email}, {"_id": 0})
+    preferences = RuntimePreferences(
+        key_source=input.key_source,
+        default_provider=input.default_provider,
+        default_model=input.default_model,
+        enabled_providers=input.enabled_providers,
+    )
+    if existing:
+        await collection("user_profiles").update_one(
+            {"user_email": input.user_email},
+            {"$set": {"runtime_preferences": preferences.model_dump(), "updated_at": datetime.now(timezone.utc).isoformat()}},
+        )
+    else:
+        profile = UserProfileRecord(user_email=input.user_email, runtime_preferences=preferences)
+        doc = profile.model_dump()
+        doc["created_at"] = doc["created_at"].isoformat()
+        doc["updated_at"] = doc["updated_at"].isoformat()
+        doc["structured_memory"] = []
+        doc["runtime_preferences"] = preferences.model_dump()
+        await collection("user_profiles").insert_one(doc)
+    return build_runtime_settings_response(input.user_email, preferences)
+
+
 @router.get("/files", response_model=list[UserFileRecord])
 async def list_files(user_email: str, kind: str | None = None, session_id: str | None = None):
     query = {"user_email": user_email}
@@ -194,7 +236,8 @@ async def save_memory(input: MemorySaveRequest):
     profile = await collection("user_profiles").find_one({"user_email": input.user_email}, {"_id": 0})
     if not profile:
         raise HTTPException(status_code=404, detail="User profile not found")
-    memory = MemoryEntry(content=input.content, tags=input.tags or extract_tags(input.content))
+    tags = input.tags or extract_tags(input.content)
+    memory = MemoryEntry(content=input.content, tags=tags, bin_name=tags[0] if tags else "general")
     updated_memory = [*profile.get("structured_memory", []), {
         **memory.model_dump(),
         "created_at": memory.created_at.isoformat(),

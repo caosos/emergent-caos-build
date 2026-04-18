@@ -4,6 +4,13 @@ import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const USER_KEY = "caos-shell-user-email";
+const DEFAULT_RUNTIME = {
+  key_source: "hybrid",
+  default_provider: "openai",
+  default_model: "gpt-5.2",
+  enabled_providers: ["openai", "anthropic", "gemini", "xai"],
+  provider_catalog: [],
+};
 
 
 export const useCaosShell = () => {
@@ -17,6 +24,7 @@ export const useCaosShell = () => {
   const [files, setFiles] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [lastTurn, setLastTurn] = useState(null);
+  const [runtimeSettings, setRuntimeSettings] = useState(DEFAULT_RUNTIME);
   const [status, setStatus] = useState("Loading CAOS shell...");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -49,6 +57,12 @@ export const useCaosShell = () => {
       setProfile(null);
       return null;
     }
+  }, [userEmail]);
+
+  const loadRuntimeSettings = useCallback(async () => {
+    const response = await axios.get(`${API}/caos/runtime/settings/${encodeURIComponent(userEmail)}`);
+    setRuntimeSettings(response.data);
+    return response.data;
   }, [userEmail]);
 
   const loadFiles = useCallback(async () => {
@@ -104,8 +118,7 @@ export const useCaosShell = () => {
         user_email: userEmail,
         preferred_name: "Michael",
       });
-      await loadProfile();
-      await loadFiles();
+      await Promise.all([loadProfile(), loadRuntimeSettings(), loadFiles()]);
       const response = await axios.post(`${API}/caos/sessions`, {
         user_email: userEmail,
         title,
@@ -127,7 +140,29 @@ export const useCaosShell = () => {
     } finally {
       setBusy(false);
     }
-  }, [loadFiles, loadProfile, loadSessions, userEmail]);
+  }, [loadFiles, loadProfile, loadRuntimeSettings, loadSessions, userEmail]);
+
+  const updateRuntimeSelection = useCallback(async (provider, model) => {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await axios.post(`${API}/caos/runtime/settings`, {
+        user_email: userEmail,
+        key_source: runtimeSettings.key_source || "hybrid",
+        default_provider: provider,
+        default_model: model,
+        enabled_providers: runtimeSettings.enabled_providers?.length ? runtimeSettings.enabled_providers : DEFAULT_RUNTIME.enabled_providers,
+      });
+      setRuntimeSettings(response.data);
+      setStatus(`Aria is now routed through ${response.data.default_provider} · ${response.data.default_model}.`);
+    } catch (issue) {
+      const message = issue?.response?.data?.detail || issue?.message || "Updating runtime failed.";
+      setError(message);
+      setStatus(`Updating runtime failed: ${message}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [runtimeSettings.enabled_providers, runtimeSettings.key_source, userEmail]);
 
   const sendMessage = useCallback(async (content) => {
     if (!content.trim()) return;
@@ -143,6 +178,8 @@ export const useCaosShell = () => {
         user_email: userEmail,
         session_id: session.session_id,
         content,
+        provider: runtimeSettings.default_provider,
+        model: runtimeSettings.default_model,
       });
       setLastTurn(response.data);
       const nextSessions = await loadSessions();
@@ -161,15 +198,14 @@ export const useCaosShell = () => {
     } finally {
       setBusy(false);
     }
-  }, [createSession, currentSession, loadArtifacts, loadContinuity, loadFiles, loadMessages, loadProfile, loadSessions, userEmail]);
+  }, [createSession, currentSession, loadArtifacts, loadContinuity, loadFiles, loadMessages, loadProfile, loadSessions, runtimeSettings.default_model, runtimeSettings.default_provider, userEmail]);
 
   useEffect(() => {
     const hydrate = async () => {
       setBusy(true);
       try {
         const foundSessions = await loadSessions();
-        await loadProfile();
-        await loadFiles();
+        await Promise.all([loadProfile(), loadRuntimeSettings(), loadFiles()]);
         if (foundSessions[0]) {
           setCurrentSession(foundSessions[0]);
           await loadMessages(foundSessions[0].session_id);
@@ -189,7 +225,7 @@ export const useCaosShell = () => {
       }
     };
     hydrate();
-  }, [loadArtifacts, loadContinuity, loadFiles, loadMessages, loadProfile, loadSessions]);
+  }, [loadArtifacts, loadContinuity, loadFiles, loadMessages, loadProfile, loadRuntimeSettings, loadSessions]);
 
   const filteredMessages = useMemo(() => {
     if (!searchQuery.trim()) return messages;
@@ -266,6 +302,7 @@ export const useCaosShell = () => {
     lastTurn,
     messages,
     profile,
+    runtimeSettings,
     searchQuery,
     selectSession,
     sendMessage,
@@ -276,6 +313,7 @@ export const useCaosShell = () => {
     speakText,
     status,
     transcribeAudio,
+    updateRuntimeSelection,
     uploadFile,
     userEmail,
   };

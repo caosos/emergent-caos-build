@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { Clock3, FolderKanban, MessageSquareText, Sparkles, Wrench } from "lucide-react";
+import { Clock3, FolderKanban, MessageSquareText, PanelLeftOpen, Sparkles, Wrench } from "lucide-react";
 
 
-export const ThreadRail = ({ currentSessionId, onNewSession, onOpenArtifacts, onOpenProfile, onSelectSession, sessions, userEmail }) => {
+export const ThreadRail = ({ currentSessionId, isCollapsed, onNewSession, onOpenArtifacts, onOpenProfile, onSelectSession, onToggleRail, sessions, userEmail }) => {
   const initial = (userEmail || "U").trim().charAt(0).toUpperCase() || "U";
   const [railSearch, setRailSearch] = useState("");
   const visibleSessions = useMemo(() => {
@@ -10,14 +10,48 @@ export const ThreadRail = ({ currentSessionId, onNewSession, onOpenArtifacts, on
     const query = railSearch.toLowerCase();
     return sessions.filter((session) => `${session.title} ${session.last_message_preview || ""}`.toLowerCase().includes(query));
   }, [railSearch, sessions]);
+  const recentSessions = visibleSessions.slice(0, 6);
+
+  if (isCollapsed) {
+    return (
+      <aside className="thread-rail thread-rail-collapsed" data-testid="caos-thread-rail">
+        <button className="rail-toggle-button" data-testid="caos-thread-rail-expand-button" onClick={onToggleRail}>
+          <PanelLeftOpen size={16} />
+        </button>
+        <button className="rail-nav-primary rail-icon-button" data-testid="caos-rail-new-chat-button" onClick={onNewSession}>+</button>
+        <div className="rail-mini-thread-list" data-testid="caos-mini-thread-list">
+          {recentSessions.map((session) => (
+            <button
+              className={`rail-mini-thread-button ${currentSessionId === session.session_id ? "thread-card-active" : ""}`}
+              data-testid={`caos-mini-thread-card-${session.session_id}`}
+              key={session.session_id}
+              onClick={() => onSelectSession(session)}
+              title={session.title}
+            >
+              {(session.title || "N").trim().charAt(0).toUpperCase()}
+            </button>
+          ))}
+        </div>
+        <button className="rail-footer-button rail-icon-button" data-testid="caos-rail-files-button" onClick={onOpenArtifacts}>F</button>
+        <button className="rail-user-card rail-user-card-collapsed" data-testid="caos-rail-user-card" onClick={onOpenProfile}>
+          <span className="rail-user-avatar" data-testid="caos-rail-user-avatar">{initial}</span>
+        </button>
+      </aside>
+    );
+  }
 
   return (
     <aside className="thread-rail" data-testid="caos-thread-rail">
-      <div className="rail-brand" data-testid="caos-rail-brand">
-        <div>
-          <h2 data-testid="caos-thread-rail-title">CAOS</h2>
-          <p data-testid="caos-thread-rail-subtitle">Cognitive Adaptive OS</p>
+      <div className="rail-topline" data-testid="caos-rail-topline">
+        <div className="rail-brand" data-testid="caos-rail-brand">
+          <div>
+            <h2 data-testid="caos-thread-rail-title">CAOS</h2>
+            <p data-testid="caos-thread-rail-subtitle">Cognitive Adaptive OS</p>
+          </div>
         </div>
+        <button className="rail-toggle-button" data-testid="caos-thread-rail-collapse-button" onClick={onToggleRail}>
+          <PanelLeftOpen size={16} />
+        </button>
       </div>
 
       <div className="rail-nav" data-testid="caos-rail-nav">
@@ -40,17 +74,17 @@ export const ThreadRail = ({ currentSessionId, onNewSession, onOpenArtifacts, on
 
       <div className="rail-header" data-testid="caos-thread-rail-header">
         <h2 data-testid="caos-thread-rail-recent-title">Recent</h2>
-        <p data-testid="caos-thread-rail-count">{sessions.length} saved</p>
+        <p data-testid="caos-thread-rail-count">Showing {recentSessions.length} of {sessions.length}</p>
       </div>
 
       <div className="thread-list" data-testid="caos-thread-list">
-        {visibleSessions.length === 0 ? (
+        {recentSessions.length === 0 ? (
           <div className="thread-empty" data-testid="caos-thread-empty-state">
             <MessageSquareText size={18} />
             <span>No sessions yet</span>
           </div>
         ) : (
-          visibleSessions.map((session) => (
+          recentSessions.map((session) => (
             <button
               className={`thread-card ${currentSessionId === session.session_id ? "thread-card-active" : ""}`}
               data-testid={`caos-thread-card-${session.session_id}`}

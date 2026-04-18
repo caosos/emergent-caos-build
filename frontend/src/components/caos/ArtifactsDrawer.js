@@ -30,7 +30,7 @@ export const ArtifactsDrawer = ({ artifacts, files, isOpen, onClose, onSaveLink,
           <h3 data-testid="caos-files-heading">Files / Photos / Links</h3>
           <label className="message-action-button" data-testid="caos-files-upload-button">
             Upload file
-            <input hidden type="file" onChange={(event) => onUploadFile(event.target.files?.[0])} />
+            <input data-testid="caos-files-upload-input" hidden type="file" onChange={(event) => onUploadFile(event.target.files?.[0])} />
           </label>
           <div className="drawer-link-form">
             <input data-testid="caos-link-label-input" placeholder="Link label" value={label} onChange={(event) => setLabel(event.target.value)} />

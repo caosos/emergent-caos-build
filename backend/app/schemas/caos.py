@@ -46,8 +46,10 @@ class MemoryEntry(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     content: str
     tags: list[str] = Field(default_factory=list)
+    bin_name: str = "general"
     scope: str = "profile"
     source: str = "user_trigger"
+    priority: int = 50
     created_at: datetime = Field(default_factory=utc_now)
 
 
@@ -64,6 +66,40 @@ class UserProfileUpsertRequest(BaseModel):
     environment_name: str = "CAOS"
 
 
+class RuntimePreferences(BaseModel):
+    portability_mode: Literal["portable"] = "portable"
+    key_source: Literal["universal", "custom", "hybrid"] = "hybrid"
+    default_provider: str = "openai"
+    default_model: str = "gpt-5.2"
+    enabled_providers: list[str] = Field(default_factory=lambda: ["openai", "anthropic", "gemini", "xai"])
+
+
+class RuntimeProviderRecord(BaseModel):
+    provider: str
+    label: str
+    default_model: str
+    available: bool = True
+    requires_custom_key: bool = False
+    key_status: Literal["ready", "needs-key"] = "ready"
+
+
+class RuntimeSettingsUpsertRequest(BaseModel):
+    user_email: str
+    key_source: Literal["universal", "custom", "hybrid"] = "hybrid"
+    default_provider: str = "openai"
+    default_model: str = "gpt-5.2"
+    enabled_providers: list[str] = Field(default_factory=lambda: ["openai", "anthropic", "gemini", "xai"])
+
+
+class RuntimeSettingsResponse(BaseModel):
+    user_email: str
+    key_source: Literal["universal", "custom", "hybrid"]
+    default_provider: str
+    default_model: str
+    enabled_providers: list[str] = Field(default_factory=list)
+    provider_catalog: list[RuntimeProviderRecord] = Field(default_factory=list)
+
+
 class UserProfileRecord(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_email: str
@@ -71,6 +107,7 @@ class UserProfileRecord(BaseModel):
     assistant_name: str = "Aria"
     environment_name: str = "CAOS"
     structured_memory: list[MemoryEntry] = Field(default_factory=list)
+    runtime_preferences: RuntimePreferences = Field(default_factory=RuntimePreferences)
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
 
@@ -107,8 +144,8 @@ class ChatRequest(BaseModel):
     user_email: str
     session_id: str
     content: str
-    provider: str = "openai"
-    model: str = "gpt-5.2"
+    provider: str | None = None
+    model: str | None = None
     hot_head: int = 10
     hot_tail: int = 20
     memory_limit: int = 5
@@ -121,6 +158,9 @@ class ChatResponse(BaseModel):
     sanitized_history: list[MessageRecord]
     injected_memories: list[MemoryEntry]
     receipt: dict
+    provider: str
+    model: str
+    subject_bins: list[str] = Field(default_factory=list)
     wcw_used_estimate: int
     wcw_budget: int
 
@@ -134,6 +174,9 @@ class ReceiptRecord(BaseModel):
     model: str
     retrieval_terms: list[str] = Field(default_factory=list)
     selected_memory_ids: list[str] = Field(default_factory=list)
+    selected_summary_ids: list[str] = Field(default_factory=list)
+    selected_seed_ids: list[str] = Field(default_factory=list)
+    subject_bins: list[str] = Field(default_factory=list)
     previous_receipt_id: str | None = None
     previous_summary_id: str | None = None
     previous_seed_id: str | None = None
@@ -150,6 +193,7 @@ class SummaryRecord(BaseModel):
     session_id: str
     source_user_excerpt: str
     summary: str
+    subject_bins: list[str] = Field(default_factory=list)
     source_message_ids: list[str] = Field(default_factory=list)
     previous_summary_id: str | None = None
     lineage_depth: int = 0
@@ -161,6 +205,7 @@ class SeedRecord(BaseModel):
     session_id: str
     topics: list[str] = Field(default_factory=list)
     seed_text: str
+    subject_bins: list[str] = Field(default_factory=list)
     selected_memory_ids: list[str] = Field(default_factory=list)
     source_message_ids: list[str] = Field(default_factory=list)
     previous_seed_id: str | None = None

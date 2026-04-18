@@ -89,8 +89,10 @@ def rank_memories(
     recent_messages: list[MessageRecord],
     memories: list[MemoryEntry],
     limit: int,
+    subject_bins: list[str] | None = None,
 ) -> tuple[list[MemoryEntry], list[str]]:
     retrieval_terms = tokenize(query)
+    bin_terms = {item.split(":", 1)[-1] for item in (subject_bins or [])}
     for message in recent_messages[-5:]:
         for token in tokenize(message.content):
             if token not in retrieval_terms:
@@ -99,9 +101,12 @@ def rank_memories(
     for memory in memories:
         haystack = set(tokenize(memory.content))
         haystack.update(memory.tags)
+        haystack.update(tokenize(memory.bin_name))
         overlap = sum(1 for term in retrieval_terms if term in haystack)
-        if overlap:
-            scores.append((overlap, memory))
+        bin_bonus = 2 if memory.bin_name in bin_terms else 0
+        if overlap or bin_bonus:
+            score = overlap + bin_bonus + (max(0, min(memory.priority, 100)) // 25)
+            scores.append((score, memory))
     ranked = [memory for _, memory in sorted(scores, key=lambda item: item[0], reverse=True)[:limit]]
     return ranked, retrieval_terms[:20]
 
@@ -112,6 +117,8 @@ def build_context_receipt(
     compressed: list[MessageRecord],
     injected_memories: list[MemoryEntry],
     retrieval_terms: list[str],
+    subject_bins: list[str] | None = None,
+    continuity_packet: dict | None = None,
 ) -> dict:
     chars_before = sum(len(message.content) for message in original_messages)
     sanitized_after = sum(len(message.content) for message in compressed)
@@ -119,6 +126,9 @@ def build_context_receipt(
     return {
         "retrieval_terms": retrieval_terms,
         "selected_memory_ids": [memory.id for memory in injected_memories],
+        "selected_summary_ids": [summary.id for summary in (continuity_packet or {}).get("selected_summaries", [])],
+        "selected_seed_ids": [seed.id for seed in (continuity_packet or {}).get("selected_seeds", [])],
+        "subject_bins": subject_bins or [],
         "injected_memory_count": len(injected_memories),
         "estimated_injected_memory_chars": sum(len(memory.content) for memory in injected_memories),
         "final_message_count": len(compressed),

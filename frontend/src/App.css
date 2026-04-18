@@ -1,5 +1,6 @@
 .App {
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     background:
         radial-gradient(circle at top, rgba(59, 130, 246, 0.28), transparent 34%),
         radial-gradient(circle at 80% 20%, rgba(14, 165, 233, 0.22), transparent 28%),
@@ -8,10 +9,18 @@
 }
 
 .caos-shell-root {
-    max-width: 1700px;
-    margin: 0 auto;
+    --rail-width: 290px;
+    height: 100vh;
+    box-sizing: border-box;
     padding: 24px;
-    padding-bottom: 240px;
+    padding-bottom: 220px;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+}
+
+.caos-shell-rail-closed {
+    --rail-width: 92px;
 }
 
 .caos-header,
@@ -184,17 +193,20 @@
     display: grid;
     grid-template-columns: 290px minmax(0, 1fr) 320px;
     gap: 18px;
-    align-items: start;
+    align-items: stretch;
+    height: 100%;
+    min-height: 0;
 }
 
 .caos-shell-grid-layout {
-    grid-template-columns: 250px minmax(0, 1fr);
+    grid-template-columns: var(--rail-width) minmax(0, 1fr);
 }
 
 .thread-rail,
 .caos-main-column,
 .context-column {
-    min-height: calc(100vh - 170px);
+    min-height: 0;
+    height: 100%;
 }
 
 .thread-rail,
@@ -206,9 +218,20 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
-    position: sticky;
-    top: 24px;
-    height: calc(100vh - 48px);
+    height: 100%;
+    overflow: hidden;
+}
+
+.thread-rail-collapsed {
+    align-items: center;
+    padding-inline: 10px;
+}
+
+.rail-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
 
 .rail-brand {
@@ -256,6 +279,42 @@
 .rail-footer {
     display: grid;
     gap: 10px;
+}
+
+.rail-toggle-button,
+.rail-mini-thread-button,
+.rail-icon-button {
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(15, 23, 42, 0.74);
+    color: #eff6ff;
+    border-radius: 16px;
+    cursor: pointer;
+}
+
+.rail-toggle-button,
+.rail-icon-button,
+.rail-mini-thread-button {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rail-mini-thread-list {
+    display: grid;
+    gap: 10px;
+    margin-block: auto;
+}
+
+.rail-user-card-collapsed {
+    grid-template-columns: 1fr;
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .rail-search-field {
@@ -309,7 +368,9 @@
 .caos-main-column {
     display: grid;
     gap: 14px;
-    max-width: 980px;
+    min-height: 0;
+    max-width: 1100px;
+    width: 100%;
     margin: 0 auto;
 }
 
@@ -331,16 +392,16 @@
     gap: 12px;
 }
 
-.thread-list,
 .message-scroll,
 .context-list {
-    max-height: calc(100vh - 280px);
+    min-height: 0;
     overflow: auto;
 }
 
 .thread-list {
     flex: 1 1 auto;
     min-height: 0;
+    overflow: hidden;
 }
 
 .thread-card {
@@ -385,8 +446,11 @@
 }
 
 .message-pane {
-    padding: 18px;
-    min-height: 60vh;
+    padding: 18px 18px 10px;
+    min-height: 0;
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
     background: transparent;
     box-shadow: none;
     border-color: transparent;
@@ -394,8 +458,10 @@
 
 .message-scroll {
     margin-top: 14px;
-    max-width: 680px;
+    width: min(100%, 760px);
+    height: 100%;
     margin-inline: auto;
+    padding-bottom: 14px;
 }
 
 .message-bubble {
@@ -501,7 +567,7 @@
 
 .command-footer {
     position: fixed;
-    left: 318px;
+    left: calc(24px + var(--rail-width) + 18px);
     right: 24px;
     bottom: 18px;
     display: grid;
@@ -520,6 +586,17 @@
     width: 100%;
     display: grid;
     gap: 10px;
+}
+
+.model-bar-shell {
+    display: grid;
+    gap: 8px;
+}
+
+.model-bar-meta {
+    color: rgba(191, 219, 254, 0.78);
+    font-size: 0.82rem;
+    padding-left: 4px;
 }
 
 .quick-actions-strip {
@@ -546,6 +623,17 @@
     padding: 10px 14px;
 }
 
+.model-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.model-chip small,
+.engine-chip small {
+    color: rgba(191, 219, 254, 0.74);
+}
+
 .model-bar {
     margin-top: 4px;
 }
@@ -557,6 +645,10 @@
 
 .model-chip-disabled {
     opacity: 0.56;
+}
+
+.model-chip:disabled {
+    cursor: not-allowed;
 }
 
 .composer-row {
@@ -806,6 +898,10 @@
 }
 
 @media (max-width: 1100px) {
+    body {
+        overflow: auto;
+    }
+
     .caos-header,
     .caos-shell-grid,
     .caos-header-actions,
@@ -847,6 +943,12 @@
         left: auto;
         right: auto;
         bottom: auto;
+    }
+
+    .caos-shell-root,
+    .App {
+        height: auto;
+        overflow: visible;
     }
 
     .quick-actions-strip {

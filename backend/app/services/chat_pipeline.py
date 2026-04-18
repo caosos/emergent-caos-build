@@ -1,4 +1,3 @@
-import os
 import uuid
 from datetime import datetime, timezone
 
@@ -8,11 +7,13 @@ from app.db import collection
 from app.schemas.caos import (
     ChatRequest,
     ChatResponse,
-    MemoryEntry,
     MessageRecord,
+    SeedRecord,
+    SummaryRecord,
     UserProfileRecord,
 )
 from app.services.artifact_builder import build_receipt_record, build_seed_record, build_summary_record
+from app.services.continuity_service import build_continuity_packet, derive_subject_bins
 from app.services.context_engine import (
     build_context_receipt,
     compress_history,
@@ -20,6 +21,7 @@ from app.services.context_engine import (
     sanitize_history,
 )
 from app.services.prompt_builder import build_system_prompt
+from app.services.runtime_service import resolve_chat_runtime
 
 
 async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
@@ -48,22 +50,32 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     sanitized, stats = sanitize_history(messages)
     compressed = compress_history(sanitized, payload.hot_head, payload.hot_tail)
     memories = list(profile.structured_memory)
-    injected_memories, retrieval_terms = rank_memories(payload.content, compressed, memories, payload.memory_limit)
-    receipt = build_context_receipt(stats, messages, compressed, injected_memories, retrieval_terms)
+    subject_bins = derive_subject_bins(payload.content, compressed)
+    injected_memories, retrieval_terms = rank_memories(payload.content, compressed, memories, payload.memory_limit, subject_bins)
+    subject_bins = derive_subject_bins(payload.content, compressed, injected_memories)
+    summary_docs = await collection("thread_summaries").find({"session_id": payload.session_id}, {"_id": 0}).sort("created_at", -1).to_list(40)
+    seed_docs = await collection("context_seeds").find({"session_id": payload.session_id}, {"_id": 0}).sort("created_at", -1).to_list(40)
+    continuity_packet = build_continuity_packet(
+        payload.content,
+        subject_bins,
+        [SummaryRecord(**doc) for doc in summary_docs],
+        [SeedRecord(**doc) for doc in seed_docs],
+    )
+    receipt = build_context_receipt(stats, messages, compressed, injected_memories, retrieval_terms, subject_bins, continuity_packet)
 
-    llm_key = os.environ["EMERGENT_LLM_KEY"]
+    runtime = resolve_chat_runtime(profile, payload.provider, payload.model)
     chat = LlmChat(
-        api_key=llm_key,
+        api_key=runtime["api_key"],
         session_id=f"{payload.session_id}-{uuid.uuid4()}",
-        system_message=build_system_prompt(profile, compressed, injected_memories),
-    ).with_model(payload.provider, payload.model)
+        system_message=build_system_prompt(profile, compressed, injected_memories, continuity_packet),
+    ).with_model(runtime["provider"], runtime["model"])
     reply = await chat.send_message(UserMessage(text=payload.content))
 
     assistant_message = MessageRecord(
         session_id=payload.session_id,
         role="assistant",
         content=reply,
-        inference_provider=f"{payload.provider}:{payload.model}",
+        inference_provider=f"{runtime['provider']}:{runtime['model']}",
         metadata_tags=["SESSION_MEMORY", "SANITIZED_CONTEXT"],
     )
     assistant_doc = assistant_message.model_dump()
@@ -85,8 +97,8 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
             payload.session_id,
             assistant_message.id,
             source_message_ids,
-            payload.provider,
-            payload.model,
+            runtime["provider"],
+            runtime["model"],
             receipt,
             wcw_used_estimate,
             wcw_budget,
@@ -101,6 +113,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
             payload.session_id,
             payload.content,
             reply,
+            subject_bins,
             source_message_ids,
             previous_summary_id=previous_summary["id"] if previous_summary else None,
             lineage_depth=lineage_depth,
@@ -112,6 +125,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
             receipt,
             payload.content,
             reply,
+            subject_bins,
             source_message_ids,
             previous_seed_id=previous_seed["id"] if previous_seed else None,
             previous_summary_id=previous_summary["id"] if previous_summary else None,
@@ -136,6 +150,9 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         sanitized_history=compressed,
         injected_memories=injected_memories,
         receipt=receipt,
+        provider=runtime["provider"],
+        model=runtime["model"],
+        subject_bins=subject_bins,
         wcw_used_estimate=wcw_used_estimate,
         wcw_budget=wcw_budget,
     )

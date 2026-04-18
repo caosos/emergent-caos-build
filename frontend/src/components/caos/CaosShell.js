@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, Brain, FileText, Search } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
 import { ArtifactsDrawer } from "@/components/caos/ArtifactsDrawer";
 import { Composer } from "@/components/caos/Composer";
@@ -15,6 +15,7 @@ import { useCaosShell } from "@/components/caos/useCaosShell";
 
 
 export const CaosShell = () => {
+  const [isRailOpen, setIsRailOpen] = useState(true);
   const [showArtifacts, setShowArtifacts] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -22,7 +23,6 @@ export const CaosShell = () => {
   const {
     artifacts,
     busy,
-    commitUserEmail,
     continuity,
     createSession,
     currentSession,
@@ -42,6 +42,8 @@ export const CaosShell = () => {
     uploadFile,
     userEmail,
     profile,
+    runtimeSettings,
+    updateRuntimeSelection,
   } = useCaosShell();
   const latestReceipt = lastTurn?.receipt || (artifacts.receipts[0]
     ? {
@@ -54,9 +56,14 @@ export const CaosShell = () => {
   const lastAssistantMessage = [...filteredMessages].reverse().find((message) => message.role === "assistant") || null;
 
   return (
-    <main className="caos-shell-root" data-testid="caos-shell-root">
+    <main className={`caos-shell-root ${isRailOpen ? "caos-shell-rail-open" : "caos-shell-rail-closed"}`} data-testid="caos-shell-root">
       <ShellHeader
+        activeModel={runtimeSettings.default_model}
+        activeProvider={runtimeSettings.default_provider}
         currentSession={currentSession}
+        isRailOpen={isRailOpen}
+        keySource={runtimeSettings.key_source}
+        onToggleRail={() => setIsRailOpen((value) => !value)}
         onToggleSearch={() => setShowSearch((value) => !value)}
         wcwBudget={lastTurn?.wcw_budget || 200000}
         wcwUsed={lastTurn?.wcw_used_estimate || 0}
@@ -65,10 +72,12 @@ export const CaosShell = () => {
       <div className="caos-shell-grid caos-shell-grid-layout" data-testid="caos-shell-grid">
         <ThreadRail
           currentSessionId={currentSession?.session_id}
+          isCollapsed={!isRailOpen}
           onNewSession={() => createSession()}
           onOpenArtifacts={() => setShowArtifacts(true)}
           onOpenProfile={() => setShowProfile(true)}
           onSelectSession={selectSession}
+          onToggleRail={() => setIsRailOpen((value) => !value)}
           sessions={sessions}
           userEmail={userEmail}
         />
@@ -87,7 +96,13 @@ export const CaosShell = () => {
 
       <div className="command-footer" data-testid="caos-command-footer">
         <QuickActionsStrip onContinueThread={() => createSession("Continued Thread")} onOpenArtifacts={() => setShowArtifacts(true)} />
-        <ModelBar />
+        <ModelBar
+          activeModel={runtimeSettings.default_model}
+          activeProvider={runtimeSettings.default_provider}
+          keySource={runtimeSettings.key_source}
+          onSelect={updateRuntimeSelection}
+          providerCatalog={runtimeSettings.provider_catalog}
+        />
         <Composer
           busy={busy}
           lastAssistantMessage={lastAssistantMessage}
@@ -126,6 +141,7 @@ export const CaosShell = () => {
         memoryCount={profile?.structured_memory?.length || 0}
         onClose={() => setShowProfile(false)}
         profile={profile}
+        runtimeSettings={runtimeSettings}
         sessionsCount={sessions.length}
         userEmail={userEmail}
       />

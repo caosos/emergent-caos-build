@@ -1,7 +1,7 @@
 import { UserRound, X } from "lucide-react";
 
 
-export const ProfileDrawer = ({ isOpen, memoryCount, onClose, profile, sessionsCount, userEmail }) => {
+export const ProfileDrawer = ({ isOpen, memoryCount, onClose, profile, runtimeSettings, sessionsCount, userEmail }) => {
   if (!isOpen) return null;
 
   return (
@@ -36,6 +36,14 @@ export const ProfileDrawer = ({ isOpen, memoryCount, onClose, profile, sessionsC
         <div className="drawer-card" data-testid="caos-profile-memory-count-card">
           <span>Permanent memories</span>
           <strong data-testid="caos-profile-memory-count-value">{memoryCount}</strong>
+        </div>
+        <div className="drawer-card" data-testid="caos-profile-runtime-card">
+          <span>Inference routing</span>
+          <strong data-testid="caos-profile-runtime-value">{runtimeSettings?.key_source || "hybrid"}</strong>
+        </div>
+        <div className="drawer-card" data-testid="caos-profile-provider-card">
+          <span>Active engine</span>
+          <strong data-testid="caos-profile-provider-value">{runtimeSettings?.default_provider || "openai"} · {runtimeSettings?.default_model || "gpt-5.2"}</strong>
         </div>
 
         <div className="drawer-list" data-testid="caos-profile-memory-list">
