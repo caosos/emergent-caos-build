@@ -56,10 +56,16 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
       <div className="message-scroll" data-testid="caos-message-scroll">
         {messages.length === 0 ? (
           <div className="message-empty" data-testid="caos-message-empty-state">
-            <h3 data-testid="caos-message-empty-title">The real shell is live.</h3>
+            <h3 data-testid="caos-message-empty-title">CAOS</h3>
             <p data-testid="caos-message-empty-text">
-              Start a thread and send a message. The backend will sanitize the session, retrieve relevant memory, and return a session-scoped reply.
+              Cognitive Adaptive Operating System — ask anything, create anything.
             </p>
+            <div className="home-action-grid" data-testid="caos-home-action-grid">
+              <button className="home-action-card" data-testid="caos-home-action-create-image">Create Image</button>
+              <button className="home-action-card" data-testid="caos-home-action-upload-file">Upload File</button>
+              <button className="home-action-card" data-testid="caos-home-action-continue-thread">Continue Thread</button>
+              <button className="home-action-card" data-testid="caos-home-action-multi-model">Multi-Model</button>
+            </div>
           </div>
         ) : (
           messages.map((message) => {

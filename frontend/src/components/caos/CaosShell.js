@@ -5,6 +5,7 @@ import { ArtifactsDrawer } from "@/components/caos/ArtifactsDrawer";
 import { Composer } from "@/components/caos/Composer";
 import { MessagePane } from "@/components/caos/MessagePane";
 import { ProfileDrawer } from "@/components/caos/ProfileDrawer";
+import { SearchDrawer } from "@/components/caos/SearchDrawer";
 import { ShellHeader } from "@/components/caos/ShellHeader";
 import { ThreadRail } from "@/components/caos/ThreadRail";
 import { useCaosShell } from "@/components/caos/useCaosShell";
@@ -60,7 +61,7 @@ export const CaosShell = () => {
         wcwUsed={lastTurn?.wcw_used_estimate || 0}
       />
 
-      <div className="caos-shell-grid" data-testid="caos-shell-grid">
+      <div className="caos-shell-grid caos-shell-grid-layout" data-testid="caos-shell-grid">
         <ThreadRail
           currentSessionId={currentSession?.session_id}
           onSelectSession={selectSession}
@@ -148,6 +149,8 @@ export const CaosShell = () => {
           </section>
         </aside>
       </div>
+
+      <SearchDrawer results={filteredMessages.slice(0, 8)} searchQuery={searchQuery} />
 
       <ProfileDrawer
         isOpen={showProfile}
