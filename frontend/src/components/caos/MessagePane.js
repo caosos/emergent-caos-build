@@ -153,7 +153,10 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
                 {meta.showReceipt && linkedReceipt ? (
                   <div className="receipt-inline" data-testid={`caos-message-inline-receipt-${message.id}`}>
                     <strong>Receipt lineage {linkedReceipt.lineage_depth}</strong>
+                    <span>Runtime: {linkedReceipt.provider} · {linkedReceipt.model}</span>
                     <span>Terms: {linkedReceipt.retrieval_terms.join(", ") || "none"}</span>
+                    <span>Bins: {linkedReceipt.subject_bins?.join(", ") || "none"}</span>
+                    <span>Continuity packets: {(linkedReceipt.selected_summary_ids?.length || 0) + (linkedReceipt.selected_seed_ids?.length || 0)}</span>
                     <span>Reduction: {Math.round((linkedReceipt.reduction_ratio || 0) * 100)}%</span>
                   </div>
                 ) : null}

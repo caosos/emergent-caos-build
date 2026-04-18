@@ -13,6 +13,10 @@ export const ArtifactsDrawer = ({ artifacts, files, isOpen, onClose, onSaveLink,
     links: files.filter((item) => item.kind === "link"),
   };
 
+  const recentReceipts = (artifacts?.receipts || []).slice(0, 8);
+  const recentSummaries = (artifacts?.summaries || []).slice(0, 6);
+  const recentSeeds = (artifacts?.seeds || []).slice(0, 6);
+
   return (
     <div className="drawer-overlay" data-testid="caos-artifacts-drawer-overlay">
       <aside className="drawer-shell" data-testid="caos-artifacts-drawer">
@@ -61,27 +65,33 @@ export const ArtifactsDrawer = ({ artifacts, files, isOpen, onClose, onSaveLink,
 
         <section className="drawer-section" data-testid="caos-artifacts-receipts-section">
           <h3 data-testid="caos-artifacts-receipts-heading">Receipts</h3>
-          {(artifacts?.receipts || []).slice(0, 8).map((receipt) => (
-            <div className="drawer-list-item" data-testid={`caos-artifact-receipt-${receipt.id}`} key={receipt.id}>
-              {receipt.provider}:{receipt.model} • reduction {Math.round((receipt.reduction_ratio || 0) * 100)}%
+          {recentReceipts.map((receipt) => (
+            <div className="drawer-list-item drawer-list-item-rich" data-testid={`caos-artifact-receipt-${receipt.id}`} key={receipt.id}>
+              <strong data-testid={`caos-artifact-receipt-title-${receipt.id}`}>{receipt.provider}:{receipt.model}</strong>
+              <span data-testid={`caos-artifact-receipt-reduction-${receipt.id}`}>Reduction {Math.round((receipt.reduction_ratio || 0) * 100)}%</span>
+              <span data-testid={`caos-artifact-receipt-bins-${receipt.id}`}>Bins: {receipt.subject_bins?.join(", ") || "none"}</span>
+              <span data-testid={`caos-artifact-receipt-memory-count-${receipt.id}`}>Memories {receipt.selected_memory_ids?.length || 0} · Continuity {(receipt.selected_summary_ids?.length || 0) + (receipt.selected_seed_ids?.length || 0)}</span>
             </div>
           ))}
         </section>
 
         <section className="drawer-section" data-testid="caos-artifacts-summaries-section">
           <h3 data-testid="caos-artifacts-summaries-heading">Summaries</h3>
-          {(artifacts?.summaries || []).slice(0, 6).map((summary) => (
-            <div className="drawer-list-item" data-testid={`caos-artifact-summary-${summary.id}`} key={summary.id}>
-              {summary.summary}
+          {recentSummaries.map((summary) => (
+            <div className="drawer-list-item drawer-list-item-rich" data-testid={`caos-artifact-summary-${summary.id}`} key={summary.id}>
+              <strong data-testid={`caos-artifact-summary-bins-${summary.id}`}>{summary.subject_bins?.join(", ") || "general"}</strong>
+              <span>{summary.summary}</span>
             </div>
           ))}
         </section>
 
         <section className="drawer-section" data-testid="caos-artifacts-seeds-section">
           <h3 data-testid="caos-artifacts-seeds-heading">Seeds</h3>
-          {(artifacts?.seeds || []).slice(0, 6).map((seed) => (
-            <div className="drawer-list-item" data-testid={`caos-artifact-seed-${seed.id}`} key={seed.id}>
-              {(seed.topics || []).join(", ") || seed.seed_text}
+          {recentSeeds.map((seed) => (
+            <div className="drawer-list-item drawer-list-item-rich" data-testid={`caos-artifact-seed-${seed.id}`} key={seed.id}>
+              <strong data-testid={`caos-artifact-seed-bins-${seed.id}`}>{seed.subject_bins?.join(", ") || "general"}</strong>
+              <span>{(seed.topics || []).join(", ") || seed.seed_text}</span>
+              <span>{seed.seed_text}</span>
             </div>
           ))}
         </section>

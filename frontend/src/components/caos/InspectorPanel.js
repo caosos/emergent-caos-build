@@ -4,6 +4,8 @@ import { Brain, FileText, X } from "lucide-react";
 export const InspectorPanel = ({ continuity, isOpen, latestReceipt, memorySurface, onClose }) => {
   if (!isOpen) return null;
 
+  const continuityCount = (latestReceipt?.selected_summary_ids?.length || 0) + (latestReceipt?.selected_seed_ids?.length || 0);
+
   return (
     <aside className="inspector-panel" data-testid="caos-inspector-panel">
       <div className="inspector-header" data-testid="caos-inspector-header">
@@ -22,9 +24,21 @@ export const InspectorPanel = ({ continuity, isOpen, latestReceipt, memorySurfac
           <span>Context trimmed</span>
           <strong>{Math.round((latestReceipt?.reduction_ratio || 0) * 100)}%</strong>
         </div>
+        <div className="context-metric" data-testid="caos-inspector-receipt-runtime">
+          <span>Runtime</span>
+          <strong>{latestReceipt?.provider || "openai"} · {latestReceipt?.model || "gpt-5.2"}</strong>
+        </div>
         <div className="context-metric" data-testid="caos-inspector-receipt-terms">
           <span>Used for recall</span>
           <strong>{latestReceipt?.retrieval_terms?.join(", ") || "No turn yet"}</strong>
+        </div>
+        <div className="context-metric" data-testid="caos-inspector-receipt-bins">
+          <span>Subject bins</span>
+          <strong>{latestReceipt?.subject_bins?.join(", ") || "No bins selected"}</strong>
+        </div>
+        <div className="context-metric" data-testid="caos-inspector-receipt-continuity-count">
+          <span>Continuity packets</span>
+          <strong>{continuityCount}</strong>
         </div>
       </section>
 
@@ -40,6 +54,9 @@ export const InspectorPanel = ({ continuity, isOpen, latestReceipt, memorySurfac
         <div className="context-list-item" data-testid="caos-inspector-continuity-summary">
           {continuity?.latest_summary?.summary || "No continuity summary yet."}
         </div>
+        <div className="context-list-item" data-testid="caos-inspector-continuity-seed">
+          {continuity?.latest_seed?.seed_text || "No continuity seed yet."}
+        </div>
       </section>
 
       {memorySurface.length ? (
@@ -51,7 +68,8 @@ export const InspectorPanel = ({ continuity, isOpen, latestReceipt, memorySurfac
           <div className="context-list" data-testid="caos-inspector-memory-list">
             {memorySurface.map((memory) => (
               <div className="context-list-item" data-testid={`caos-inspector-memory-item-${memory.id}`} key={memory.id}>
-                {memory.content}
+                <strong>{memory.bin_name || "general"}</strong>
+                <span>{memory.content}</span>
               </div>
             ))}
           </div>

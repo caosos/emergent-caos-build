@@ -546,6 +546,23 @@
     color: rgba(191, 219, 254, 0.82);
 }
 
+.drawer-list-item-rich,
+.context-list-item {
+    display: grid;
+    gap: 4px;
+}
+
+.drawer-list-item-rich strong,
+.context-list-item strong {
+    color: #eff6ff;
+}
+
+.drawer-list-item-rich span,
+.context-list-item span,
+.receipt-inline span {
+    color: rgba(191, 219, 254, 0.82);
+}
+
 .message-empty,
 .thread-empty {
     padding: 18px;
