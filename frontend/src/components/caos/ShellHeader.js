@@ -12,6 +12,10 @@ export const ShellHeader = ({ commitUserEmail, onNewSession, onOpenArtifacts, on
   }, [userEmail]);
 
   const commitIfNeeded = () => commitUserEmail(draftEmail);
+  const runMenuAction = (action) => {
+    setMenuOpen(false);
+    setTimeout(action, 0);
+  };
 
   return (
     <header className="caos-header" data-testid="caos-shell-header">
@@ -71,10 +75,22 @@ export const ShellHeader = ({ commitUserEmail, onNewSession, onOpenArtifacts, on
             <span>Menu</span>
           </button>
           {menuOpen ? (
-            <div className="header-menu" data-testid="caos-header-menu">
-              <button data-testid="caos-header-menu-new-thread" onClick={() => { setMenuOpen(false); onNewSession(); }}>New Thread</button>
-              <button data-testid="caos-header-menu-profile" onClick={() => { setMenuOpen(false); onOpenProfile(); }}>Profile</button>
-              <button data-testid="caos-header-menu-files" onClick={() => { setMenuOpen(false); onOpenArtifacts(); }}>Files & Artifacts</button>
+            <div className="header-menu-overlay" data-testid="caos-header-menu-overlay" onClick={() => setMenuOpen(false)}>
+              <div className="header-menu" data-testid="caos-header-menu" onClick={(event) => event.stopPropagation()}>
+                <button data-testid="caos-header-menu-new-thread" onClick={() => runMenuAction(onNewSession)}>New Thread</button>
+                <button
+                  data-testid="caos-header-menu-files"
+                  onClick={() => runMenuAction(() => document.querySelector('[data-testid="caos-open-artifacts-button"]')?.click() || onOpenArtifacts())}
+                >
+                  Files & Artifacts
+                </button>
+                <button
+                  data-testid="caos-header-menu-profile"
+                  onClick={() => runMenuAction(() => document.querySelector('[data-testid="caos-open-profile-button"]')?.click() || onOpenProfile())}
+                >
+                  Profile
+                </button>
+              </div>
             </div>
           ) : null}
         </div>

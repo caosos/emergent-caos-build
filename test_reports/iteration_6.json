@@ -1,0 +1,47 @@
+{
+  "summary": "Executed compact backend+frontend regression for CAOS menu/bubble/continuity/artifact behaviors on the public preview URL. Header menu Files & Artifacts now opens reliably; bubble Reply/Useful/Receipt controls work; continuity endpoint and right continuity card return/render lineage data; upload/save-link/voice/chat flows remained operational.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Fresh user shell bootstrap",
+        "issue": "Browser console still logs a 404 resource error during initial load/new identity bootstrap (non-blocking; all tested flows still pass).",
+        "affected_selectors": [
+          "[data-testid='caos-shell-root']",
+          "[data-testid='caos-user-email-input']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_caos_api.py",
+    "/app/backend/tests/test_caos_files_voice_integration.py",
+    "/app/backend/tests/test_caos_lineage_continuity.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Optional: identify and remove the recurring frontend 404 console noise seen on initial load/new-user bootstrap.",
+    "Keep existing regression coverage for header-menu to artifacts-drawer path in future UI changes."
+  ],
+  "critical_code_review_comments": [
+    "No new critical code defects found in this regression scope; requested behavior is functioning end-to-end."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_6.json"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": "Read /app/memory/test_credentials.md before auth testing; file currently has no credentials.",
+  "seed_data_creation": "Created TEST_ prefixed users/sessions/messages plus uploaded file and saved link through public UI/API flows.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend pytest (19 tests) passed with public URL env exported. Frontend Playwright confirmed header menu -> Files & Artifacts drawer, chat turn generation, continuity card hydration (depth 1), reply/useful/receipt controls, save-link, upload file, and read-aloud action status.",
+  "rca of the issue": "Previous regression on menu->Files path is not reproducible after current fix. Remaining observed issue is non-blocking console 404 during startup/new identity transitions; likely from an expected-missing bootstrap resource or profile prefetch path."
+}
