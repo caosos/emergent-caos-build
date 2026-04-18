@@ -39,6 +39,7 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Continued the `/chat` visual parity pass: added a compact in-surface chat strip for working packet/lane/continuity/actions, tightened message cards, moved search/context/files actions into the chat surface, and reshaped the composer into a slimmer bright control surface while keeping all existing functionality intact.
 - Added overlay-style previous threads behavior with multiple entry points (chat strip, header thread pill, sidebar Threads button), giving the workspace a dedicated thread-switching surface closer to the screenshot contract.
 - Refined chat workspace hierarchy further: grouped quick actions + model routing into a dedicated command dock above the composer and constrained overlay panels so Previous Threads / Search / Context read as workspace layers rather than colliding with the bottom operating controls.
+- Tightened the message stream itself: denser bubbles, shorter timestamps, slimmer action rows, and clearer bubble separation between user/assistant messages so `/chat` reads more like the intended CAOS command surface.
 
 ## Prioritized Backlog
 ### P0
