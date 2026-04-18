@@ -56,16 +56,10 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
       <div className="message-scroll" data-testid="caos-message-scroll">
         {messages.length === 0 ? (
           <div className="message-empty" data-testid="caos-message-empty-state">
-            <h3 data-testid="caos-message-empty-title">CAOS</h3>
+            <h3 data-testid="caos-message-empty-title">What would you like to do?</h3>
             <p data-testid="caos-message-empty-text">
-              Cognitive Adaptive Operating System — ask anything, create anything.
+              Ask anything. Create. Analyze. Build. All in one workspace.
             </p>
-            <div className="home-action-grid" data-testid="caos-home-action-grid">
-              <button className="home-action-card" data-testid="caos-home-action-create-image">Create Image</button>
-              <button className="home-action-card" data-testid="caos-home-action-upload-file">Upload File</button>
-              <button className="home-action-card" data-testid="caos-home-action-continue-thread">Continue Thread</button>
-              <button className="home-action-card" data-testid="caos-home-action-multi-model">Multi-Model</button>
-            </div>
           </div>
         ) : (
           messages.map((message) => {

@@ -1,8 +1,15 @@
+import { useMemo, useState } from "react";
 import { Clock3, FolderKanban, MessageSquareText, Sparkles, Wrench } from "lucide-react";
 
 
 export const ThreadRail = ({ currentSessionId, onNewSession, onOpenArtifacts, onOpenProfile, onSelectSession, sessions, userEmail }) => {
   const initial = (userEmail || "U").trim().charAt(0).toUpperCase() || "U";
+  const [railSearch, setRailSearch] = useState("");
+  const visibleSessions = useMemo(() => {
+    if (!railSearch.trim()) return sessions;
+    const query = railSearch.toLowerCase();
+    return sessions.filter((session) => `${session.title} ${session.last_message_preview || ""}`.toLowerCase().includes(query));
+  }, [railSearch, sessions]);
 
   return (
     <aside className="thread-rail" data-testid="caos-thread-rail">
@@ -15,6 +22,14 @@ export const ThreadRail = ({ currentSessionId, onNewSession, onOpenArtifacts, on
 
       <div className="rail-nav" data-testid="caos-rail-nav">
         <button className="rail-nav-primary" data-testid="caos-rail-new-chat-button" onClick={onNewSession}>New Chat</button>
+        <label className="rail-search-field" data-testid="caos-rail-search-field">
+          <input
+            data-testid="caos-rail-search-input"
+            placeholder="Search chats..."
+            value={railSearch}
+            onChange={(event) => setRailSearch(event.target.value)}
+          />
+        </label>
         <button className="rail-nav-item rail-nav-item-active" data-testid="caos-rail-chat-button">Chat</button>
         <button className="rail-nav-item" data-testid="caos-rail-create-button"><Sparkles size={14} />Create</button>
         <button className="rail-nav-item" data-testid="caos-rail-tools-button"><Wrench size={14} />Tools</button>
@@ -29,13 +44,13 @@ export const ThreadRail = ({ currentSessionId, onNewSession, onOpenArtifacts, on
       </div>
 
       <div className="thread-list" data-testid="caos-thread-list">
-        {sessions.length === 0 ? (
+        {visibleSessions.length === 0 ? (
           <div className="thread-empty" data-testid="caos-thread-empty-state">
             <MessageSquareText size={18} />
             <span>No sessions yet</span>
           </div>
         ) : (
-          sessions.map((session) => (
+          visibleSessions.map((session) => (
             <button
               className={`thread-card ${currentSessionId === session.session_id ? "thread-card-active" : ""}`}
               data-testid={`caos-thread-card-${session.session_id}`}

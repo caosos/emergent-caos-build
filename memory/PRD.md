@@ -21,6 +21,7 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Added a dedicated System Blueprint and TSB log in `/app/memory` so architecture and recurring failures are documented for the team.
 - Simplified the shell hierarchy based on latest feedback: left rail owns new-thread/navigation behavior, header is lighter, search is icon-first, and user identity is moving into the lower rail instead of living in the header.
 - Continued the shell cleanup: user identity now sits in the lower rail with settings/files/logout, and the top search surface has been reduced toward a compact inspector-style interaction.
+- Began the command-center parity shift: rail search, a calmer empty-state prompt, quick action pills, bottom model bar, and an on-demand inspector instead of a permanently heavy right column.
 
 ## Prioritized Backlog
 ### P0
