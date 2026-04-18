@@ -50,13 +50,9 @@ export const CaosShell = () => {
   return (
     <main className="caos-shell-root" data-testid="caos-shell-root">
       <ShellHeader
-        onNewSession={() => createSession()}
-        onOpenArtifacts={() => setShowArtifacts(true)}
-        onOpenProfile={() => setShowProfile(true)}
+        currentSession={currentSession}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
-        commitUserEmail={commitUserEmail}
-        userEmail={userEmail}
         wcwBudget={lastTurn?.wcw_budget || 200000}
         wcwUsed={lastTurn?.wcw_used_estimate || 0}
       />
@@ -64,6 +60,7 @@ export const CaosShell = () => {
       <div className="caos-shell-grid caos-shell-grid-layout" data-testid="caos-shell-grid">
         <ThreadRail
           currentSessionId={currentSession?.session_id}
+          onNewSession={() => createSession()}
           onSelectSession={selectSession}
           sessions={sessions}
         />

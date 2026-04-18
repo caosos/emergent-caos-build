@@ -1,7 +1,7 @@
 import { Clock3, FolderKanban, MessageSquareText, Sparkles, Wrench } from "lucide-react";
 
 
-export const ThreadRail = ({ currentSessionId, onSelectSession, sessions }) => {
+export const ThreadRail = ({ currentSessionId, onNewSession, onSelectSession, sessions }) => {
   return (
     <aside className="thread-rail" data-testid="caos-thread-rail">
       <div className="rail-brand" data-testid="caos-rail-brand">
@@ -12,7 +12,7 @@ export const ThreadRail = ({ currentSessionId, onSelectSession, sessions }) => {
       </div>
 
       <div className="rail-nav" data-testid="caos-rail-nav">
-        <button className="rail-nav-primary" data-testid="caos-rail-new-chat-button">New Chat</button>
+        <button className="rail-nav-primary" data-testid="caos-rail-new-chat-button" onClick={onNewSession}>New Chat</button>
         <button className="rail-nav-item rail-nav-item-active" data-testid="caos-rail-chat-button">Chat</button>
         <button className="rail-nav-item" data-testid="caos-rail-create-button"><Sparkles size={14} />Create</button>
         <button className="rail-nav-item" data-testid="caos-rail-tools-button"><Wrench size={14} />Tools</button>

@@ -18,6 +18,7 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Real CAOS shell frontend with persistent sidebar navigation, recent threads list, centered open canvas, live message pane, composer, floating search drawer, WCW meter, receipt card, continuity card, profile drawer, files/artifacts drawer, and bootstrap cleanup for fresh identities.
 - Richer CAOS surfaces ported into the shell: working header menu, file upload + saved links, copy action for all messages, backend read-aloud action for assistant messages, microphone transcription flow, graceful action feedback/errors, inline replies, Useful reaction chips, and inline linked receipt panels.
 - Backend regression tests and browser validation for shell/chat/artifact/file/voice/menu/continuity flows.
+- Added a dedicated System Blueprint and TSB log in `/app/memory` so architecture and recurring failures are documented for the team.
 
 ## Prioritized Backlog
 ### P0

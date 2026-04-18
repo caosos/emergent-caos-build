@@ -1,52 +1,19 @@
-import { useEffect, useState } from "react";
-import { Menu, Plus, Search, Sparkles } from "lucide-react";
+import { Cpu, Search } from "lucide-react";
 
 
-export const ShellHeader = ({ commitUserEmail, onNewSession, onOpenArtifacts, onOpenProfile, searchQuery, setSearchQuery, userEmail, wcwBudget, wcwUsed }) => {
-  const [draftEmail, setDraftEmail] = useState(userEmail);
-  const [menuOpen, setMenuOpen] = useState(false);
+export const ShellHeader = ({ currentSession, searchQuery, setSearchQuery, wcwBudget, wcwUsed }) => {
   const percent = Math.min(100, Math.round(((wcwUsed || 0) / (wcwBudget || 1)) * 100));
-
-  useEffect(() => {
-    setDraftEmail(userEmail);
-  }, [userEmail]);
-
-  const commitIfNeeded = () => commitUserEmail(draftEmail);
-  const runMenuAction = (action) => {
-    setMenuOpen(false);
-    setTimeout(action, 0);
-  };
 
   return (
     <header className="caos-header" data-testid="caos-shell-header">
-      <div className="caos-brand-block" data-testid="caos-brand-block">
-        <button className="brand-chip" data-testid="caos-brand-chip">
-          <Sparkles size={14} />
-          <span>CAOS</span>
-        </button>
+      <div className="caos-header-context" data-testid="caos-header-context">
         <div>
-          <h1 data-testid="caos-header-title">Cognitive Adaptive Operating System</h1>
-          <p data-testid="caos-header-subtitle">Continuous chat, context, continuity, and receipts.</p>
+          <h1 data-testid="caos-header-title">{currentSession?.title || "Chat"}</h1>
+          <p data-testid="caos-header-subtitle">{currentSession?.session_id || "Start a thread from the left rail."}</p>
         </div>
       </div>
 
       <div className="caos-header-actions">
-        <label className="inline-field" data-testid="caos-email-field">
-          <span>User</span>
-          <input
-            data-testid="caos-user-email-input"
-            value={draftEmail}
-            onBlur={commitIfNeeded}
-            onChange={(event) => setDraftEmail(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                commitIfNeeded();
-              }
-            }}
-          />
-        </label>
-
         <label className="inline-field search-field" data-testid="caos-search-field">
           <Search size={14} />
           <input
@@ -57,42 +24,16 @@ export const ShellHeader = ({ commitUserEmail, onNewSession, onOpenArtifacts, on
           />
         </label>
 
+        <div className="engine-chip" data-testid="caos-engine-chip">
+          <Cpu size={14} />
+          <span>OpenAI · GPT-5.2</span>
+        </div>
+
         <div className="token-chip" data-testid="caos-token-meter">
           <span>{wcwUsed || 0} / {wcwBudget || 200000}</span>
           <div className="token-bar" data-testid="caos-token-meter-bar">
             <div className="token-bar-fill" style={{ width: `${percent}%` }} />
           </div>
-        </div>
-
-        <button className="primary-shell-button" data-testid="caos-new-session-button" onClick={onNewSession}>
-          <Plus size={16} />
-          <span>New Thread</span>
-        </button>
-
-        <div className="header-menu-wrap" data-testid="caos-header-menu-wrap">
-          <button className="surface-button" data-testid="caos-header-menu-button" onClick={() => setMenuOpen((value) => !value)}>
-            <Menu size={16} />
-            <span>Menu</span>
-          </button>
-          {menuOpen ? (
-            <div className="header-menu-overlay" data-testid="caos-header-menu-overlay" onClick={() => setMenuOpen(false)}>
-              <div className="header-menu" data-testid="caos-header-menu" onClick={(event) => event.stopPropagation()}>
-                <button data-testid="caos-header-menu-new-thread" onClick={() => runMenuAction(onNewSession)}>New Thread</button>
-                <button
-                  data-testid="caos-header-menu-files"
-                  onClick={() => runMenuAction(() => document.querySelector('[data-testid="caos-open-artifacts-button"]')?.click() || onOpenArtifacts())}
-                >
-                  Files & Artifacts
-                </button>
-                <button
-                  data-testid="caos-header-menu-profile"
-                  onClick={() => runMenuAction(() => document.querySelector('[data-testid="caos-open-profile-button"]')?.click() || onOpenProfile())}
-                >
-                  Profile
-                </button>
-              </div>
-            </div>
-          ) : null}
         </div>
       </div>
     </header>

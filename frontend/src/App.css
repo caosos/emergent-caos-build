@@ -30,15 +30,14 @@
     display: flex;
     justify-content: space-between;
     gap: 24px;
-    padding: 18px 20px;
+    padding: 12px 18px;
     margin-bottom: 18px;
     overflow: visible;
 }
 
-.caos-brand-block {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
+.caos-header-context {
+    display: grid;
+    gap: 4px;
 }
 
 .brand-chip,
@@ -85,42 +84,8 @@
     justify-content: flex-end;
 }
 
-.header-menu-wrap {
-    position: relative;
-    overflow: visible;
-}
-
-.header-menu-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(2, 6, 23, 0.32);
-    z-index: 24;
-}
-
-.header-menu {
-    position: absolute;
-    right: 24px;
-    top: 96px;
-    min-width: 220px;
-    padding: 10px;
-    border: 1px solid rgba(148, 163, 184, 0.16);
-    background: rgba(8, 15, 31, 0.98);
-    border-radius: 18px;
-    display: grid;
-    gap: 8px;
-}
-
-.header-menu button {
-    border: none;
-    border-radius: 12px;
-    background: rgba(15, 23, 42, 0.74);
-    color: #eff6ff;
-    padding: 10px 12px;
-    text-align: left;
-    cursor: pointer;
-}
-
 .inline-field,
+.engine-chip,
 .token-chip,
 .thread-card,
 .message-bubble,
@@ -135,11 +100,18 @@
     border-radius: 18px;
 }
 
-.inline-field {
-    display: grid;
-    gap: 6px;
+
+.inline-field,
+.engine-chip {
     padding: 10px 12px;
-    min-width: 180px;
+    min-width: 0;
+}
+
+.engine-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(191, 219, 254, 0.88);
 }
 
 .inline-field input,
@@ -153,7 +125,7 @@
 }
 
 .search-field {
-    min-width: 220px;
+    min-width: 180px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -684,6 +656,10 @@
 
     .caos-header {
         flex-direction: column;
+    }
+
+    .caos-header-actions {
+        justify-content: stretch;
     }
 
     .caos-shell-grid {
