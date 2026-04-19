@@ -14,7 +14,6 @@ from app.schemas.caos import (
     ContextPrepareResponse,
     ContextStats,
     MemoryEntry,
-    MemorySaveRequest,
     MessageCreate,
     MessageRecord,
     ReceiptRecord,
@@ -43,7 +42,6 @@ from app.services.chat_pipeline import run_chat_turn
 from app.services.context_engine import (
     build_context_receipt,
     compress_history,
-    extract_tags,
     rank_memories,
     sanitize_history,
 )
@@ -266,24 +264,6 @@ async def download_file(file_id: str):
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Stored file is missing")
     return FileResponse(path=file_path, media_type=record.get("mime_type"), filename=record.get("name"))
-
-
-@router.post("/memory/save", response_model=MemoryEntry)
-async def save_memory(input: MemorySaveRequest):
-    profile = await collection("user_profiles").find_one({"user_email": input.user_email}, {"_id": 0})
-    if not profile:
-        raise HTTPException(status_code=404, detail="User profile not found")
-    tags = input.tags or extract_tags(input.content)
-    memory = MemoryEntry(content=input.content, tags=tags, bin_name=tags[0] if tags else "general")
-    updated_memory = [*profile.get("structured_memory", []), {
-        **memory.model_dump(),
-        "created_at": memory.created_at.isoformat(),
-    }]
-    await collection("user_profiles").update_one(
-        {"user_email": input.user_email},
-        {"$set": {"structured_memory": updated_memory, "updated_at": datetime.now(timezone.utc).isoformat()}},
-    )
-    return memory
 
 
 @router.post("/context/prepare", response_model=ContextPrepareResponse)

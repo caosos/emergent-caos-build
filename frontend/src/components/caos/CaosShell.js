@@ -28,12 +28,14 @@ export const CaosShell = () => {
     continuity,
     createSession,
     currentSession,
+    deleteMemory,
     error,
     filteredMessages,
     files,
     lastTurn,
     searchQuery,
     saveLink,
+    saveMemory,
     selectSession,
     sendMessage,
     sessions,
@@ -47,6 +49,7 @@ export const CaosShell = () => {
     profile,
     runtimeSettings,
     updateRuntimeSelection,
+    updateMemory,
     updateVoiceSettings,
     voiceSettings,
   } = useCaosShell();
@@ -232,9 +235,12 @@ export const CaosShell = () => {
         isOpen={showProfile}
         memoryCount={profile?.structured_memory?.length || 0}
         onClose={() => setShowProfile(false)}
+        deleteMemory={deleteMemory}
         profile={profile}
         runtimeSettings={runtimeSettings}
+        saveMemory={saveMemory}
         sessionsCount={sessions.length}
+        updateMemory={updateMemory}
         updateVoiceSettings={updateVoiceSettings}
         userEmail={userEmail}
         voiceSettings={voiceSettings}

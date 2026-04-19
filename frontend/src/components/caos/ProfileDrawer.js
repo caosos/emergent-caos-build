@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { UserRound, X } from "lucide-react";
 
 
@@ -8,7 +9,13 @@ const STT_MODELS = [
 const TTS_VOICES = ["nova", "alloy", "verse"];
 
 
-export const ProfileDrawer = ({ isOpen, memoryCount, onClose, profile, runtimeSettings, sessionsCount, updateVoiceSettings, userEmail, voiceSettings }) => {
+export const ProfileDrawer = ({ deleteMemory, isOpen, memoryCount, onClose, profile, runtimeSettings, saveMemory, sessionsCount, updateMemory, updateVoiceSettings, userEmail, voiceSettings }) => {
+  const [factDraft, setFactDraft] = useState("");
+  const [memoryDraft, setMemoryDraft] = useState("");
+  const memories = profile?.structured_memory || [];
+  const personalFacts = memories.filter((memory) => memory.bin_name === "personal_facts");
+  const otherMemories = memories.filter((memory) => memory.bin_name !== "personal_facts");
+
   if (!isOpen) return null;
 
   return (
@@ -99,10 +106,122 @@ export const ProfileDrawer = ({ isOpen, memoryCount, onClose, profile, runtimeSe
           </div>
         </div>
 
-        <div className="drawer-list" data-testid="caos-profile-memory-list">
-          {(profile?.structured_memory || []).slice(0, 8).map((memory) => (
-            <div className="drawer-list-item" data-testid={`caos-profile-memory-${memory.id}`} key={memory.id}>
-              {memory.content}
+        <div className="drawer-section" data-testid="caos-profile-memory-controls-section">
+          <h3 data-testid="caos-profile-memory-controls-heading">Persistent memory controls</h3>
+          <div className="drawer-link-form">
+            <input
+              data-testid="caos-profile-personal-fact-input"
+              placeholder="Save a personal fact"
+              value={factDraft}
+              onChange={(event) => setFactDraft(event.target.value)}
+            />
+            <button
+              className="message-action-button"
+              data-testid="caos-profile-personal-fact-save-button"
+              onClick={() => {
+                saveMemory(factDraft, "personal_facts");
+                setFactDraft("");
+              }}
+              type="button"
+            >
+              Save fact
+            </button>
+          </div>
+          <div className="drawer-link-form">
+            <input
+              data-testid="caos-profile-memory-input"
+              placeholder="Save a working memory"
+              value={memoryDraft}
+              onChange={(event) => setMemoryDraft(event.target.value)}
+            />
+            <button
+              className="message-action-button"
+              data-testid="caos-profile-memory-save-button"
+              onClick={() => {
+                saveMemory(memoryDraft, "general");
+                setMemoryDraft("");
+              }}
+              type="button"
+            >
+              Save memory
+            </button>
+          </div>
+        </div>
+
+        <div className="drawer-section-block" data-testid="caos-profile-personal-facts-list">
+          <h3>Personal facts</h3>
+          {personalFacts.slice(0, 8).map((memory) => (
+            <div className="drawer-list-item drawer-list-item-rich" data-testid={`caos-profile-memory-${memory.id}`} key={memory.id}>
+              <strong>{memory.content}</strong>
+              <span>{(memory.tags || []).join(", ") || "personal_facts"}</span>
+              <div className="surface-button-row" data-testid={`caos-profile-memory-actions-${memory.id}`}>
+                <button
+                  className="message-action-button"
+                  data-testid={`caos-profile-memory-edit-${memory.id}`}
+                  onClick={() => {
+                    const nextValue = window.prompt("Edit memory", memory.content);
+                    if (nextValue && nextValue.trim()) updateMemory(memory.id, { content: nextValue.trim() });
+                  }}
+                  type="button"
+                >
+                  Edit
+                </button>
+                <button
+                  className="message-action-button"
+                  data-testid={`caos-profile-memory-demote-${memory.id}`}
+                  onClick={() => updateMemory(memory.id, { bin_name: "general" })}
+                  type="button"
+                >
+                  Move to memory
+                </button>
+                <button
+                  className="message-action-button"
+                  data-testid={`caos-profile-memory-delete-${memory.id}`}
+                  onClick={() => deleteMemory(memory.id)}
+                  type="button"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="drawer-section-block" data-testid="caos-profile-working-memory-list">
+          <h3>Working memory</h3>
+          {otherMemories.slice(0, 8).map((memory) => (
+            <div className="drawer-list-item drawer-list-item-rich" data-testid={`caos-profile-working-memory-${memory.id}`} key={memory.id}>
+              <strong>{memory.content}</strong>
+              <span>{memory.bin_name || "general"}</span>
+              <div className="surface-button-row" data-testid={`caos-profile-working-memory-actions-${memory.id}`}>
+                <button
+                  className="message-action-button"
+                  data-testid={`caos-profile-working-memory-edit-${memory.id}`}
+                  onClick={() => {
+                    const nextValue = window.prompt("Edit memory", memory.content);
+                    if (nextValue && nextValue.trim()) updateMemory(memory.id, { content: nextValue.trim() });
+                  }}
+                  type="button"
+                >
+                  Edit
+                </button>
+                <button
+                  className="message-action-button"
+                  data-testid={`caos-profile-working-memory-promote-${memory.id}`}
+                  onClick={() => updateMemory(memory.id, { bin_name: "personal_facts" })}
+                  type="button"
+                >
+                  Promote to fact
+                </button>
+                <button
+                  className="message-action-button"
+                  data-testid={`caos-profile-working-memory-delete-${memory.id}`}
+                  onClick={() => deleteMemory(memory.id)}
+                  type="button"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>

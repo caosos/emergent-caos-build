@@ -54,12 +54,28 @@ class MemoryEntry(BaseModel):
     source: str = "user_trigger"
     priority: int = 50
     created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
 
 
 class MemorySaveRequest(BaseModel):
     user_email: str
     content: str
     tags: list[str] = Field(default_factory=list)
+    bin_name: str = "general"
+    priority: int = 50
+
+
+class MemoryUpdateRequest(BaseModel):
+    user_email: str
+    content: str | None = None
+    tags: list[str] | None = None
+    bin_name: str | None = None
+    priority: int | None = None
+
+
+class MemoryDeleteResponse(BaseModel):
+    ok: bool = True
+    deleted_id: str
 
 
 class UserProfileUpsertRequest(BaseModel):

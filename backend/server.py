@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from app.config import settings
 from app.db import client, db
 from app.routes.caos import router as caos_router
+from app.routes.memory_profile import router as memory_profile_router
 from app.routes.memory_workers import router as memory_workers_router
 
 # Create the main app without a prefix
@@ -71,6 +72,7 @@ async def caos_contract():
 # Include the router in the main app
 app.include_router(api_router)
 app.include_router(caos_router, prefix="/api")
+app.include_router(memory_profile_router, prefix="/api")
 app.include_router(memory_workers_router, prefix="/api")
 
 app.add_middleware(

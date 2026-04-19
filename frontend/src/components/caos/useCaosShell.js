@@ -197,6 +197,62 @@ export const useCaosShell = () => {
     }
   }, [userEmail, voiceSettings]);
 
+  const saveMemory = useCallback(async (content, binName = "general") => {
+    if (!content.trim()) return;
+    setBusy(true);
+    setError("");
+    try {
+      await axios.post(`${API}/caos/memory/save`, {
+        user_email: userEmail,
+        content,
+        bin_name: binName,
+      });
+      await loadProfile();
+      setStatus(`Saved ${binName === "personal_facts" ? "personal fact" : "memory"}.`);
+    } catch (issue) {
+      const message = issue?.response?.data?.detail || issue?.message || "Saving memory failed.";
+      setError(message);
+      setStatus(`Saving memory failed: ${message}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [loadProfile, userEmail]);
+
+  const updateMemory = useCallback(async (memoryId, changes) => {
+    setBusy(true);
+    setError("");
+    try {
+      await axios.patch(`${API}/caos/memory/${memoryId}`, {
+        user_email: userEmail,
+        ...changes,
+      });
+      await loadProfile();
+      setStatus("Memory updated.");
+    } catch (issue) {
+      const message = issue?.response?.data?.detail || issue?.message || "Updating memory failed.";
+      setError(message);
+      setStatus(`Updating memory failed: ${message}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [loadProfile, userEmail]);
+
+  const deleteMemory = useCallback(async (memoryId) => {
+    setBusy(true);
+    setError("");
+    try {
+      await axios.delete(`${API}/caos/memory/${memoryId}`, { params: { user_email: userEmail } });
+      await loadProfile();
+      setStatus("Memory deleted.");
+    } catch (issue) {
+      const message = issue?.response?.data?.detail || issue?.message || "Deleting memory failed.";
+      setError(message);
+      setStatus(`Deleting memory failed: ${message}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [loadProfile, userEmail]);
+
   const sendMessage = useCallback(async (content) => {
     if (!content.trim()) return;
     setBusy(true);
@@ -364,14 +420,17 @@ export const useCaosShell = () => {
     setSearchQuery,
     commitUserEmail,
     saveLink,
+    saveMemory,
     speakText,
     status,
     transcribeAudio,
     transcribeAudioChunk,
+    updateMemory,
     updateRuntimeSelection,
     updateVoiceSettings,
     uploadFile,
     userEmail,
+    deleteMemory,
     voiceSettings,
   };
 };
