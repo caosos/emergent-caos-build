@@ -59,6 +59,8 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Added personal-facts memory CRUD and rehydration ordering: profile memories can now be saved/edited/moved/deleted from the shell, personal facts are stored separately from general memory, and receipts expose `thread_history -> lane_continuity -> personal_facts -> structured_memory -> global_bin_empty` explicitly.
 - Added a reusable global info bin / lookup cache: high-signal assistant outputs are cached, later turns can rehydrate them, and receipts now expose `selected_global_cache_ids`, `global_cache_count`, `global_cache_tokens`, and dynamic `global_bin_status` / rehydration order.
 - Fixed the current shell usability regressions the user flagged: the left rail now scrolls internally at shorter viewports, the composer textarea is materially larger for multi-line drafting, action buttons are less dominant, and a persistent working-context strip is visible without opening a popover.
+- Rebuilt the CAOS shell first-screen experience to match the uploaded redesign reference: centered Welcome hero, carousel feature cards, dark Swiss-style chrome, bottom composer with inline model bar, left command rail, and a right-side account/settings popover triggered from the bottom-left profile area.
+- The redesign now respects the user’s clarification: the explanatory bottom annotation from the mock is not rendered as live UI, the right profile/settings panel is not always visible, and the working-context strip shows only on active threads rather than cluttering the welcome state.
 
 ## Prioritized Backlog
 ### P0
