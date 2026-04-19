@@ -635,51 +635,10 @@
     min-height: 0;
     height: 100%;
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr) auto;
     background: transparent;
     box-shadow: none;
     border-color: transparent;
-}
-
-.message-pane-header {
-    width: min(100%, 820px);
-    margin: 0 auto 10px;
-    padding: 0 4px;
-    display: flex;
-    justify-content: space-between;
-    align-items: end;
-    gap: 16px;
-}
-
-.message-pane-header-copy {
-    display: grid;
-    gap: 2px;
-    min-width: 0;
-}
-
-.message-pane-kicker {
-    color: rgba(191, 219, 254, 0.62);
-    font-size: 0.72rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-}
-
-.message-pane-header h2 {
-    margin: 0;
-    font-size: 1rem;
-    line-height: 1.2;
-}
-
-.message-pane-header p {
-    font-size: 0.78rem;
-    color: rgba(191, 219, 254, 0.62);
-}
-
-.message-pane-session-id {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 380px;
 }
 
 .previous-threads-panel {
@@ -738,6 +697,11 @@
     margin-inline: auto;
     padding-bottom: 240px;
     justify-items: stretch;
+}
+
+.message-pane-busy-chip {
+    justify-self: center;
+    margin-bottom: 12px;
 }
 
 .message-bubble {
@@ -880,11 +844,19 @@
 }
 
 .message-empty {
-    max-width: 480px;
-    margin: 80px auto 0;
+    max-width: 420px;
+    margin: min(15vh, 120px) auto 0;
     text-align: center;
     background: transparent;
     border: none;
+}
+
+.message-empty h3 {
+    font-size: 1.15rem;
+}
+
+.message-empty p {
+    color: rgba(191, 219, 254, 0.68);
 }
 
 .busy-chip {
@@ -899,6 +871,13 @@
     display: grid;
     gap: 6px;
     z-index: 14;
+}
+
+.command-footer-inner {
+    width: min(100%, 820px);
+    margin: 0 auto;
+    display: grid;
+    gap: 6px;
 }
 
 .command-footer-toolbar {

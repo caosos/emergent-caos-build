@@ -195,29 +195,31 @@ export const CaosShell = () => {
       />
 
       <div className="command-footer" data-testid="caos-command-footer">
-        {showCommandToolbar ? (
-          <div className="command-footer-toolbar" data-testid="caos-command-footer-toolbar">
-            <QuickActionsStrip onContinueThread={() => createSession("Continued Thread")} onOpenArtifacts={openArtifacts} />
-            <ModelBar
-              activeModel={runtimeSettings.default_model}
-              activeProvider={runtimeSettings.default_provider}
-              keySource={runtimeSettings.key_source}
-              onSelect={updateRuntimeSelection}
-              providerCatalog={runtimeSettings.provider_catalog}
-            />
-          </div>
-        ) : null}
-        <Composer
-          busy={busy}
-          lastAssistantMessage={lastAssistantMessage}
-          onSend={sendMessage}
-          onSpeak={speakText}
-          onTranscribe={transcribeAudio}
-          onTranscribeChunk={transcribeAudioChunk}
-          onUploadFile={uploadFile}
-          status={status}
-          voiceSettings={voiceSettings}
-        />
+        <div className="command-footer-inner" data-testid="caos-command-footer-inner">
+          {showCommandToolbar ? (
+            <div className="command-footer-toolbar" data-testid="caos-command-footer-toolbar">
+              <QuickActionsStrip onContinueThread={() => createSession("Continued Thread")} onOpenArtifacts={openArtifacts} />
+              <ModelBar
+                activeModel={runtimeSettings.default_model}
+                activeProvider={runtimeSettings.default_provider}
+                keySource={runtimeSettings.key_source}
+                onSelect={updateRuntimeSelection}
+                providerCatalog={runtimeSettings.provider_catalog}
+              />
+            </div>
+          ) : null}
+          <Composer
+            busy={busy}
+            lastAssistantMessage={lastAssistantMessage}
+            onSend={sendMessage}
+            onSpeak={speakText}
+            onTranscribe={transcribeAudio}
+            onTranscribeChunk={transcribeAudioChunk}
+            onUploadFile={uploadFile}
+            status={status}
+            voiceSettings={voiceSettings}
+          />
+        </div>
       </div>
       <InspectorPanel
         continuity={continuity}

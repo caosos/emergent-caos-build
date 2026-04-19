@@ -46,16 +46,8 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
 
   return (
     <section className="message-pane" data-testid="caos-message-pane">
-      <div className="message-pane-header" data-testid="caos-message-pane-header">
-        <div className="message-pane-header-copy" data-testid="caos-message-pane-header-copy">
-          <span className="message-pane-kicker" data-testid="caos-message-pane-kicker">Active thread</span>
-          <h2 data-testid="caos-current-thread-title">{currentSession?.title || "No active thread"}</h2>
-          <p className="message-pane-session-id" data-testid="caos-current-thread-id">{currentSession?.session_id || "Create a thread to begin."}</p>
-        </div>
-        {busy ? <span className="busy-chip" data-testid="caos-busy-chip">Thinking…</span> : null}
-      </div>
-
       <div className="message-scroll" data-testid="caos-message-scroll">
+        {busy ? <span className="busy-chip message-pane-busy-chip" data-testid="caos-busy-chip">Thinking…</span> : null}
         {messages.length === 0 ? (
           <div className="message-empty" data-testid="caos-message-empty-state">
             <h3 data-testid="caos-message-empty-title">What would you like to do?</h3>
