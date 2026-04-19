@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
-from app.schemas.caos import MemoryDeleteResponse, MemoryEntry, MemorySaveRequest, MemoryUpdateRequest
+from app.schemas.caos import GlobalInfoBinResponse, MemoryDeleteResponse, MemoryEntry, MemorySaveRequest, MemoryUpdateRequest
+from app.services.global_info_service import list_global_info_entries
 from app.services.profile_memory_service import (
     delete_profile_memory,
     list_profile_memories,
@@ -15,6 +16,11 @@ router = APIRouter(prefix="/caos/memory", tags=["caos-memory"])
 @router.get("", response_model=list[MemoryEntry])
 async def list_memories(user_email: str, bin_name: str | None = None):
     return await list_profile_memories(user_email, bin_name)
+
+
+@router.get("/global-bin", response_model=GlobalInfoBinResponse)
+async def list_global_bin(user_email: str, lane: str | None = None):
+    return GlobalInfoBinResponse(user_email=user_email, entries=await list_global_info_entries(user_email, lane))
 
 
 @router.post("/save", response_model=MemoryEntry)

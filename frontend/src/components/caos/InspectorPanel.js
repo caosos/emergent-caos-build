@@ -69,6 +69,10 @@ export const InspectorPanel = ({ continuity, isOpen, latestReceipt, memorySurfac
             <span>Facts</span>
             <strong>{latestReceipt?.personal_facts_count || 0}</strong>
           </div>
+          <div className="context-metric" data-testid="caos-inspector-global-cache-count">
+            <span>Global cache</span>
+            <strong>{latestReceipt?.global_cache_count || 0}</strong>
+          </div>
         </div>
         <div className="context-metric-grid context-metric-grid-compact" data-testid="caos-inspector-token-grid">
           <div className="context-metric" data-testid="caos-inspector-active-context-tokens">
@@ -101,10 +105,18 @@ export const InspectorPanel = ({ continuity, isOpen, latestReceipt, memorySurfac
             <span>Continuity</span>
             <strong>{latestReceipt?.continuity_tokens || 0}</strong>
           </div>
+          <div className="context-metric" data-testid="caos-inspector-global-cache-tokens">
+            <span>Global cache</span>
+            <strong>{latestReceipt?.global_cache_tokens || 0}</strong>
+          </div>
           <div className="context-metric" data-testid="caos-inspector-token-source">
             <span>Meter source</span>
             <strong>{tokenSourceLabel}</strong>
           </div>
+        </div>
+        <div className="context-metric" data-testid="caos-inspector-global-bin-status">
+          <span>Global bin</span>
+          <strong>{latestReceipt?.global_bin_status || "empty"}</strong>
         </div>
       </section>
 

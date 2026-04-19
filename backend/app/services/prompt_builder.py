@@ -29,13 +29,21 @@ def _format_continuity(continuity_packet: dict) -> str:
     return "\n".join(lines)
 
 
+def _format_global_info(entries: list[dict]) -> str:
+    if not entries:
+        return "No cached global facts were reused this turn."
+    return "\n".join(f"- {entry['snippet']}" for entry in entries)
+
+
 def build_prompt_sections(
     profile: UserProfileRecord,
     sanitized_history: list[MessageRecord],
     injected_memories: list[MemoryEntry],
     continuity_packet: dict,
+    global_info_entries: list[dict] | None = None,
 ) -> dict:
     personal_facts, structured_memory = _split_memories(injected_memories)
+    global_entries = global_info_entries or []
     return {
         "preferred_name": profile.preferred_name or "the user",
         "environment_name": profile.environment_name,
@@ -43,8 +51,9 @@ def build_prompt_sections(
         "structured_memory_block": _format_memories(structured_memory),
         "memory_block": _format_memories(injected_memories),
         "continuity_block": _format_continuity(continuity_packet),
+        "global_info_block": _format_global_info(global_entries),
         "history_block": _format_history(sanitized_history),
-        "rehydration_order": "thread_history -> lane_continuity -> personal_facts -> structured_memory -> global_bin(empty)",
+        "rehydration_order": f"thread_history -> lane_continuity -> personal_facts -> structured_memory -> {'global_bin(reused)' if global_entries else 'global_bin(empty)'}",
     }
 
 
@@ -78,7 +87,7 @@ Structured memory:
 {sections['structured_memory_block']}
 
 Global bin:
-No cached global facts were reused this turn.
+{sections['global_info_block']}
 """.strip()
 
 
@@ -87,7 +96,8 @@ def build_system_prompt(
     sanitized_history: list[MessageRecord],
     injected_memories: list[MemoryEntry],
     continuity_packet: dict,
+    global_info_entries: list[dict] | None = None,
 ) -> str:
     return build_system_prompt_from_sections(
-        build_prompt_sections(profile, sanitized_history, injected_memories, continuity_packet)
+        build_prompt_sections(profile, sanitized_history, injected_memories, continuity_packet, global_info_entries)
     )

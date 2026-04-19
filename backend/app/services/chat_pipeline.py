@@ -21,6 +21,7 @@ from app.services.context_engine import (
     rank_memories,
     sanitize_history,
 )
+from app.services.global_info_service import select_global_info_entries, upsert_global_info_entry
 from app.services.memory_worker_service import derive_lane, list_lane_workers, rebuild_lane_workers
 from app.services.prompt_builder import build_prompt_sections, build_system_prompt_from_sections
 from app.services.runtime_service import resolve_chat_runtime
@@ -78,8 +79,18 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         lane=session_lane,
         session_id=payload.session_id,
     )
-    receipt = build_context_receipt(stats, history_messages, compressed, injected_memories, retrieval_terms, subject_bins, continuity_packet)
-    prompt_sections = build_prompt_sections(profile, compressed, injected_memories, continuity_packet)
+    global_info_entries = await select_global_info_entries(payload.user_email, payload.content, subject_bins, session_lane)
+    receipt = build_context_receipt(
+        stats,
+        history_messages,
+        compressed,
+        injected_memories,
+        retrieval_terms,
+        subject_bins,
+        continuity_packet,
+        global_info_entries,
+    )
+    prompt_sections = build_prompt_sections(profile, compressed, injected_memories, continuity_packet, [entry.model_dump() for entry in global_info_entries])
     system_prompt = build_system_prompt_from_sections(prompt_sections)
 
     chat = LlmChat(
@@ -184,6 +195,15 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     await collection("sessions").update_one(
         {"session_id": payload.session_id},
         {"$set": title_updates},
+    )
+    await upsert_global_info_entry(
+        payload.user_email,
+        payload.session_id,
+        assistant_message.id,
+        session_lane,
+        subject_bins,
+        retrieval_terms,
+        reply,
     )
     await rebuild_lane_workers(payload.user_email)
 

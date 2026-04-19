@@ -78,6 +78,25 @@ class MemoryDeleteResponse(BaseModel):
     deleted_id: str
 
 
+class GlobalInfoEntry(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_email: str
+    lane: str = "global"
+    subject_bins: list[str] = Field(default_factory=list)
+    retrieval_terms: list[str] = Field(default_factory=list)
+    snippet: str
+    source_session_id: str
+    source_message_id: str
+    hits: int = 1
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+
+
+class GlobalInfoBinResponse(BaseModel):
+    user_email: str
+    entries: list[GlobalInfoEntry] = Field(default_factory=list)
+
+
 class UserProfileUpsertRequest(BaseModel):
     user_email: str
     preferred_name: str | None = None
@@ -225,6 +244,7 @@ class ReceiptRecord(BaseModel):
     selected_worker_ids: list[str] = Field(default_factory=list)
     selected_personal_fact_ids: list[str] = Field(default_factory=list)
     selected_general_memory_ids: list[str] = Field(default_factory=list)
+    selected_global_cache_ids: list[str] = Field(default_factory=list)
     lane: str = "general"
     subject_bins: list[str] = Field(default_factory=list)
     rehydration_order: list[str] = Field(default_factory=list)
@@ -237,6 +257,7 @@ class ReceiptRecord(BaseModel):
     history_tokens: int = 0
     memory_tokens: int = 0
     continuity_tokens: int = 0
+    global_cache_tokens: int = 0
     active_context_tokens: int = 0
     system_prompt_tokens: int = 0
     user_message_tokens: int = 0
@@ -261,6 +282,7 @@ class ReceiptRecord(BaseModel):
     history_tokens_after_budget: int = 0
     personal_facts_count: int = 0
     general_memory_count: int = 0
+    global_cache_count: int = 0
     reused_memory_count: int = 0
     reused_continuity_count: int = 0
     retention_explanation: list[str] = Field(default_factory=list)

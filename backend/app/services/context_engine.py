@@ -230,6 +230,7 @@ def build_context_receipt(
     retrieval_terms: list[str],
     subject_bins: list[str] | None = None,
     continuity_packet: dict | None = None,
+    global_info_entries: list | None = None,
 ) -> dict:
     chars_before = sum(len(message.content) for message in original_messages)
     sanitized_after = sum(len(message.content) for message in compressed)
@@ -252,6 +253,7 @@ def build_context_receipt(
     budget_trimmed_messages = stats.get("budget_trimmed_messages", [])
     personal_fact_ids = [memory.id for memory in injected_memories if memory.bin_name == "personal_facts"]
     general_memory_ids = [memory.id for memory in injected_memories if memory.bin_name != "personal_facts"]
+    global_cache_entries = global_info_entries or []
     retention_explanation = [
         f"Kept {len(kept_messages)} messages in the live ARC packet.",
         f"Dropped {len(dropped_messages)} messages during sanitization ({stats.get('removed_duplicates', 0)} duplicate, {stats.get('removed_low_signal', 0)} low-signal).",
@@ -267,10 +269,11 @@ def build_context_receipt(
         "selected_worker_ids": [worker.id for worker in (continuity_packet or {}).get("selected_workers", [])],
         "selected_personal_fact_ids": personal_fact_ids,
         "selected_general_memory_ids": general_memory_ids,
+        "selected_global_cache_ids": [entry.id for entry in global_cache_entries],
         "lane": (continuity_packet or {}).get("lane", "general"),
         "subject_bins": subject_bins or [],
-        "rehydration_order": ["thread_history", "lane_continuity", "personal_facts", "structured_memory", "global_bin_empty"],
-        "global_bin_status": "empty",
+        "rehydration_order": ["thread_history", "lane_continuity", "personal_facts", "structured_memory", "global_bin_reused" if global_cache_entries else "global_bin_empty"],
+        "global_bin_status": "reused" if global_cache_entries else "empty",
         "injected_memory_count": len(injected_memories),
         "estimated_injected_memory_chars": sum(len(memory.content) for memory in injected_memories),
         "final_message_count": len(compressed),
@@ -293,6 +296,7 @@ def build_context_receipt(
         "history_tokens_after_budget": stats.get("history_tokens_after_budget", 0),
         "personal_facts_count": len(personal_fact_ids),
         "general_memory_count": len(general_memory_ids),
+        "global_cache_count": len(global_cache_entries),
         "reused_memory_count": len(reused_memories),
         "reused_continuity_count": len(reused_continuity),
         "retention_explanation": retention_explanation,

@@ -153,6 +153,7 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
                     <span>Continuity packets: {(linkedReceipt.selected_summary_ids?.length || 0) + (linkedReceipt.selected_seed_ids?.length || 0)}</span>
                     <span>Reduction: {Math.round((linkedReceipt.reduction_ratio || 0) * 100)}%</span>
                     <span>Kept/Dropped/Compressed/Trimmed: {linkedReceipt.retained_message_count || 0}/{linkedReceipt.dropped_message_count || 0}/{linkedReceipt.compressed_message_count || 0}/{linkedReceipt.budget_trimmed_count || 0}</span>
+                    <span>Global cache: {linkedReceipt.global_cache_count || 0} ({linkedReceipt.global_bin_status || "empty"})</span>
                     <span>{linkedReceipt.retention_explanation?.[0] || "Retention reasoning pending."}</span>
                   </div>
                 ) : null}

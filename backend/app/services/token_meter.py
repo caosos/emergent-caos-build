@@ -50,6 +50,7 @@ def build_token_receipt(
     history_tokens = count_text_tokens(prompt_sections.get("history_block", ""), model)
     memory_tokens = count_text_tokens(prompt_sections.get("memory_block", ""), model)
     continuity_tokens = count_text_tokens(prompt_sections.get("continuity_block", ""), model)
+    global_cache_tokens = count_text_tokens(prompt_sections.get("global_info_block", ""), model)
     system_prompt_tokens = count_text_tokens(system_prompt, model)
     user_message_tokens = count_text_tokens(user_text, model)
     assistant_reply_tokens = count_text_tokens(assistant_text, model)
@@ -64,7 +65,8 @@ def build_token_receipt(
         "history_tokens": history_tokens,
         "memory_tokens": memory_tokens,
         "continuity_tokens": continuity_tokens,
-        "active_context_tokens": history_tokens + memory_tokens + continuity_tokens,
+        "global_cache_tokens": global_cache_tokens,
+        "active_context_tokens": history_tokens + memory_tokens + continuity_tokens + global_cache_tokens,
         "system_prompt_tokens": system_prompt_tokens,
         "user_message_tokens": user_message_tokens,
         "prompt_tokens": prompt_tokens,

@@ -109,6 +109,7 @@ export const ArtifactsDrawer = ({ artifacts, files, isOpen, onClose, onSaveLink,
               <span data-testid={`caos-artifact-receipt-bins-${receipt.id}`}>Bins: {receipt.subject_bins?.join(", ") || "none"}</span>
               <span data-testid={`caos-artifact-receipt-memory-count-${receipt.id}`}>Memories {receipt.selected_memory_ids?.length || 0} · Continuity {(receipt.selected_summary_ids?.length || 0) + (receipt.selected_seed_ids?.length || 0)}</span>
               <span data-testid={`caos-artifact-receipt-retention-${receipt.id}`}>Kept {receipt.retained_message_count || 0} · Dropped {receipt.dropped_message_count || 0} · Compressed {receipt.compressed_message_count || 0} · Trimmed {receipt.budget_trimmed_count || 0}</span>
+              <span data-testid={`caos-artifact-receipt-global-cache-${receipt.id}`}>Global cache {receipt.global_cache_count || 0} · {receipt.global_bin_status || "empty"}</span>
               <span data-testid={`caos-artifact-receipt-explanation-${receipt.id}`}>{receipt.retention_explanation?.[0] || "Retention reasoning will appear after the next turn."}</span>
             </div>
           ))}
