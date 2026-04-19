@@ -1,0 +1,85 @@
+{
+  "theme": "Dark",
+  "archetype": "Archetype 4 (Swiss & High-Contrast)",
+  "colors": {
+    "background": "#09090B",
+    "surface": "#121214",
+    "surfaceHover": "#1C1C1F",
+    "border": "rgba(255, 255, 255, 0.08)",
+    "primary": "#E2E8F0",
+    "primaryForeground": "#020817",
+    "secondary": "#27272A",
+    "secondaryForeground": "#FAFAFA",
+    "muted": "#18181B",
+    "mutedForeground": "#A1A1AA",
+    "accent": "#27272A",
+    "accentForeground": "#FAFAFA",
+    "destructive": "#7F1D1D",
+    "destructiveForeground": "#FEF2F2",
+    "brandAccent": "#FFFFFF"
+  },
+  "typography": {
+    "headingFont": "Outfit",
+    "bodyFont": "IBM Plex Sans",
+    "monoFont": "JetBrains Mono",
+    "h1": "text-4xl sm:text-5xl tracking-tighter font-medium",
+    "h2": "text-2xl sm:text-3xl tracking-tight font-medium",
+    "h3": "text-xl sm:text-2xl tracking-tight",
+    "body": "text-base leading-relaxed text-slate-300",
+    "small": "text-xs text-white/50 uppercase tracking-[0.2em]"
+  },
+  "layout": {
+    "global": "h-screen w-screen overflow-hidden flex bg-[#09090B] text-slate-200 font-sans",
+    "sidebar": "w-[260px] h-full border-r border-white/5 flex flex-col bg-[#09090B] transition-all duration-300",
+    "sidebarCollapsed": "w-[72px]",
+    "mainArea": "flex-1 flex flex-col h-full relative overflow-hidden bg-[#09090B]",
+    "chatContainer": "flex-1 overflow-y-auto px-4 md:px-8 py-8 custom-scrollbar",
+    "composerContainer": "p-4 w-full max-w-4xl mx-auto shrink-0 relative bg-transparent",
+    "suggestionCardsGrid": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full max-w-4xl mx-auto mt-8"
+  },
+  "components": {
+    "composer": "bg-[#121214] border border-white/10 rounded-2xl p-4 flex flex-col gap-3 shadow-[0_4px_24px_rgba(0,0,0,0.4)] focus-within:border-white/20 transition-all",
+    "suggestionCard": "bg-[#121214] border border-white/5 rounded-2xl p-6 hover:bg-[#18181B] hover:border-white/20 transition-all cursor-pointer group flex flex-col gap-3 h-full hover:-translate-y-1",
+    "messageUser": "bg-[#18181B] border border-white/5 text-slate-200 rounded-2xl rounded-tr-sm p-4 max-w-[80%] self-end",
+    "messageAI": "bg-transparent text-slate-200 p-4 max-w-[90%] self-start flex gap-4",
+    "workingContextStrip": "h-12 w-full bg-[#121214]/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-4 text-xs text-white/50 sticky top-0 z-40",
+    "profilePopover": "bg-[#121214] border border-white/10 rounded-xl shadow-2xl p-4 w-64 backdrop-blur-xl"
+  },
+  "motion": {
+    "hover": "transition-all duration-200 ease-in-out",
+    "entrance": "animate-in fade-in slide-in-from-bottom-4 duration-500",
+    "composerFocus": "transition-shadow duration-300 shadow-[0_0_20px_rgba(255,255,255,0.05)]",
+    "cardHover": "hover:-translate-y-1 transition-transform duration-300 ease-out"
+  },
+  "visualEnhancers": {
+    "borders": "1px solid rgba(255, 255, 255, 0.05)",
+    "shadows": "Ambient diffuse shadows for depth, no harsh drop shadows. shadow-[0_8px_32px_rgba(0,0,0,0.6)] for popovers.",
+    "glassmorphism": "Use sparingly for sticky elements (WCW Strip): bg-[#09090B]/80 backdrop-blur-xl border-b border-white/5"
+  },
+  "media": {
+    "image_urls": [
+      {
+        "category": "avatar",
+        "url": "https://images.pexels.com/photos/5349053/pexels-photo-5349053.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Default user avatar for the bottom-left profile area"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Build a viewport-locked shell (`h-screen w-screen overflow-hidden flex`).",
+    "Implement a collapsible left sidebar (default 260px, collapsed 72px). It should house the Thread List and the bottom-left account area.",
+    "The account area triggers a Profile Popover (not always visible, use Radix/Shadcn Popover component).",
+    "Main area is a vertical flex container. The chat session view is the scrollable region.",
+    "Implement a Welcome Hero State with Feature Carousel Cards (suggestion cards) in the center. These should disappear once a chat session is active (i.e. once the user starts typing or sends a message).",
+    "The Bottom Composer must be full-width within its max-width container, pinned to the bottom of the main chat area.",
+    "Implement a Persistent Model Bar either integrated into the Composer or just above it.",
+    "Implement a Working Context Strip (WCW metering) at the top of the main chat area to show live memory usage.",
+    "Ensure all interactive elements have `data-testid` attributes (e.g., `data-testid=\"sidebar-toggle\"`, `data-testid=\"composer-input\"`).",
+    "Use Phosphor Icons (or Lucide React) for crisp, high-end icons. Do not use generic thick icons.",
+    "Use purely `.js` and `.jsx` files as requested (no TS/TSX).",
+    "Keep files under 400 lines by splitting components aggressively.",
+    "Stick to the dark mode palette strictly (background #09090B, surface #121214).",
+    "No gradients or vibrant colors, except for subtle white accents.",
+    "Implement components in `frontend/src/components` matching CAOS functionalities (memory architecture, deterministic reinjection tracking, context window size)."
+  ]
+}
