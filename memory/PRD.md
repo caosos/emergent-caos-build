@@ -52,6 +52,8 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Removed the in-pane active-thread header block from the message lane and centered the bottom command area onto the same visual canvas as the conversation stream, making the `/chat` body read as a more coherent single workspace.
 - Added automatic thread-titling foundations: generic sessions now persist `title_source=auto`, and the backend generates descriptive session titles from the first three user turns so placeholder titles like `New Thread` can be replaced automatically.
 - Refined the Artifacts workspace into a clearer operational panel: added stats cards, tabbed navigation for Files/Receipts/Summaries/Seeds, and kept upload/save-link controls visible so files/photos/links parity is moving beyond a long stacked drawer.
+- Replaced placeholder WCW estimates with live ARC/WCW token accounting: chat receipts now persist active-context, sent, received, total, and running thread token counts, and the shell surfaces them in the rail account menu + inspector.
+- Tightened the rail account menu behavior so the token meter is visible in the shell while the menu remains anchored inside the viewport during inspection.
 
 ## Prioritized Backlog
 ### P0
@@ -60,6 +62,7 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Port the remaining repo bubble/menu surfaces still missing: richer receipt detail, metadata rows, expanded reply/reaction parity, and deeper command-center home states.
 - Build stronger observability/error-envelope handling and reduce any remaining startup noise.
 - Validate whether `gpt-4o-transcribe` can be made fully primary in the current STT integration path; today the system attempts it first and falls back honestly to `whisper-1` when required.
+- Finish the remaining Phase 2 WCW contract by explaining what was kept, dropped, compressed, and reused across turns instead of only showing token totals.
 
 ### P1
 - Build richer thread rehydration workers, memory summaries, and controlled cross-thread retrieval policy on top of the new lane-aware lineage model.
@@ -73,9 +76,9 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Deeper anchor maps, campaign memory, and long-horizon project continuity.
 
 ## Next Tasks
-1. Continue the `/chat` visual parity pass: keep tightening message density, drawer sizing, and surface hierarchy toward the screenshot contract.
+1. Finish the Phase 2 WCW explanation layer: expose what was kept, dropped, compressed, and rehydrated so ARC is auditable turn-by-turn.
 2. Deepen receipts/summaries/seeds again so subject bins, continuity packets, and cross-thread rehydration become first-class long-horizon memory primitives with stricter cost budgets.
-3. Build the secure BYO-provider credential attachment flow so Grok/xAI and future non-Universal engines can be plugged into CAOS without changing the memory architecture.
+3. Return to shell cleanup only after the memory surfaces are clearer, then complete the remaining welcome/tour and secondary-surface parity work.
 
 ## Living Contract Tracking
 - Master implementation checklist: `/app/memory/MASTER_IMPLEMENTATION_CHECKLIST.md`

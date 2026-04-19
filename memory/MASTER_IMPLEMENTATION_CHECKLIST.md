@@ -83,9 +83,9 @@ Goal: Keep active reasoning fast while continuity feels effectively endless.
 - [ ] Global info bin / lookup reuse cache
 
 ### 2.3 WCW / token governance
-- [ ] Live WCW monitor derived from actual token usage inside the session, not rough placeholders
-- [ ] Track sent tokens, received tokens, and currently active packet tokens per session
-- [ ] Distinguish thread total vs active context vs compressed memory vs rehydrated memory
+- [~] Live WCW monitor derived from actual token usage inside the session, not rough placeholders
+- [~] Track sent tokens, received tokens, and currently active packet tokens per session
+- [~] Distinguish thread total vs active context vs compressed memory vs rehydrated memory
 - [ ] Explain what was kept, dropped, compressed, and reused
 
 ### 2.4 Thread intelligence
@@ -201,6 +201,6 @@ Goal: Connect CAOS to the user’s external systems and tools.
 - [~] Start `/chat` visual parity pass before moving deeper into the welcome flow
 
 ## Current Note
-- The current chat strip exposes working-packet information using existing receipt/context estimates. True token-derived WCW accounting remains a Phase 2 contract item and is not considered complete yet.
+- The shell now exposes a real ARC/WCW token meter from live chat receipts: active context tokens, sent tokens, received tokens, and thread totals are persisted per receipt and surfaced in the rail + inspector. The remaining Phase 2 work is to explain retention/drop/compression decisions more explicitly across turns.
 - The command dock and side panels are now being constrained so thread/search/context overlays stay visually above the bottom operating controls instead of colliding with them.
 - Generic sessions now start with `title_source=auto`, and auto-title generation logic is in place for the first three user turns. Live end-to-end chat verification is partially limited by upstream LLM timeouts/502s, but the feature logic and session contract are implemented.
