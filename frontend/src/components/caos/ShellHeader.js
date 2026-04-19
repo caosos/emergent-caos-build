@@ -28,7 +28,7 @@ export const ShellHeader = ({ activeSurface, currentSession, isRailOpen, onOpenT
       </div>
 
       <div className="caos-header-actions">
-        <button className="caos-thread-pill" data-testid="caos-header-thread-pill" onClick={onOpenThreads} type="button">{currentSession?.title || "No active thread"}</button>
+        <button className="caos-thread-pill" data-testid="caos-header-thread-pill" onClick={onOpenThreads} type="button">{currentSession?.title || "Start a new chat"}</button>
 
         <button className="search-icon-button" data-testid="caos-search-toggle-button" onClick={onToggleSearch}>
           <Search size={14} />

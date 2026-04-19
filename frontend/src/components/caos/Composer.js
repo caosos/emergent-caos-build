@@ -5,8 +5,7 @@ import { useRef, useState } from "react";
 const joinDraft = (base, addition) => [base, addition].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
 
 
-export const Composer = ({ busy, lastAssistantMessage, onSend, onSpeak, onTranscribe, onTranscribeChunk, onUploadFile, status, voiceSettings }) => {
-  const [draft, setDraft] = useState("");
+export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onSend, onSpeak, onTranscribe, onTranscribeChunk, onUploadFile, status, voiceSettings }) => {
   const [recording, setRecording] = useState(false);
   const [liveStatus, setLiveStatus] = useState("");
   const [liveTranscript, setLiveTranscript] = useState("");
@@ -20,7 +19,7 @@ export const Composer = ({ busy, lastAssistantMessage, onSend, onSpeak, onTransc
     event.preventDefault();
     if (!draft.trim() || busy) return;
     onSend(draft);
-    setDraft("");
+    onDraftChange("");
   };
 
   const handleUpload = async (event) => {
@@ -74,7 +73,7 @@ export const Composer = ({ busy, lastAssistantMessage, onSend, onSpeak, onTransc
         const merged = mergeLiveChunk(response.text || "");
         liveTranscriptRef.current = merged;
         setLiveTranscript(merged);
-        setDraft(joinDraft(initialDraftRef.current, merged));
+        onDraftChange(joinDraft(initialDraftRef.current, merged));
         setLiveStatus(`Streaming with ${response.model_used}${response.fallback_used ? " (fallback)" : ""}`);
       } catch {
         setLiveStatus("Streaming unavailable — final transcript will still be added.");
@@ -86,7 +85,7 @@ export const Composer = ({ busy, lastAssistantMessage, onSend, onSpeak, onTransc
       const text = response.text || "";
       liveTranscriptRef.current = text;
       setLiveTranscript(text);
-      setDraft(joinDraft(initialDraftRef.current, text));
+      onDraftChange(joinDraft(initialDraftRef.current, text));
       setLiveStatus(`Transcript ready via ${response.model_used}${response.fallback_used ? " (fallback)" : ""}`);
       setRecording(false);
       streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -106,7 +105,6 @@ export const Composer = ({ busy, lastAssistantMessage, onSend, onSpeak, onTransc
       <div className="composer-row">
         <label className="message-action-button composer-upload" data-testid="caos-composer-upload-button">
           <Paperclip size={16} />
-          <span>Attach</span>
           <input data-testid="caos-composer-upload-input" hidden type="file" onChange={handleUpload} />
         </label>
         <button
@@ -117,23 +115,20 @@ export const Composer = ({ busy, lastAssistantMessage, onSend, onSpeak, onTransc
           type="button"
         >
           <Volume2 size={16} />
-          <span>Read Last</span>
         </button>
         <textarea
           data-testid="caos-composer-textarea"
           id="caos-draft"
-          placeholder="Type into the real CAOS shell..."
+          placeholder="Ask anything... and switch models mid chat with no problem!"
           rows={4}
           value={draft}
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => onDraftChange(event.target.value)}
         />
         <button className="message-action-button composer-mic" data-testid="caos-composer-mic-button" onClick={handleRecord} type="button">
           {recording ? <Square size={16} /> : <Mic size={16} />}
-          <span>{recording ? "Stop" : "Mic"}</span>
         </button>
         <button className="primary-shell-button composer-send" data-testid="caos-composer-send-button" disabled={busy || !draft.trim()}>
           <SendHorizontal size={16} />
-          <span>Send</span>
         </button>
       </div>
       {liveStatus ? <div className="composer-live-status" data-testid="caos-composer-live-status">{liveStatus}</div> : null}

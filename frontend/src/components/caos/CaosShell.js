@@ -8,16 +8,19 @@ import { MessagePane } from "@/components/caos/MessagePane";
 import { ModelBar } from "@/components/caos/ModelBar";
 import { PreviousThreadsPanel } from "@/components/caos/PreviousThreadsPanel";
 import { ProfileDrawer } from "@/components/caos/ProfileDrawer";
-import { QuickActionsStrip } from "@/components/caos/QuickActionsStrip";
 import { SearchDrawer } from "@/components/caos/SearchDrawer";
 import { ShellHeader } from "@/components/caos/ShellHeader";
 import { ThreadRail } from "@/components/caos/ThreadRail";
+import { WelcomeHero } from "@/components/caos/WelcomeHero";
 import { WorkingContextStrip } from "@/components/caos/WorkingContextStrip";
 import { useCaosShell } from "@/components/caos/useCaosShell";
+import "./caos-redesign.css";
+import "./caos-redesign-shell.css";
 
 
 export const CaosShell = () => {
   const [isRailOpen, setIsRailOpen] = useState(true);
+  const [draft, setDraft] = useState("");
   const [showArtifacts, setShowArtifacts] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -87,6 +90,7 @@ export const CaosShell = () => {
             ? "projects"
             : "chat";
   const showCommandToolbar = activeSurface === "chat";
+  const showWelcome = !filteredMessages.length && !draft.trim() && !busy;
 
   const focusChat = () => {
     setShowArtifacts(false);
@@ -136,6 +140,18 @@ export const CaosShell = () => {
     setShowThreadExplorer((value) => !value);
   };
 
+  const handleWelcomeAction = (action) => {
+    if (action === "image") {
+      openArtifacts();
+      return;
+    }
+    if (action === "models") {
+      openProfile();
+      return;
+    }
+    setDraft((current) => current || `Help me ${action.replace(/-/g, " ")}`);
+  };
+
   return (
     <main className={`caos-shell-root ${isRailOpen ? "caos-shell-rail-open" : "caos-shell-rail-closed"}`} data-testid="caos-shell-root">
       <ShellHeader
@@ -179,18 +195,24 @@ export const CaosShell = () => {
             </div>
           ) : null}
 
-          <WorkingContextStrip
-            receipt={workingContextReceipt}
-            wcwBudget={workingContextReceipt?.wcw_budget || lastTurn?.wcw_budget || 200000}
-          />
+          {!showWelcome ? (
+            <WorkingContextStrip
+              receipt={workingContextReceipt}
+              wcwBudget={workingContextReceipt?.wcw_budget || lastTurn?.wcw_budget || 200000}
+            />
+          ) : null}
 
-          <MessagePane
-            busy={busy}
-            currentSession={currentSession}
-            messages={filteredMessages}
-            onSpeak={speakText}
-            receipts={artifacts.receipts}
-          />
+          {showWelcome ? (
+            <WelcomeHero onCardAction={handleWelcomeAction} />
+          ) : (
+            <MessagePane
+              busy={busy}
+              currentSession={currentSession}
+              messages={filteredMessages}
+              onSpeak={speakText}
+              receipts={artifacts.receipts}
+            />
+          )}
         </section>
       </div>
 
@@ -206,7 +228,6 @@ export const CaosShell = () => {
         <div className="command-footer-inner" data-testid="caos-command-footer-inner">
           {showCommandToolbar ? (
             <div className="command-footer-toolbar" data-testid="caos-command-footer-toolbar">
-              <QuickActionsStrip onContinueThread={() => createSession("Continued Thread")} onOpenArtifacts={openArtifacts} />
               <ModelBar
                 activeModel={runtimeSettings.default_model}
                 activeProvider={runtimeSettings.default_provider}
@@ -218,7 +239,9 @@ export const CaosShell = () => {
           ) : null}
           <Composer
             busy={busy}
+            draft={draft}
             lastAssistantMessage={lastAssistantMessage}
+            onDraftChange={setDraft}
             onSend={sendMessage}
             onSpeak={speakText}
             onTranscribe={transcribeAudio}

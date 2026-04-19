@@ -12,7 +12,7 @@ export const ThreadRail = ({ activeSurface, currentSessionId, isCollapsed, onFoc
     const query = railSearch.toLowerCase();
     return sessions.filter((session) => `${session.title} ${session.last_message_preview || ""}`.toLowerCase().includes(query));
   }, [railSearch, sessions]);
-  const recentSessions = visibleSessions.slice(0, 6);
+  const recentSessions = visibleSessions.slice(0, 8);
 
   if (isCollapsed) {
     return (
@@ -89,7 +89,7 @@ export const ThreadRail = ({ activeSurface, currentSessionId, isCollapsed, onFoc
 
         <div className="rail-header" data-testid="caos-thread-rail-header">
           <div>
-            <span className="rail-section-label" data-testid="caos-thread-rail-section-label">Threads</span>
+            <span className="rail-section-label" data-testid="caos-thread-rail-section-label">Recent Threads</span>
             <h2 data-testid="caos-thread-rail-recent-title">Recent</h2>
           </div>
           <p data-testid="caos-thread-rail-count">Showing {recentSessions.length} of {sessions.length}</p>
@@ -128,6 +128,10 @@ export const ThreadRail = ({ activeSurface, currentSessionId, isCollapsed, onFoc
             ))
           )}
         </div>
+
+        <button className="rail-view-all-button" data-testid="caos-rail-view-all-threads-button" onClick={onOpenThreads} type="button">
+          View all threads
+        </button>
       </div>
 
       <div className="rail-footer" data-testid="caos-rail-footer">

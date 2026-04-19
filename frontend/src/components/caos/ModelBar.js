@@ -12,6 +12,11 @@ export const ModelBar = ({ activeModel, activeProvider, keySource, onSelect, pro
   return (
     <div className="model-bar-shell" data-testid="caos-model-bar-shell">
       <div className="model-bar" data-testid="caos-model-bar">
+        <span className="model-bar-label" data-testid="caos-model-bar-label">Model</span>
+        <button className="model-bar-mode-button" data-testid="caos-model-mode-button" type="button">
+          <span>Smart Auto</span>
+          <small>{keySource || "hybrid"}</small>
+        </button>
         {options.map((option) => {
           const isDisabled = option.requires_custom_key && !option.available;
           const isActive = option.provider === activeProvider && option.default_model === activeModel;
@@ -27,10 +32,11 @@ export const ModelBar = ({ activeModel, activeProvider, keySource, onSelect, pro
               type="button"
             >
               <span>{option.label}</span>
-              <small>{isDisabled ? "Bring key" : option.default_model}</small>
+              <small>{isDisabled ? "Bring key" : option.default_model.replace("-preview", "")}</small>
             </button>
           );
         })}
+        <button className="model-more-button" data-testid="caos-model-more-button" type="button">More</button>
       </div>
     </div>
   );

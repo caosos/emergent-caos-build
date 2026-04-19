@@ -1,0 +1,235 @@
+.caos-shell-root {
+  background: #09090b;
+  padding: 16px 16px 200px;
+  color: #e5e7eb;
+}
+
+.caos-header,
+.thread-rail,
+.composer-shell,
+.shell-error-banner,
+.working-context-chip,
+.welcome-card,
+.caos-thread-pill,
+.search-icon-button,
+.model-chip,
+.model-bar-mode-button,
+.model-more-button,
+.rail-nav-item,
+.rail-nav-primary,
+.rail-user-card,
+.thread-card {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #121214;
+  box-shadow: none;
+}
+
+.caos-shell-grid {
+  grid-template-columns: var(--rail-width) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.caos-shell-root.caos-shell-rail-open {
+  --rail-width: 264px;
+}
+
+.caos-shell-root.caos-shell-rail-closed {
+  --rail-width: 72px;
+}
+
+.thread-rail {
+  border-radius: 24px;
+  padding: 18px 14px 14px;
+  background: #09090b;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rail-topline,
+.rail-header,
+.rail-nav,
+.rail-footer,
+.caos-main-column {
+  gap: 14px;
+}
+
+.rail-brand h2,
+.caos-header-center h1 {
+  font-family: Outfit, sans-serif;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.rail-brand h2 {
+  font-size: 1.1rem;
+}
+
+.rail-brand p,
+.rail-section-label,
+.caos-header-route,
+.thread-card span,
+.model-chip small,
+.model-bar-mode-button small,
+.welcome-card span,
+.working-context-chip span {
+  color: #a1a1aa;
+}
+
+.rail-nav-primary {
+  background: #fafafa;
+  color: #09090b;
+}
+
+.rail-nav-item,
+.rail-view-all-button,
+.model-chip,
+.model-more-button,
+.model-bar-mode-button,
+.caos-thread-pill,
+.welcome-carousel-arrow {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #121214;
+  color: #fafafa;
+  border-radius: 16px;
+}
+
+.rail-view-all-button {
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.thread-card {
+  background: #111113;
+  border-radius: 20px;
+  padding: 14px;
+}
+
+.thread-card-active,
+.rail-nav-item-active,
+.model-chip-active,
+.welcome-dot-active {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: #1a1a1f;
+}
+
+.rail-user-card {
+  grid-template-columns: 40px 1fr 18px;
+  border-radius: 18px;
+  padding: 10px 12px;
+  background: #121214;
+}
+
+.rail-user-avatar {
+  background: transparent;
+  overflow: hidden;
+}
+
+.rail-user-avatar img,
+.rail-account-profile-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 999px;
+}
+
+.rail-account-sheet-popover {
+  left: auto !important;
+  right: 24px !important;
+  top: 84px !important;
+  bottom: auto !important;
+  width: min(320px, calc(100vw - 48px)) !important;
+  min-width: 0 !important;
+  max-height: calc(100vh - 120px) !important;
+  grid-template-columns: 1fr !important;
+  background: rgba(18, 18, 20, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 60;
+}
+
+.rail-account-sheet-popover-collapsed {
+  left: auto !important;
+  right: 24px !important;
+  top: 84px !important;
+  bottom: auto !important;
+}
+
+.rail-account-sheet,
+.rail-account-profile-card,
+.rail-account-settings-list,
+.rail-account-meta-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.rail-account-profile-card,
+.rail-account-meta-card,
+.rail-account-setting-item,
+.rail-account-packet,
+.rail-account-item {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #17171c;
+  color: #fafafa;
+  border-radius: 18px;
+}
+
+.rail-account-profile-name,
+.rail-account-profile-email,
+.rail-account-meta-card strong {
+  color: #fafafa;
+}
+
+.rail-account-meta-card span {
+  color: #a1a1aa;
+  font-size: 0.78rem;
+}
+
+.rail-account-profile-card {
+  justify-items: start;
+  padding: 16px;
+}
+
+.rail-account-profile-avatar {
+  width: 54px;
+  height: 54px;
+}
+
+.rail-account-role-chip {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e4e4e7;
+  font-size: 0.78rem;
+}
+
+.rail-account-meta-grid {
+  grid-template-columns: 1fr;
+}
+
+.rail-account-meta-card,
+.rail-account-setting-item,
+.rail-account-item,
+.rail-account-packet {
+  padding: 12px 14px;
+}
+
+.rail-account-setting-item {
+  cursor: pointer;
+  text-align: left;
+}
+
+.rail-account-setting-item span,
+.rail-account-item span {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.token-bar {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.token-bar-fill {
+  background: #f4f4f5;
+}
