@@ -88,7 +88,7 @@ Goal: Keep active reasoning fast while continuity feels effectively endless.
 - [ ] Explain what was kept, dropped, compressed, and reused
 
 ### 2.4 Thread intelligence
-- [ ] Auto-title new threads within first 1–3 useful turns
+- [~] Auto-title new threads within first 1–3 useful turns
 - [ ] Better retrieval ranking and bin governance
 - [ ] Controlled cross-thread hydration with clarity options
 
@@ -202,3 +202,4 @@ Goal: Connect CAOS to the user’s external systems and tools.
 ## Current Note
 - The current chat strip exposes working-packet information using existing receipt/context estimates. True token-derived WCW accounting remains a Phase 2 contract item and is not considered complete yet.
 - The command dock and side panels are now being constrained so thread/search/context overlays stay visually above the bottom operating controls instead of colliding with them.
+- Generic sessions now start with `title_source=auto`, and auto-title generation logic is in place for the first three user turns. Live end-to-end chat verification is partially limited by upstream LLM timeouts/502s, but the feature logic and session contract are implemented.

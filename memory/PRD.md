@@ -50,6 +50,7 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Thinned the top header again: removed the subtitle under CAOS, reduced header height/padding, softened route/thread chip chrome, and kept surface switching/search intact so the center workspace starts calmer and higher on the page.
 - Removed idle command-area clutter from the composer zone: always-on STT labels and passive loaded-session text no longer sit under the input bar by default, keeping the input area cleaner while preserving all controls and live recording feedback when it actually matters.
 - Removed the in-pane active-thread header block from the message lane and centered the bottom command area onto the same visual canvas as the conversation stream, making the `/chat` body read as a more coherent single workspace.
+- Added automatic thread-titling foundations: generic sessions now persist `title_source=auto`, and the backend generates descriptive session titles from the first three user turns so placeholder titles like `New Thread` can be replaced automatically.
 
 ## Prioritized Backlog
 ### P0
