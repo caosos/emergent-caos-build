@@ -1,345 +1,476 @@
 #!/usr/bin/env python3
 """
-CAOS Backend Phase 2A Lane-Aware Memory Testing
-Tests the lane-aware memory implementation as specified in the review request.
+CAOS Auto-Thread-Title Feature Testing
+Tests the new auto-thread-title functionality end-to-end.
 """
 
-import asyncio
-import json
 import os
-import sys
+import uuid
+import requests
 import time
-from typing import Any, Dict, List
-
-import aiohttp
-
+from typing import Dict, Any
 
 # Configuration
-BACKEND_URL = "https://deno-env-review.preview.emergentagent.com/api"
-TEST_USER_EMAIL = "lane-test-user-phase2a@example.com"
-TEST_USER_EMAIL_2 = "lane-test-user-2-phase2a@example.com"
+BASE_URL = "https://deno-env-review.preview.emergentagent.com"
+API_BASE = f"{BASE_URL}/api"
 
-
-class TestResult:
+class TestResults:
     def __init__(self):
-        self.passed = 0
-        self.failed = 0
+        self.results = []
         self.errors = []
         
-    def assert_true(self, condition: bool, message: str):
-        if condition:
-            self.passed += 1
-            print(f"✅ {message}")
+    def add_result(self, test_name: str, passed: bool, details: str = ""):
+        self.results.append({
+            "test": test_name,
+            "passed": passed,
+            "details": details
+        })
+        if not passed:
+            self.errors.append(f"❌ {test_name}: {details}")
         else:
-            self.failed += 1
-            self.errors.append(message)
-            print(f"❌ {message}")
-            
-    def assert_equal(self, actual: Any, expected: Any, message: str):
-        if actual == expected:
-            self.passed += 1
-            print(f"✅ {message}")
-        else:
-            self.failed += 1
-            error_msg = f"{message} - Expected: {expected}, Got: {actual}"
-            self.errors.append(error_msg)
-            print(f"❌ {error_msg}")
-            
-    def assert_in(self, item: Any, container: Any, message: str):
-        if item in container:
-            self.passed += 1
-            print(f"✅ {message}")
-        else:
-            self.failed += 1
-            error_msg = f"{message} - {item} not found in {container}"
-            self.errors.append(error_msg)
-            print(f"❌ {error_msg}")
-            
-    def assert_not_none(self, value: Any, message: str):
-        if value is not None:
-            self.passed += 1
-            print(f"✅ {message}")
-        else:
-            self.failed += 1
-            self.errors.append(message)
-            print(f"❌ {message}")
-            
+            print(f"✅ {test_name}: {details}")
+    
     def summary(self):
-        total = self.passed + self.failed
-        print(f"\n📊 Test Summary: {self.passed}/{total} passed")
+        passed = sum(1 for r in self.results if r["passed"])
+        total = len(self.results)
+        print(f"\n=== TEST SUMMARY ===")
+        print(f"Passed: {passed}/{total}")
         if self.errors:
-            print("\n🔍 Failed Tests:")
+            print("\n=== FAILURES ===")
             for error in self.errors:
-                print(f"  - {error}")
-        return self.failed == 0
+                print(error)
+        return passed == total
 
+def create_test_user() -> str:
+    """Create a unique test user email."""
+    token = uuid.uuid4().hex[:8]
+    return f"auto_title_test_{token}@example.com"
 
-async def make_request(session: aiohttp.ClientSession, method: str, endpoint: str, data: Dict = None, json_data: Dict = None) -> Dict:
-    """Make HTTP request and return JSON response"""
-    url = f"{BACKEND_URL}{endpoint}"
+def make_request(method: str, url: str, **kwargs) -> requests.Response:
+    """Make HTTP request with timeout and error handling."""
     try:
-        async with session.request(method, url, json=json_data, data=data) as response:
-            if response.status >= 400:
-                text = await response.text()
-                print(f"❌ HTTP {response.status} for {method} {endpoint}: {text}")
-                return {"error": f"HTTP {response.status}", "detail": text}
-            return await response.json()
+        # Use longer timeout for chat requests
+        timeout = 90 if "/chat" in url else 30
+        response = requests.request(method, url, timeout=timeout, **kwargs)
+        return response
+    except requests.exceptions.Timeout:
+        print(f"⚠️  Request timeout for {method} {url}")
+        return None
     except Exception as e:
-        print(f"❌ Request failed for {method} {endpoint}: {e}")
-        return {"error": "request_failed", "detail": str(e)}
+        print(f"⚠️  Request error for {method} {url}: {e}")
+        return None
 
-
-async def test_session_lane_field(session: aiohttp.ClientSession, result: TestResult):
-    """Test 1: POST /caos/sessions accepts/returns a `lane` field (default general if omitted)"""
-    print("\n🧪 Test 1: Session lane field handling")
+def test_auto_thread_title_feature():
+    """Test the complete auto-thread-title feature."""
+    results = TestResults()
     
-    # Test session creation with explicit lane
-    session_data = {
-        "user_email": TEST_USER_EMAIL,
-        "title": "Machine Learning Discussion",
-        "lane": "ml"
+    # Test 0: Basic connectivity check
+    print("\n=== Test 0: Basic connectivity ===")
+    test_user = create_test_user()
+    
+    # Test basic session creation first
+    basic_session_payload = {
+        "user_email": test_user,
+        "title": "Connectivity Test",
+        "lane": "general"
     }
-    response = await make_request(session, "POST", "/caos/sessions", json_data=session_data)
-    result.assert_true("error" not in response, "Session creation with explicit lane should succeed")
-    result.assert_equal(response.get("lane"), "ml", "Session should return specified lane")
-    session_id_1 = response.get("session_id")
     
-    # Test session creation without lane (should default to general)
-    session_data_no_lane = {
-        "user_email": TEST_USER_EMAIL,
-        "title": "General Chat"
+    basic_response = make_request("POST", f"{API_BASE}/caos/sessions", json=basic_session_payload)
+    if basic_response and basic_response.status_code == 200:
+        results.add_result(
+            "Basic API connectivity", 
+            True, 
+            f"Successfully created session via API"
+        )
+    else:
+        results.add_result(
+            "Basic API connectivity", 
+            False, 
+            f"Failed to connect to API: {basic_response.status_code if basic_response else 'No response'}"
+        )
+        return results
+    
+    # Test 1: POST /caos/sessions with generic title sets title_source appropriately
+    print("\n=== Test 1: Generic title handling ===")
+    
+    # Create session with generic title "New Thread"
+    session_payload = {
+        "user_email": test_user,
+        "title": "New Thread",
+        "lane": "general"
     }
-    response = await make_request(session, "POST", "/caos/sessions", json_data=session_data_no_lane)
-    result.assert_true("error" not in response, "Session creation without lane should succeed")
-    result.assert_equal(response.get("lane"), "general", "Session should default to 'general' lane when omitted")
-    session_id_2 = response.get("session_id")
     
-    return session_id_1, session_id_2
-
-
-async def test_chat_lane_derivation(session: aiohttp.ClientSession, result: TestResult, session_id: str):
-    """Test 2: A first chat turn in a new session derives and persists a lane on the session"""
-    print("\n🧪 Test 2: Chat turn lane derivation and persistence")
+    response = make_request("POST", f"{API_BASE}/caos/sessions", json=session_payload)
+    if response and response.status_code == 200:
+        session_data = response.json()
+        session_id = session_data["session_id"]
+        
+        # Check title_source is set correctly for generic title
+        if session_data.get("title_source") == "auto":
+            results.add_result(
+                "Generic title sets title_source=auto", 
+                True, 
+                f"Session created with title_source=auto for 'New Thread'"
+            )
+        else:
+            results.add_result(
+                "Generic title sets title_source=auto", 
+                False, 
+                f"Expected title_source=auto, got {session_data.get('title_source')}"
+            )
+    else:
+        results.add_result(
+            "Generic title sets title_source=auto", 
+            False, 
+            f"Session creation failed: {response.status_code if response else 'No response'} - {response.text if response else 'Timeout'}"
+        )
+        return results
     
-    # Send first chat message about machine learning
-    chat_data = {
-        "user_email": TEST_USER_EMAIL,
+    # Test 2: After chat turn, title should be auto-updated
+    print("\n=== Test 2: Auto-title generation after chat ===")
+    
+    # Send a chat message with descriptive content
+    chat_payload = {
+        "user_email": test_user,
         "session_id": session_id,
-        "content": "I want to discuss neural networks and deep learning algorithms for computer vision tasks."
+        "content": "I need help with Python machine learning algorithms for data analysis and neural networks"
     }
-    response = await make_request(session, "POST", "/caos/chat", json_data=chat_data)
-    result.assert_true("error" not in response, "Chat request should succeed")
-    result.assert_not_none(response.get("lane"), "Chat response should include lane field")
     
-    # Verify lane is derived from content (should be related to ML/neural networks)
-    chat_lane = response.get("lane")
-    result.assert_true(chat_lane != "general", f"Lane should be derived from content, not general. Got: {chat_lane}")
-    
-    # Verify session is updated with the derived lane
-    sessions_response = await make_request(session, "GET", f"/caos/sessions?user_email={TEST_USER_EMAIL}")
-    result.assert_true("error" not in sessions_response, "Sessions list should be retrievable")
-    
-    # Find our session and check its lane
-    target_session = None
-    for sess in sessions_response:
-        if sess.get("session_id") == session_id:
-            target_session = sess
+    # Try chat request with retry logic for upstream timeouts
+    chat_response = None
+    for attempt in range(2):
+        print(f"Attempting chat request {attempt + 1}/2...")
+        chat_response = make_request("POST", f"{API_BASE}/caos/chat", json=chat_payload)
+        
+        if chat_response is None:
+            print(f"⚠️  Chat attempt {attempt + 1} timed out")
+            if attempt == 0:
+                time.sleep(3)
+                continue
+            else:
+                # If both attempts timeout, report this but continue with other tests
+                results.add_result(
+                    "Chat turn successful", 
+                    False, 
+                    "Chat requests timed out (likely upstream LLM timeout) - title update logic cannot be tested"
+                )
+                break
+        elif chat_response.status_code == 200:
+            break
+        elif chat_response.status_code >= 500:
+            print(f"⚠️  Chat attempt {attempt + 1} failed with {chat_response.status_code}")
+            if attempt == 0:
+                time.sleep(3)
+                continue
+        else:
             break
     
-    result.assert_not_none(target_session, "Session should be found in sessions list")
-    if target_session:
-        result.assert_equal(target_session.get("lane"), chat_lane, "Session lane should be updated to match chat-derived lane")
-    
-    return chat_lane
-
-
-async def test_memory_workers_rebuild(session: aiohttp.ClientSession, result: TestResult):
-    """Test 3: POST /caos/memory/workers/{user_email}/rebuild returns lane worker records"""
-    print("\n🧪 Test 3: Memory workers rebuild endpoint")
-    
-    response = await make_request(session, "POST", f"/caos/memory/workers/{TEST_USER_EMAIL}/rebuild")
-    result.assert_true("error" not in response, "Memory workers rebuild should succeed")
-    result.assert_equal(response.get("user_email"), TEST_USER_EMAIL, "Response should include correct user_email")
-    result.assert_not_none(response.get("workers"), "Response should include workers array")
-    
-    workers = response.get("workers", [])
-    result.assert_true(len(workers) > 0, "Should return at least one worker record")
-    
-    # Verify worker record structure
-    if workers:
-        worker = workers[0]
-        required_fields = ["id", "user_email", "lane", "subject_bins", "summary_text", "source_session_ids"]
-        for field in required_fields:
-            result.assert_not_none(worker.get(field), f"Worker should have {field} field")
-    
-    return workers
-
-
-async def test_memory_workers_get(session: aiohttp.ClientSession, result: TestResult):
-    """Test 4: GET /caos/memory/workers/{user_email} returns worker records with required fields"""
-    print("\n🧪 Test 4: Memory workers get endpoint")
-    
-    response = await make_request(session, "GET", f"/caos/memory/workers/{TEST_USER_EMAIL}")
-    result.assert_true("error" not in response, "Memory workers get should succeed")
-    result.assert_equal(response.get("user_email"), TEST_USER_EMAIL, "Response should include correct user_email")
-    result.assert_not_none(response.get("workers"), "Response should include workers array")
-    
-    workers = response.get("workers", [])
-    result.assert_true(len(workers) > 0, "Should return at least one worker record")
-    
-    # Verify all required fields are present
-    if workers:
-        worker = workers[0]
-        required_fields = ["lane", "subject_bins", "summary_text", "source_session_ids"]
-        for field in required_fields:
-            result.assert_not_none(worker.get(field), f"Worker should have {field} field")
+    if chat_response and chat_response.status_code == 200:
+        chat_data = chat_response.json()
+        results.add_result(
+            "Chat turn successful", 
+            True, 
+            f"Chat completed successfully with reply length: {len(chat_data.get('reply', ''))}"
+        )
+        
+        # Check if session title was updated
+        sessions_response = make_request("GET", f"{API_BASE}/caos/sessions", params={"user_email": test_user})
+        if sessions_response.status_code == 200:
+            sessions = sessions_response.json()
+            updated_session = next((s for s in sessions if s["session_id"] == session_id), None)
             
-        # Verify field types
-        result.assert_true(isinstance(worker.get("subject_bins", []), list), "subject_bins should be a list")
-        result.assert_true(isinstance(worker.get("source_session_ids", []), list), "source_session_ids should be a list")
-        result.assert_true(isinstance(worker.get("summary_text", ""), str), "summary_text should be a string")
+            if updated_session:
+                new_title = updated_session.get("title")
+                title_source = updated_session.get("title_source")
+                
+                # Check title was updated away from "New Thread"
+                if new_title != "New Thread":
+                    results.add_result(
+                        "Title updated from generic", 
+                        True, 
+                        f"Title changed from 'New Thread' to '{new_title}'"
+                    )
+                else:
+                    results.add_result(
+                        "Title updated from generic", 
+                        False, 
+                        "Title remained 'New Thread' after chat turn"
+                    )
+                
+                # Check title_source is "auto"
+                if title_source == "auto":
+                    results.add_result(
+                        "Title source set to auto", 
+                        True, 
+                        f"title_source correctly set to 'auto'"
+                    )
+                else:
+                    results.add_result(
+                        "Title source set to auto", 
+                        False, 
+                        f"Expected title_source='auto', got '{title_source}'"
+                    )
+            else:
+                results.add_result(
+                    "Session found after chat", 
+                    False, 
+                    "Could not find session in sessions list"
+                )
+        else:
+            results.add_result(
+                "Get sessions after chat", 
+                False, 
+                f"Failed to get sessions: {sessions_response.status_code}"
+            )
+    else:
+        error_msg = f"Chat failed: {chat_response.status_code if chat_response else 'No response'}"
+        if chat_response:
+            error_msg += f" - {chat_response.text}"
+        results.add_result("Chat turn successful", False, error_msg)
     
-    return workers
-
-
-async def test_cross_thread_retrieval(session: aiohttp.ClientSession, result: TestResult):
-    """Test 5: Cross-thread retrieval works with continuity from prior summaries/seeds/workers"""
-    print("\n🧪 Test 5: Cross-thread retrieval and continuity")
+    # Test 3: Custom titles should NOT be overwritten
+    print("\n=== Test 3: Custom titles preservation ===")
     
-    # Create first session and chat about a specific topic
-    session_1_data = {
-        "user_email": TEST_USER_EMAIL_2,
-        "title": "Python Programming Discussion",
-        "lane": "programming"
+    # Create session with clearly custom title
+    custom_session_payload = {
+        "user_email": test_user,
+        "title": "My Important Project Discussion",
+        "lane": "general"
     }
-    session_1_response = await make_request(session, "POST", "/caos/sessions", json_data=session_1_data)
-    result.assert_true("error" not in session_1_response, "First session creation should succeed")
-    session_1_id = session_1_response.get("session_id")
     
-    # Chat in first session about Python
-    chat_1_data = {
-        "user_email": TEST_USER_EMAIL_2,
-        "session_id": session_1_id,
-        "content": "I'm working on a Python project using FastAPI and need help with async database operations and connection pooling."
+    custom_response = make_request("POST", f"{API_BASE}/caos/sessions", json=custom_session_payload)
+    if custom_response and custom_response.status_code == 200:
+        custom_session_data = custom_response.json()
+        custom_session_id = custom_session_data["session_id"]
+        
+        # Check title_source is "user" for custom title
+        if custom_session_data.get("title_source") == "user":
+            results.add_result(
+                "Custom title sets title_source=user", 
+                True, 
+                f"Custom title correctly sets title_source=user"
+            )
+        else:
+            results.add_result(
+                "Custom title sets title_source=user", 
+                False, 
+                f"Expected title_source=user, got {custom_session_data.get('title_source')}"
+            )
+        
+        # Send chat message to custom session
+        custom_chat_payload = {
+            "user_email": test_user,
+            "session_id": custom_session_id,
+            "content": "Let's discuss database optimization and performance tuning strategies"
+        }
+        
+        custom_chat_response = make_request("POST", f"{API_BASE}/caos/chat", json=custom_chat_payload)
+        if custom_chat_response and custom_chat_response.status_code == 200:
+            # Check that custom title was NOT changed
+            custom_sessions_response = make_request("GET", f"{API_BASE}/caos/sessions", params={"user_email": test_user})
+            if custom_sessions_response.status_code == 200:
+                custom_sessions = custom_sessions_response.json()
+                updated_custom_session = next((s for s in custom_sessions if s["session_id"] == custom_session_id), None)
+                
+                if updated_custom_session:
+                    preserved_title = updated_custom_session.get("title")
+                    preserved_title_source = updated_custom_session.get("title_source")
+                    
+                    if preserved_title == "My Important Project Discussion":
+                        results.add_result(
+                            "Custom title preserved", 
+                            True, 
+                            f"Custom title '{preserved_title}' was preserved"
+                        )
+                    else:
+                        results.add_result(
+                            "Custom title preserved", 
+                            False, 
+                            f"Custom title changed from 'My Important Project Discussion' to '{preserved_title}'"
+                        )
+                    
+                    if preserved_title_source == "user":
+                        results.add_result(
+                            "Custom title_source preserved", 
+                            True, 
+                            f"title_source remained 'user'"
+                        )
+                    else:
+                        results.add_result(
+                            "Custom title_source preserved", 
+                            False, 
+                            f"title_source changed from 'user' to '{preserved_title_source}'"
+                        )
+                else:
+                    results.add_result(
+                        "Custom session found after chat", 
+                        False, 
+                        "Could not find custom session in sessions list"
+                    )
+        else:
+            if custom_chat_response is None:
+                results.add_result(
+                    "Custom session chat", 
+                    False, 
+                    "Chat to custom session timed out"
+                )
+            else:
+                results.add_result(
+                    "Custom session chat", 
+                    False, 
+                    f"Chat to custom session failed: {custom_chat_response.status_code}"
+                )
+    else:
+        results.add_result(
+            "Custom session creation", 
+            False, 
+            f"Custom session creation failed: {custom_response.status_code if custom_response else 'Timeout'}"
+        )
+    
+    # Test 4: Test multiple generic title variations
+    print("\n=== Test 4: Various generic titles ===")
+    
+    generic_titles = ["new thread", "continued thread", "chat", "general thread", "test session"]
+    
+    for title in generic_titles:
+        test_session_payload = {
+            "user_email": test_user,
+            "title": title,
+            "lane": "general"
+        }
+        
+        test_response = make_request("POST", f"{API_BASE}/caos/sessions", json=test_session_payload)
+        if test_response.status_code == 200:
+            test_session_data = test_response.json()
+            if test_session_data.get("title_source") == "auto":
+                results.add_result(
+                    f"Generic title '{title}' detection", 
+                    True, 
+                    f"'{title}' correctly identified as generic"
+                )
+            else:
+                results.add_result(
+                    f"Generic title '{title}' detection", 
+                    False, 
+                    f"'{title}' not identified as generic, got title_source={test_session_data.get('title_source')}"
+                )
+        else:
+            results.add_result(
+                f"Generic title '{title}' session creation", 
+                False, 
+                f"Failed to create session with title '{title}'"
+            )
+    
+    # Test 5: Contract regression check - verify session endpoints still work correctly
+    print("\n=== Test 5: Contract regression check ===")
+    
+    # Test GET /caos/sessions still returns all required fields
+    final_sessions_response = make_request("GET", f"{API_BASE}/caos/sessions", params={"user_email": test_user})
+    if final_sessions_response.status_code == 200:
+        final_sessions = final_sessions_response.json()
+        
+        if len(final_sessions) > 0:
+            sample_session = final_sessions[0]
+            required_fields = ["session_id", "user_email", "title", "title_source", "lane", "created_at", "updated_at"]
+            missing_fields = [field for field in required_fields if field not in sample_session]
+            
+            if not missing_fields:
+                results.add_result(
+                    "Session contract fields", 
+                    True, 
+                    f"All required fields present in session response"
+                )
+            else:
+                results.add_result(
+                    "Session contract fields", 
+                    False, 
+                    f"Missing fields in session response: {missing_fields}"
+                )
+            
+            # Check title_source field values are valid
+            valid_title_sources = all(s.get("title_source") in ["user", "auto"] for s in final_sessions)
+            if valid_title_sources:
+                results.add_result(
+                    "Title source values valid", 
+                    True, 
+                    f"All title_source values are 'user' or 'auto'"
+                )
+            else:
+                invalid_sources = [s.get("title_source") for s in final_sessions if s.get("title_source") not in ["user", "auto"]]
+                results.add_result(
+                    "Title source values valid", 
+                    False, 
+                    f"Invalid title_source values found: {invalid_sources}"
+                )
+        else:
+            results.add_result(
+                "Sessions exist for contract check", 
+                False, 
+                "No sessions found for contract verification"
+            )
+    else:
+        results.add_result(
+            "Session list endpoint", 
+            False, 
+            f"GET /caos/sessions failed: {final_sessions_response.status_code}"
+        )
+    
+    # Test 6: Edge case - empty/null title handling
+    print("\n=== Test 6: Edge cases ===")
+    
+    # Test empty title
+    empty_title_payload = {
+        "user_email": test_user,
+        "title": "",
+        "lane": "general"
     }
-    chat_1_response = await make_request(session, "POST", "/caos/chat", json_data=chat_1_data)
-    result.assert_true("error" not in chat_1_response, "First chat should succeed")
     
-    # Wait a moment for processing
-    await asyncio.sleep(2)
+    empty_response = make_request("POST", f"{API_BASE}/caos/sessions", json=empty_title_payload)
+    if empty_response.status_code == 200:
+        empty_session_data = empty_response.json()
+        if empty_session_data.get("title_source") == "auto":
+            results.add_result(
+                "Empty title handling", 
+                True, 
+                f"Empty title correctly sets title_source=auto"
+            )
+        else:
+            results.add_result(
+                "Empty title handling", 
+                False, 
+                f"Empty title should set title_source=auto, got {empty_session_data.get('title_source')}"
+            )
+    else:
+        results.add_result(
+            "Empty title session creation", 
+            False, 
+            f"Failed to create session with empty title: {empty_response.status_code}"
+        )
     
-    # Create second session for the same user
-    session_2_data = {
-        "user_email": TEST_USER_EMAIL_2,
-        "title": "FastAPI Database Help",
-        "lane": "programming"
-    }
-    session_2_response = await make_request(session, "POST", "/caos/sessions", json_data=session_2_data)
-    result.assert_true("error" not in session_2_response, "Second session creation should succeed")
-    session_2_id = session_2_response.get("session_id")
-    
-    # Chat in second session about related topic
-    chat_2_data = {
-        "user_email": TEST_USER_EMAIL_2,
-        "session_id": session_2_id,
-        "content": "Can you help me optimize my FastAPI database queries? I'm having performance issues."
-    }
-    chat_2_response = await make_request(session, "POST", "/caos/chat", json_data=chat_2_data)
-    result.assert_true("error" not in chat_2_response, "Second chat should succeed")
-    
-    # Verify continuity fields in response
-    receipt = chat_2_response.get("receipt", {})
-    required_receipt_fields = [
-        "selected_summary_ids", "selected_seed_ids", "selected_worker_ids", 
-        "lane", "continuity_chars", "estimated_context_chars"
-    ]
-    
-    for field in required_receipt_fields:
-        result.assert_not_none(receipt.get(field), f"Chat receipt should include {field}")
-    
-    # Verify lane consistency
-    result.assert_equal(chat_2_response.get("lane"), "programming", "Second chat should maintain programming lane")
-    result.assert_equal(receipt.get("lane"), "programming", "Receipt lane should match chat lane")
-    
-    # Verify continuity is working (should have some selected items)
-    selected_summaries = receipt.get("selected_summary_ids", [])
-    selected_seeds = receipt.get("selected_seed_ids", [])
-    selected_workers = receipt.get("selected_worker_ids", [])
-    
-    total_continuity_items = len(selected_summaries) + len(selected_seeds) + len(selected_workers)
-    result.assert_true(total_continuity_items > 0, "Should have some continuity items selected from prior sessions")
-    
-    # Verify continuity chars is reasonable
-    continuity_chars = receipt.get("continuity_chars", 0)
-    result.assert_true(continuity_chars > 0, "Should have some continuity characters")
-    
-    return session_1_id, session_2_id
+    return results
 
-
-async def test_no_500_errors(session: aiohttp.ClientSession, result: TestResult):
-    """Test 6: No 500s or contract mismatches"""
-    print("\n🧪 Test 6: Error handling and contract compliance")
+def main():
+    """Run all auto-thread-title tests."""
+    print("🚀 Starting CAOS Auto-Thread-Title Feature Tests")
+    print(f"Testing against: {BASE_URL}")
     
-    # Test various edge cases that should not cause 500 errors
-    
-    # Test with non-existent user
-    response = await make_request(session, "GET", f"/caos/memory/workers/nonexistent@example.com")
-    result.assert_true(response.get("error") != "HTTP 500", "Non-existent user should not cause 500 error")
-    
-    # Test rebuild for non-existent user
-    response = await make_request(session, "POST", f"/caos/memory/workers/nonexistent@example.com/rebuild")
-    result.assert_true(response.get("error") != "HTTP 500", "Rebuild for non-existent user should not cause 500 error")
-    
-    # Test chat with invalid session
-    chat_data = {
-        "user_email": TEST_USER_EMAIL,
-        "session_id": "invalid-session-id",
-        "content": "Test message"
-    }
-    response = await make_request(session, "POST", "/caos/chat", json_data=chat_data)
-    result.assert_true(response.get("error") != "HTTP 500", "Chat with invalid session should not cause 500 error")
-    
-    # Test session creation with missing fields
-    response = await make_request(session, "POST", "/caos/sessions", json_data={})
-    result.assert_true(response.get("error") != "HTTP 500", "Session creation with missing fields should not cause 500 error")
-
-
-async def run_all_tests():
-    """Run all Phase 2A lane-aware memory tests"""
-    print("🚀 Starting CAOS Backend Phase 2A Lane-Aware Memory Tests")
-    print(f"🎯 Testing against: {BACKEND_URL}")
-    
-    result = TestResult()
-    
-    async with aiohttp.ClientSession() as session:
-        try:
-            # Test 1: Session lane field handling
-            session_id_1, session_id_2 = await test_session_lane_field(session, result)
+    try:
+        results = test_auto_thread_title_feature()
+        success = results.summary()
+        
+        if success:
+            print("\n🎉 All tests passed! Auto-thread-title feature is working correctly.")
+        else:
+            print(f"\n❌ Some tests failed. Please review the failures above.")
             
-            # Test 2: Chat lane derivation (using session with explicit lane)
-            if session_id_1:
-                derived_lane = await test_chat_lane_derivation(session, result, session_id_1)
-            
-            # Test 3: Memory workers rebuild
-            workers_rebuild = await test_memory_workers_rebuild(session, result)
-            
-            # Test 4: Memory workers get
-            workers_get = await test_memory_workers_get(session, result)
-            
-            # Test 5: Cross-thread retrieval
-            cross_thread_sessions = await test_cross_thread_retrieval(session, result)
-            
-            # Test 6: Error handling
-            await test_no_500_errors(session, result)
-            
-        except Exception as e:
-            print(f"❌ Test execution failed: {e}")
-            result.errors.append(f"Test execution failed: {e}")
-            result.failed += 1
-    
-    return result.summary()
-
+        return success
+        
+    except Exception as e:
+        print(f"\n💥 Test execution failed with error: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 if __name__ == "__main__":
-    success = asyncio.run(run_all_tests())
-    sys.exit(0 if success else 1)
+    success = main()
+    exit(0 if success else 1)

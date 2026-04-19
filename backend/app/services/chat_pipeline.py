@@ -23,6 +23,7 @@ from app.services.context_engine import (
 from app.services.memory_worker_service import derive_lane, list_lane_workers, rebuild_lane_workers
 from app.services.prompt_builder import build_system_prompt
 from app.services.runtime_service import resolve_chat_runtime
+from app.services.thread_title_service import build_auto_thread_title, is_generic_session_title
 
 
 async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
@@ -91,6 +92,16 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     assistant_doc = assistant_message.model_dump()
     assistant_doc["timestamp"] = assistant_doc["timestamp"].isoformat()
     await collection("messages").insert_one(assistant_doc)
+    title_updates = {
+        "lane": session_lane,
+        "last_message_preview": reply[:140],
+        "summary": reply[:220],
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    user_turn_count = sum(1 for message in messages if message.role == "user")
+    if user_turn_count <= 3 and (session.get("title_source") == "auto" or is_generic_session_title(session.get("title"))):
+        title_updates["title"] = build_auto_thread_title(messages, session_lane)
+        title_updates["title_source"] = "auto"
     wcw_used_estimate = max(1, sum(len(message.content) for message in compressed) // 4)
     wcw_budget = 200000
     previous_receipt = await collection("receipts").find_one({"session_id": payload.session_id}, {"_id": 0}, sort=[("created_at", -1)])
@@ -146,14 +157,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     )
     await collection("sessions").update_one(
         {"session_id": payload.session_id},
-        {
-            "$set": {
-                "lane": session_lane,
-                "last_message_preview": reply[:140],
-                "summary": reply[:220],
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            }
-        },
+        {"$set": title_updates},
     )
     await rebuild_lane_workers(payload.user_email)
 

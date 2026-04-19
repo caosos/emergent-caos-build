@@ -48,6 +48,7 @@ from app.services.context_engine import (
     sanitize_history,
 )
 from app.services.runtime_service import build_runtime_settings_response, get_provider_catalog
+from app.services.thread_title_service import is_generic_session_title
 from app.services.voice_service import generate_tts_base64, transcribe_upload
 
 
@@ -56,7 +57,12 @@ router = APIRouter(prefix="/caos", tags=["caos"])
 
 @router.post("/sessions", response_model=SessionRecord)
 async def create_session(input: SessionCreate):
-    session = SessionRecord(user_email=input.user_email, title=input.title, lane=input.lane)
+    session = SessionRecord(
+        user_email=input.user_email,
+        title=input.title,
+        title_source="auto" if is_generic_session_title(input.title) else "user",
+        lane=input.lane,
+    )
     doc = session.model_dump()
     doc["created_at"] = doc["created_at"].isoformat()
     doc["updated_at"] = doc["updated_at"].isoformat()

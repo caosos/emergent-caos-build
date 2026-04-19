@@ -19,6 +19,7 @@ class SessionRecord(BaseModel):
     session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_email: str
     title: str
+    title_source: Literal["user", "auto"] = "user"
     lane: str = "general"
     summary: str | None = None
     last_message_preview: str | None = None

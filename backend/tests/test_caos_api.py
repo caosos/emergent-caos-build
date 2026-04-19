@@ -306,6 +306,40 @@ def test_chat_persists_turn_and_returns_receipt_and_wcw(api_client, test_identit
     assert any(msg["role"] == "assistant" and isinstance(msg["content"], str) and msg["content"] for msg in message_history)
 
 
+def test_chat_auto_titles_generic_thread_within_first_turns(api_client, test_identity):
+    api_client.post(
+        f"{BASE_URL.rstrip('/')}/api/caos/profile/upsert",
+        json={"user_email": test_identity["email"], "preferred_name": "TEST User"},
+        timeout=20,
+    )
+    session_response = api_client.post(
+        f"{BASE_URL.rstrip('/')}/api/caos/sessions",
+        json={"user_email": test_identity["email"], "title": "New Thread"},
+        timeout=20,
+    )
+    assert session_response.status_code == 200
+    session_id = session_response.json()["session_id"]
+
+    chat_payload = {
+        "user_email": test_identity["email"],
+        "session_id": session_id,
+        "content": "Atlas vendor follow-up and invoice planning need to happen this afternoon.",
+    }
+    first_attempt = api_client.post(f"{BASE_URL.rstrip('/')}/api/caos/chat", json=chat_payload, timeout=60)
+    response = first_attempt if first_attempt.status_code < 500 else api_client.post(
+        f"{BASE_URL.rstrip('/')}/api/caos/chat", json=chat_payload, timeout=60
+    )
+    assert response.status_code == 200
+
+    sessions_response = api_client.get(
+        f"{BASE_URL.rstrip('/')}/api/caos/sessions", params={"user_email": test_identity["email"]}, timeout=20
+    )
+    assert sessions_response.status_code == 200
+    updated = next(item for item in sessions_response.json() if item["session_id"] == session_id)
+    assert updated["title"] != "New Thread"
+    assert updated["title_source"] == "auto"
+
+
 # Module: profile retrieval and session artifact persistence surfaces
 def test_get_profile_returns_stored_user_profile(api_client, test_identity):
     upsert_payload = {
