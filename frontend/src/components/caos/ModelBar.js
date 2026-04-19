@@ -11,7 +11,6 @@ export const ModelBar = ({ activeModel, activeProvider, keySource, onSelect, pro
 
   return (
     <div className="model-bar-shell" data-testid="caos-model-bar-shell">
-      <div className="model-bar-meta" data-testid="caos-model-bar-meta">Portable routing · {keySource}</div>
       <div className="model-bar" data-testid="caos-model-bar">
         {options.map((option) => {
           const isDisabled = option.requires_custom_key && !option.available;

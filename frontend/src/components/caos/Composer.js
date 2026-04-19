@@ -46,6 +46,11 @@ export const Composer = ({ busy, lastAssistantMessage, onSend, onSpeak, onTransc
     return `${previous} ${nextText}`.replace(/\s+/g, " ").trim();
   };
 
+  const showStatus = status
+    && !/^Loaded \d+ saved sessions\.$/.test(status)
+    && status !== "CAOS replied with session-scoped context."
+    && status !== "No sessions yet. Start a thread to begin the CAOS shell.";
+
   const handleRecord = async () => {
     if (recording) {
       stopRecording();
@@ -98,10 +103,6 @@ export const Composer = ({ busy, lastAssistantMessage, onSend, onSpeak, onTransc
 
   return (
     <form className="composer-shell" data-testid="caos-composer-shell" onSubmit={handleSubmit}>
-      <div className="composer-shell-topline" data-testid="caos-composer-topline">
-        <span data-testid="caos-composer-topline-mode">Primary STT · {voiceSettings.stt_primary_model}</span>
-        <span data-testid="caos-composer-topline-hint">Draft-safe voice capture is active</span>
-      </div>
       <div className="composer-row">
         <label className="message-action-button composer-upload" data-testid="caos-composer-upload-button">
           <Paperclip size={16} />
@@ -137,7 +138,7 @@ export const Composer = ({ busy, lastAssistantMessage, onSend, onSpeak, onTransc
       </div>
       {liveStatus ? <div className="composer-live-status" data-testid="caos-composer-live-status">{liveStatus}</div> : null}
       {liveTranscript ? <div className="composer-live-transcript" data-testid="caos-composer-live-transcript">{liveTranscript}</div> : null}
-      <div className="composer-status" data-testid="caos-composer-status">{status}</div>
+      {showStatus ? <div className="composer-status" data-testid="caos-composer-status">{status}</div> : null}
     </form>
   );
 };

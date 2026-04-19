@@ -66,6 +66,7 @@ export const ThreadRail = ({ activeSurface, currentSessionId, isCollapsed, onFoc
       </div>
 
       <div className="rail-nav" data-testid="caos-rail-nav">
+        <span className="rail-section-label" data-testid="caos-rail-workspace-label">Workspace</span>
         <button className="rail-nav-primary" data-testid="caos-rail-new-chat-button" onClick={onNewSession}>New Chat</button>
         <label className="rail-search-field" data-testid="caos-rail-search-field">
           <input
@@ -84,7 +85,10 @@ export const ThreadRail = ({ activeSurface, currentSessionId, isCollapsed, onFoc
       </div>
 
       <div className="rail-header" data-testid="caos-thread-rail-header">
-        <h2 data-testid="caos-thread-rail-recent-title">Recent</h2>
+        <div>
+          <span className="rail-section-label" data-testid="caos-thread-rail-section-label">Threads</span>
+          <h2 data-testid="caos-thread-rail-recent-title">Recent</h2>
+        </div>
         <p data-testid="caos-thread-rail-count">Showing {recentSessions.length} of {sessions.length}</p>
       </div>
 
