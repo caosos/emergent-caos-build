@@ -96,6 +96,7 @@ export const CaosShell = () => {
           isCollapsed={!isRailOpen}
           onNewSession={() => createSession()}
           onOpenArtifacts={() => setShowArtifacts(true)}
+          onOpenInspector={() => setShowInspector(true)}
           onOpenProfile={() => setShowProfile(true)}
           onOpenSearch={() => setShowSearch(true)}
           onOpenThreads={() => setShowThreadExplorer((value) => !value)}
@@ -118,12 +119,7 @@ export const CaosShell = () => {
           <MessagePane
             busy={busy}
             currentSession={currentSession}
-            latestReceipt={runtimeReceipt}
             messages={filteredMessages}
-            onOpenArtifacts={() => setShowArtifacts(true)}
-            onOpenInspector={() => setShowInspector(true)}
-            onOpenSearch={() => setShowSearch(true)}
-            onOpenThreads={() => setShowThreadExplorer((value) => !value)}
             onSpeak={speakText}
             receipts={artifacts.receipts}
           />
