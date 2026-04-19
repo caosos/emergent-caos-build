@@ -9,10 +9,10 @@
 }
 
 .caos-shell-root {
-    --rail-width: 290px;
+    --rail-width: 256px;
     height: 100vh;
     box-sizing: border-box;
-    padding: 24px;
+    padding: 18px;
     padding-bottom: 220px;
     overflow: hidden;
     display: grid;
@@ -20,7 +20,7 @@
 }
 
 .caos-shell-rail-closed {
-    --rail-width: 92px;
+    --rail-width: 82px;
 }
 
 .caos-header,
@@ -42,7 +42,7 @@
     justify-content: space-between;
     gap: 24px;
     padding: 10px 14px;
-    margin-bottom: 18px;
+    margin-bottom: 14px;
     overflow: visible;
 }
 
@@ -216,7 +216,7 @@
 .caos-shell-grid {
     display: grid;
     grid-template-columns: 290px minmax(0, 1fr) 320px;
-    gap: 18px;
+    gap: 14px;
     align-items: stretch;
     height: 100%;
     min-height: 0;
@@ -235,13 +235,13 @@
 
 .thread-rail,
 .context-column {
-    padding: 18px;
+    padding: 15px;
 }
 
 .thread-rail {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
     height: 100%;
     overflow: hidden;
 }
@@ -255,12 +255,20 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
 }
 
 .rail-brand {
-    padding-bottom: 8px;
+    padding-bottom: 6px;
     border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.rail-brand h2 {
+    font-size: 1.02rem;
+}
+
+.rail-brand p {
+    font-size: 0.78rem;
 }
 
 .rail-brand p,
@@ -453,7 +461,7 @@
     background: rgba(15, 23, 42, 0.74);
     color: #eff6ff;
     border-radius: 14px;
-    padding: 12px 14px;
+    padding: 10px 12px;
 }
 
 .rail-footer {
@@ -472,17 +480,19 @@
 }
 
 .rail-nav-primary {
-    padding: 14px 16px;
+    padding: 12px 14px;
     background: linear-gradient(135deg, #6d28d9, #7c3aed);
     font-weight: 700;
+    font-size: 0.95rem;
 }
 
 .rail-nav-item,
 .rail-footer-button {
-    padding: 12px 14px;
+    padding: 10px 12px;
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    font-size: 0.9rem;
 }
 
 .rail-nav-item-active {
@@ -494,7 +504,7 @@
     display: grid;
     gap: 10px;
     min-height: 0;
-    max-width: 1180px;
+    max-width: 1080px;
     width: 100%;
     margin: 0 auto;
 }
@@ -514,7 +524,7 @@
 .message-scroll,
 .context-list {
     display: grid;
-    gap: 12px;
+    gap: 10px;
 }
 
 .message-scroll,
@@ -531,7 +541,7 @@
 
 .thread-card {
     width: 100%;
-    padding: 14px;
+    padding: 12px 13px;
     text-align: left;
     cursor: pointer;
 }
@@ -599,7 +609,7 @@
 }
 
 .message-pane-header {
-    width: min(100%, 840px);
+    width: min(100%, 820px);
     margin: 0 auto 8px;
     padding: 0 4px;
     display: flex;
@@ -636,11 +646,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 420px;
+    max-width: 380px;
 }
 
 .chat-surface-strip {
-    width: min(100%, 840px);
+    width: min(100%, 820px);
     margin: 0 auto 10px;
     display: grid;
     grid-template-columns: repeat(3, minmax(112px, max-content)) minmax(0, 1fr);
@@ -743,7 +753,7 @@
 
 .message-scroll {
     margin-top: 0;
-    width: min(100%, 840px);
+    width: min(100%, 820px);
     height: 100%;
     margin-inline: auto;
     padding-bottom: 240px;
@@ -754,7 +764,7 @@
     padding: 12px 14px 10px;
     border-radius: 20px;
     box-shadow: 0 14px 40px rgba(0, 0, 0, 0.14);
-    width: min(100%, 760px);
+    width: min(100%, 720px);
 }
 
 .message-bubble-user {
