@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the latest CAOS Phase 1 /chat checklist slice on https://deno-env-review.preview.emergentagent.com. Focus on the new previous-threads behavior and chat parity surfaces: (1) caos-chat-surface-threads-button opens the caos-previous-threads-panel, (2) Previous threads panel shows title, search input, and selectable thread cards, (3) Selecting a previous thread card should switch context without crashing, (4) Header thread pill should also open the previous threads panel, (5) Sidebar Threads button should open the previous threads panel, (6) Chat surface strip buttons (Threads, Search, Context, Files) should all remain usable, (7) Composer should remain visible/usable after these changes, (8) Check for any console errors, blocked interactions, or serious layout regressions."
+user_problem_statement: "Test the latest CAOS rail/workspace-state refinement on https://deno-env-review.preview.emergentagent.com. Focus areas: (1) Left-rail nav items should visually reflect the active surface (Chat, Tools, Models, Projects, Threads), (2) Header route label should update to the current active surface, (3) Chat nav should return the workspace to the calm main chat state, (4) Create/Projects/Tools/Threads nav buttons should open the intended surfaces without crash, (5) Command toolbar should stay hidden when side-panel workspace surfaces are active, while the composer remains visible, (6) No console errors or interaction regressions."
 
 backend:
   - task: "GET /caos/runtime/settings/{user_email} default hybrid runtime settings"
@@ -1228,20 +1228,95 @@ agent_communication:
           agent: "testing"
           comment: "Minor: Console errors and layout stability verified successfully. Zero console errors detected during comprehensive workspace interaction testing. Zero network errors detected. All critical layout elements remain visible and functional: shell root (data-testid='caos-shell-root'), shell grid (data-testid='caos-shell-grid'), thread rail (data-testid='caos-thread-rail'), main column (data-testid='caos-main-column'), composer (data-testid='caos-composer-shell'). All workspace transitions maintain layout integrity. Minor UX note: Profile drawer overlay (data-testid='caos-profile-drawer-overlay') blocks interactions with rail navigation when drawer is open - this is expected modal behavior but may require clicking close button or using force clicks to dismiss. Close button works correctly. Overall implementation working perfectly with no meaningful blockers."
 
+  - task: "CAOS rail/workspace-state refinement - Workspace handler functions close all other panels"
+    implemented: false
+    working: false
+    file: "/app/frontend/src/components/caos/CaosShell.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "CRITICAL BUG FOUND: Workspace handler functions (openInspector, openArtifacts, openProfile, openSearch, toggleThreads) do not close all other panels before opening their own panel. This causes multiple panels to be open simultaneously, which breaks the activeSurface calculation. For example, openInspector() closes search and threads but doesn't close artifacts or profile. openProfile() closes search but doesn't close inspector, artifacts, or threads. This causes the activeSurface to get stuck on one value (e.g., 'tools') even when other buttons are clicked. Each handler should close ALL other panels before opening its own, similar to how focusChat() works (lines 90-96). This is the root cause of all the workspace state issues: rail nav active state not switching correctly, header route label stuck on one value, Chat button not closing side panels, command toolbar not showing in Chat mode, and panels not opening when their buttons are clicked."
+
+  - task: "CAOS rail/workspace-state refinement - Rail nav active state visual feedback"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/caos/ThreadRail.js, /app/frontend/src/components/caos/CaosShell.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "Rail nav active state NOT working correctly. Chat button is active by default (correct). When Tools button is clicked, it becomes active and Chat deactivates (correct). However, when Models, Projects, or Threads buttons are clicked, they do NOT become active - the Tools button remains active. This is because the openProfile(), openArtifacts(), and toggleThreads() handlers don't close the Inspector panel, so showInspector remains true, and activeSurface stays as 'tools'. The rail-nav-item-active class is correctly applied based on activeSurface, but activeSurface calculation is broken due to multiple panels being open simultaneously."
+
+  - task: "CAOS rail/workspace-state refinement - Header route label dynamic updates"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/caos/ShellHeader.js, /app/frontend/src/components/caos/CaosShell.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "Header route label NOT updating correctly. After clicking Tools button, header shows 'Tools' (correct). However, when clicking Chat, Models, Projects, or Threads buttons, the header remains stuck on 'Tools' instead of updating to the correct label. This is because activeSurface remains 'tools' due to showInspector staying true when other panels are opened. The SURFACE_LABELS mapping and header implementation are correct, but the activeSurface calculation is broken."
+
+  - task: "CAOS rail/workspace-state refinement - Chat nav returns to calm main chat state"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/caos/CaosShell.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "Chat button does NOT return workspace to calm main chat state. When Tools button is clicked, Inspector panel opens (correct). When Chat button is clicked, the Inspector panel remains open instead of closing. This is because the Chat button calls onFocusChat which should close all panels, but the test shows the Inspector panel remains visible. The focusChat() function implementation looks correct (lines 90-96), so this might be a timing issue or the panel visibility is not being controlled by the state variables correctly. Needs investigation."
+
+  - task: "CAOS rail/workspace-state refinement - Command toolbar conditional rendering"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/caos/CaosShell.js, /app/frontend/src/App.css"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "Command toolbar conditional rendering NOT working correctly. In Chat mode, toolbar should be visible but it's not showing up (toolbar_visible: false). In Tools/Models/Projects/Threads modes, toolbar is correctly hidden (not in DOM). Composer remains visible in all modes (correct). The showCommandToolbar logic (activeSurface === 'chat') is correct, but since activeSurface is stuck on 'tools' due to the panel handler bug, the toolbar never shows even when in Chat mode. This is a consequence of the broken activeSurface calculation."
+
+  - task: "CAOS rail/workspace-state refinement - All workspace surfaces accessible without crash"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/caos/CaosShell.js, /app/frontend/src/components/caos/ThreadRail.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "Workspace surfaces NOT all accessible. Create button works without crash (correct). Tools workspace accessible - Inspector panel opens (correct). Models workspace accessible - Profile drawer opens (correct). However, Chat workspace not accessible - Chat button doesn't become active and doesn't close other panels. Projects workspace not accessible - Artifacts drawer doesn't open when Projects button is clicked. Threads workspace not accessible - Previous Threads panel doesn't open when Threads button is clicked. The Profile drawer overlay blocks interactions with other buttons, causing timeout errors. All these issues stem from the broken panel handler functions that don't close all other panels."
+
 
 metadata:
   created_by: "testing_agent"
-  version: "1.14"
-  test_sequence: 15
+  version: "1.15"
+  test_sequence: 16
   run_ui: false
 
 test_plan:
   current_focus:
-    - "CAOS Phase 1 rail/workspace interaction refinement testing completed successfully"
+    - "CAOS rail/workspace-state refinement - Fix workspace handler functions to close all other panels"
+    - "CAOS rail/workspace-state refinement - Verify all workspace state features after fix"
   stuck_tasks: []
-  test_all: true
+  test_all: false
   test_priority: "high_first"
 
 agent_communication:
     - agent: "testing"
       message: "CAOS PHASE 1 RAIL/WORKSPACE INTERACTION REFINEMENT TEST COMPLETE (April 19, 2026) - Tested latest CAOS Phase 1 rail/workspace interaction refinement on https://deno-env-review.preview.emergentagent.com. All 6 focus areas from review request verified successfully: (1) Rail nav items reflect active workspace state visually - all nav buttons (Chat, Tools, Models, Projects, Threads) correctly show 'rail-nav-item-active' class when their workspace is active, only one active at a time, clear visual feedback working perfectly, (2) Header route label changes based on active workspace surface - header displays correct labels ('Chat', 'Tools', 'Models', 'Projects', 'Threads') for each workspace, SURFACE_LABELS mapping working correctly, label updates immediately on workspace change, (3) Command footer toolbar hidden when side workspace is open - toolbar visible only in Chat mode, not in DOM when Threads/Tools/Models/Projects/Search workspaces are active, creates calmer overlay state as intended, toolbar returns when switching back to Chat, (4) Composer remains usable in calmer overlay state - composer visible and functional in all workspace states, textarea accepts input in Threads/Tools/Models workspaces, send button visible, consistent input capability across all workspaces, (5) Threads/Tools/Search/Profile/Projects access still works without regressions - all panels/drawers open and close correctly, no functionality lost, smooth workspace transitions, (6) No console errors or layout regressions - zero console errors, zero network errors, all critical layout elements visible and functional. Minor UX note: Profile drawer overlay blocks rail navigation when open (expected modal behavior), close button works correctly. All core functionality working perfectly. No meaningful blockers found. READY FOR PRODUCTION."
+    - agent: "testing"
+      message: "CAOS RAIL/WORKSPACE-STATE REFINEMENT TEST COMPLETE (April 19, 2026) - Tested latest CAOS rail/workspace-state refinement on https://deno-env-review.preview.emergentagent.com. CRITICAL BUG FOUND affecting all 6 focus areas. Root cause: Workspace handler functions (openInspector, openArtifacts, openProfile, openSearch, toggleThreads) in CaosShell.js do not close all other panels before opening their own panel. This causes multiple panels to be open simultaneously, breaking the activeSurface calculation. Test results: (1) Rail nav active state FAILS - Chat button active by default (correct), Tools button becomes active when clicked (correct), but Models/Projects/Threads buttons do NOT become active when clicked because activeSurface stays stuck on 'tools', (2) Header route label FAILS - shows 'Tools' for all workspace states instead of updating dynamically, (3) Chat nav FAILS - clicking Chat button does not close Inspector panel or return to calm state, (4) Command toolbar FAILS - toolbar not visible in Chat mode because activeSurface is stuck on 'tools', toolbar correctly hidden in other modes, composer remains visible in all modes (correct), (5) Workspace surfaces FAILS - Create button works, Tools and Models accessible, but Chat/Projects/Threads not accessible due to panels not opening/closing correctly, Profile drawer overlay blocks interactions causing timeout errors, (6) No console errors or network failures detected (correct). Fix required: Each handler function must close ALL other panels before opening its own, similar to focusChat() implementation (lines 90-96). Zero console errors, zero network failures detected. NOT READY FOR PRODUCTION - CRITICAL BUG MUST BE FIXED."
