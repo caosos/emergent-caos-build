@@ -48,6 +48,7 @@ Goal: Make the main shell structurally match the intended CAOS operating experie
 - [~] Main-view clutter is being stripped out so operational context lives in side panels/menus instead of occupying the primary conversation lane
 - [~] Workspace state is becoming calmer: active rail sections now reflect the current surface, header route labels update dynamically, and the command toolbar hides during side-panel work so only the core input remains visible
 - [~] Header chrome is being reduced so runtime/packet details live in the rail account menu instead of the main chat header
+- [~] Top-header chrome is being thinned further so the center workspace starts with less branding and more usable vertical room
 
 ### 1.3 First-run / welcome
 - [ ] `/Welcome` landing with starfield hero and feature tiles
