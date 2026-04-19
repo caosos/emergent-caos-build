@@ -25,7 +25,6 @@ export const ShellHeader = ({ activeSurface, currentSession, isRailOpen, onOpenT
 
       <div className="caos-header-center" data-testid="caos-header-center">
         <h1 data-testid="caos-header-title">CAOS</h1>
-        <p data-testid="caos-header-subtitle">Cognitive Adaptive Operating System</p>
       </div>
 
       <div className="caos-header-actions">

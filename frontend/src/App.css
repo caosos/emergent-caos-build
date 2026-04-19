@@ -40,10 +40,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 24px;
-    padding: 10px 14px;
-    margin-bottom: 14px;
+    gap: 18px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
     overflow: visible;
+    background: rgba(8, 15, 31, 0.58);
+    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.18);
 }
 
 .caos-header-left,
@@ -55,7 +57,7 @@
 .caos-header-left {
     grid-template-columns: auto auto;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .caos-header-center {
@@ -64,22 +66,26 @@
     flex: 1 1 auto;
 }
 
-.caos-header-route,
+.caos-header-route {
+    color: rgba(191, 219, 254, 0.62);
+    font-size: 0.74rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
 .caos-thread-pill {
-    border: 1px solid rgba(148, 163, 184, 0.14);
-    background: rgba(15, 23, 42, 0.74);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    background: rgba(15, 23, 42, 0.58);
     color: rgba(191, 219, 254, 0.82);
     border-radius: 999px;
-    padding: 10px 14px;
-    font-size: 0.84rem;
+    padding: 9px 12px;
+    font-size: 0.82rem;
 }
 
 .caos-header-center h1 {
-    font-size: 1rem;
-}
-
-.caos-header-center p {
-    font-size: 0.82rem;
+    font-size: 0.92rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
 }
 
 .brand-chip,
@@ -120,7 +126,7 @@
 
 .caos-header-actions {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
     flex-wrap: wrap;
     justify-content: flex-end;
@@ -155,8 +161,8 @@
 }
 
 .search-icon-button {
-    width: 42px;
-    height: 42px;
+    width: 40px;
+    height: 40px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
