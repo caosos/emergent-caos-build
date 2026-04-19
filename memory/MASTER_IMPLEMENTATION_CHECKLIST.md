@@ -50,6 +50,7 @@ Goal: Make the main shell structurally match the intended CAOS operating experie
 - [~] Header chrome is being reduced so runtime/packet details live in the rail account menu instead of the main chat header
 - [~] Top-header chrome is being thinned further so the center workspace starts with less branding and more usable vertical room
 - [~] Idle command-area clutter is being stripped out so the input bar stays clean when nothing important needs to be said
+- [~] Center conversation lane and bottom command area are being visually aligned so the chat canvas reads as one coherent vertical workspace
 
 ### 1.3 First-run / welcome
 - [ ] `/Welcome` landing with starfield hero and feature tiles
