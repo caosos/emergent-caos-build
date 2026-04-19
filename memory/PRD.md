@@ -46,6 +46,7 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Tightened left-rail and center-canvas proportions together: reduced sidebar width, tightened rail controls, narrowed the message canvas and bubble widths, and improved the overall shell silhouette so `/chat` reads closer to the CAOS reference.
 - Removed the in-pane working packet / lane / continuity strip from the main viewing area so the conversation lane stays cleaner. Search/Threads remain accessible via header/rail, and Inspector access now lives behind the left-rail Tools entry instead of occupying the center workspace.
 - Added calmer workspace-state behavior: left-rail nav now reflects the active surface, the header route label updates dynamically, and the command toolbar collapses away while side panels like Threads/Tools/Search/Projects are open so the main input remains the only persistent bottom control.
+- Reduced header chrome further: engine/runtime and packet usage were moved out of the main header and into the rail account menu, leaving the center workspace header calmer while preserving all functional access to runtime state.
 
 ## Prioritized Backlog
 ### P0
