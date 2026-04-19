@@ -43,6 +43,7 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Tightened the right-side panels as part of `/chat` parity: Search now shows active thread scope + visible hit count, and Inspector now opens with a compact receipt grid and packet summary so those surfaces behave like compact operational panels rather than generic drawers.
 - Tightened the center workspace header/strip proportions: active-thread title/session info and top chat strip now render as a denser control band, reducing top-of-pane sprawl and moving the workspace closer to the screenshot contract.
 - Tightened message-lane alignment: user bubbles now anchor to the right and assistant/system bubbles anchor to the left inside the center stream, making the chat body behave more like a true conversation lane and less like stacked full-width cards.
+- Tightened left-rail and center-canvas proportions together: reduced sidebar width, tightened rail controls, narrowed the message canvas and bubble widths, and improved the overall shell silhouette so `/chat` reads closer to the CAOS reference.
 
 ## Prioritized Backlog
 ### P0

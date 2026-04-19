@@ -44,6 +44,7 @@ Goal: Make the main shell structurally match the intended CAOS operating experie
 - [~] Right-side Search and Context surfaces are being compacted into denser operational panels with clearer functional summaries
 - [~] Center workspace header and top strip are being compressed into a tighter control band so the chat surface reads more like a compact operating workspace
 - [~] Message lane alignment is being tightened so user/assistant bubbles occupy the center stream more like a true chat surface instead of full-width stacked cards
+- [~] Left rail proportions and center-canvas spacing are being tightened together so the shell silhouette lands closer to the CAOS reference
 
 ### 1.3 First-run / welcome
 - [ ] `/Welcome` landing with starfield hero and feature tiles
