@@ -42,6 +42,7 @@ Goal: Make the main shell structurally match the intended CAOS operating experie
 - [~] Workspace hierarchy is being tightened so overlays, command dock, and center message surface read as one operating surface instead of stacked independent widgets
 - [~] Message typography, timestamps, and action density are being tightened toward the screenshot contract without sacrificing functional controls
 - [~] Right-side Search and Context surfaces are being compacted into denser operational panels with clearer functional summaries
+- [~] Center workspace header and top strip are being compressed into a tighter control band so the chat surface reads more like a compact operating workspace
 
 ### 1.3 First-run / welcome
 - [ ] `/Welcome` landing with starfield hero and feature tiles
