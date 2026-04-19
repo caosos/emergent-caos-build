@@ -17,6 +17,7 @@ from app.services.continuity_service import build_continuity_packet, derive_subj
 from app.services.context_engine import (
     build_context_receipt,
     compress_history,
+    enforce_history_token_budget,
     rank_memories,
     sanitize_history,
 )
@@ -50,8 +51,12 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
 
     docs = await collection("messages").find({"session_id": payload.session_id}, {"_id": 0}).sort("timestamp", 1).to_list(1000)
     messages = [MessageRecord(**doc) for doc in docs]
-    sanitized, stats = sanitize_history(messages)
+    history_messages = messages[:-1] if messages and messages[-1].id == user_message.id else messages
+    runtime = resolve_chat_runtime(profile, payload.provider, payload.model)
+    sanitized, stats = sanitize_history(history_messages)
     compressed = compress_history(sanitized, payload.hot_head, payload.hot_tail)
+    compressed, budget_stats = enforce_history_token_budget(compressed, runtime["model"], payload.history_token_budget)
+    stats.update(budget_stats)
     memories = list(profile.structured_memory)
     subject_bins = derive_subject_bins(payload.content, compressed)
     session_lane = derive_lane(subject_bins, session.get("title"), session.get("lane"))
@@ -73,11 +78,10 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         lane=session_lane,
         session_id=payload.session_id,
     )
-    receipt = build_context_receipt(stats, messages, compressed, injected_memories, retrieval_terms, subject_bins, continuity_packet)
+    receipt = build_context_receipt(stats, history_messages, compressed, injected_memories, retrieval_terms, subject_bins, continuity_packet)
     prompt_sections = build_prompt_sections(profile, compressed, injected_memories, continuity_packet)
     system_prompt = build_system_prompt_from_sections(prompt_sections)
 
-    runtime = resolve_chat_runtime(profile, payload.provider, payload.model)
     chat = LlmChat(
         api_key=runtime["api_key"],
         session_id=f"{payload.session_id}-{uuid.uuid4()}",

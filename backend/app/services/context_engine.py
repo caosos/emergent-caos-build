@@ -1,6 +1,7 @@
 import re
 
 from app.schemas.caos import MemoryEntry, MessageRecord
+from app.services.token_meter import count_text_tokens
 
 
 STOPWORDS = {
@@ -46,20 +47,71 @@ def _is_low_signal(message: MessageRecord) -> bool:
     return any(pattern.match(content) for pattern in LOW_SIGNAL_PATTERNS)
 
 
+def _message_snapshot(message: MessageRecord, reason: str) -> dict:
+    return {
+        "id": message.id,
+        "role": message.role,
+        "reason": reason,
+        "excerpt": message.content[:160],
+    }
+
+
+def _is_compression_summary(message: MessageRecord) -> bool:
+    return message.role == "system" and message.content.startswith("[SANITIZED HISTORY SUMMARY:")
+
+
+def _memory_snapshot(memory: MemoryEntry) -> dict:
+    return {
+        "id": memory.id,
+        "bin_name": memory.bin_name,
+        "reason": "retrieved_structured_memory",
+        "excerpt": memory.content[:160],
+    }
+
+
+def _continuity_snapshots(continuity_packet: dict | None = None) -> list[dict]:
+    continuity = continuity_packet or {}
+    items: list[dict] = []
+    for summary in continuity.get("selected_summaries", []):
+        items.append({"id": summary.id, "kind": "summary", "reason": "rehydrated_summary", "excerpt": summary.summary[:160]})
+    for seed in continuity.get("selected_seeds", []):
+        items.append({"id": seed.id, "kind": "seed", "reason": "rehydrated_seed", "excerpt": seed.seed_text[:160]})
+    for worker in continuity.get("selected_workers", []):
+        items.append({"id": worker.id, "kind": "worker", "reason": "reused_lane_worker", "excerpt": worker.summary_text[:160]})
+    return items
+
+
+def _message_token_cost(message: MessageRecord, model: str) -> int:
+    return count_text_tokens(f"{message.role.upper()}: {message.content}", model)
+
+
+def _trim_text_to_token_budget(text: str, model: str, max_tokens: int) -> str:
+    if max_tokens <= 0:
+        return ""
+    trimmed = text
+    while count_text_tokens(trimmed, model) > max_tokens and len(trimmed) > 80:
+        trimmed = trimmed[: max(80, int(len(trimmed) * 0.75))]
+    return trimmed
+
+
 def sanitize_history(messages: list[MessageRecord]) -> tuple[list[MessageRecord], dict]:
     seen: set[tuple[str, str]] = set()
     kept: list[MessageRecord] = []
     removed_duplicates = 0
     removed_low_signal = 0
+    dropped_duplicate_messages: list[dict] = []
+    dropped_low_signal_messages: list[dict] = []
 
     for message in messages:
         key = (message.role, _normalized(message.content))
         if key in seen:
             removed_duplicates += 1
+            dropped_duplicate_messages.append(_message_snapshot(message, "duplicate_message"))
             continue
         seen.add(key)
         if _is_low_signal(message):
             removed_low_signal += 1
+            dropped_low_signal_messages.append(_message_snapshot(message, "low_signal_message"))
             continue
         kept.append(message)
 
@@ -67,6 +119,9 @@ def sanitize_history(messages: list[MessageRecord]) -> tuple[list[MessageRecord]
         "total_messages": len(messages),
         "removed_duplicates": removed_duplicates,
         "removed_low_signal": removed_low_signal,
+        "kept_message_ids": [message.id for message in kept],
+        "dropped_duplicate_messages": dropped_duplicate_messages,
+        "dropped_low_signal_messages": dropped_low_signal_messages,
     }
 
 
@@ -82,6 +137,52 @@ def compress_history(messages: list[MessageRecord], hot_head: int, hot_tail: int
         content=f"[SANITIZED HISTORY SUMMARY: {omitted} lower-priority messages omitted from active context.]",
     )
     return [*head, summary, *tail]
+
+
+def enforce_history_token_budget(messages: list[MessageRecord], model: str, max_tokens: int) -> tuple[list[MessageRecord], dict]:
+    if not messages or max_tokens <= 0:
+        return messages, {
+            "history_budget_tokens": max_tokens,
+            "history_tokens_before_budget": 0,
+            "history_tokens_after_budget": 0,
+            "budget_trimmed_messages": [],
+        }
+
+    history_tokens_before_budget = sum(_message_token_cost(message, model) for message in messages)
+    kept_reversed: list[MessageRecord] = []
+    budget_trimmed_messages: list[dict] = []
+    used_tokens = 0
+
+    for index, message in enumerate(reversed(messages)):
+        cost = _message_token_cost(message, model)
+        if index == 0 and cost > max_tokens:
+            prefix = f"[TRIMMED {message.role.upper()} HISTORY: "
+            available_tokens = max(24, max_tokens - count_text_tokens(prefix + "]", model))
+            trimmed_text = _trim_text_to_token_budget(message.content, model, available_tokens)
+            trimmed_message = MessageRecord(
+                session_id=message.session_id,
+                role="system",
+                content=f"{prefix}{trimmed_text}]",
+            )
+            kept_reversed.append(trimmed_message)
+            used_tokens += _message_token_cost(trimmed_message, model)
+            budget_trimmed_messages.append(_message_snapshot(message, "trimmed_to_fit_token_budget"))
+            continue
+
+        keep_message = index == 0 or used_tokens + cost <= max_tokens
+        if keep_message:
+            kept_reversed.append(message)
+            used_tokens += cost
+        else:
+            budget_trimmed_messages.append(_message_snapshot(message, "trimmed_for_token_budget"))
+
+    kept = list(reversed(kept_reversed))
+    return kept, {
+        "history_budget_tokens": max_tokens,
+        "history_tokens_before_budget": history_tokens_before_budget,
+        "history_tokens_after_budget": used_tokens,
+        "budget_trimmed_messages": list(reversed(budget_trimmed_messages)),
+    }
 
 
 def rank_memories(
@@ -124,6 +225,28 @@ def build_context_receipt(
     sanitized_after = sum(len(message.content) for message in compressed)
     continuity_chars = sum(len(line) for line in (continuity_packet or {}).get("continuity_lines", []))
     reduction_ratio = 0.0 if chars_before == 0 else round(1 - (sanitized_after / chars_before), 4)
+    active_history = [message for message in compressed if not _is_compression_summary(message)]
+    active_ids = {message.id for message in active_history}
+    kept_messages = [_message_snapshot(message, "kept_in_active_context") for message in active_history]
+    compressed_messages = [
+        _message_snapshot(message, "compressed_into_history_summary")
+        for message in original_messages
+        if message.id in set(stats.get("kept_message_ids", [])) and message.id not in active_ids
+    ]
+    dropped_messages = [
+        *(stats.get("dropped_duplicate_messages", [])),
+        *(stats.get("dropped_low_signal_messages", [])),
+    ]
+    reused_memories = [_memory_snapshot(memory) for memory in injected_memories]
+    reused_continuity = _continuity_snapshots(continuity_packet)
+    budget_trimmed_messages = stats.get("budget_trimmed_messages", [])
+    retention_explanation = [
+        f"Kept {len(kept_messages)} messages in the live ARC packet.",
+        f"Dropped {len(dropped_messages)} messages during sanitization ({stats.get('removed_duplicates', 0)} duplicate, {stats.get('removed_low_signal', 0)} low-signal).",
+        f"Compressed {len(compressed_messages)} older sanitized messages into the active history summary.",
+        f"Trimmed {len(budget_trimmed_messages)} messages to stay within the {stats.get('history_budget_tokens', 0)}-token history budget.",
+        f"Reused {len(reused_memories)} structured memories and {len(reused_continuity)} continuity anchors.",
+    ]
     return {
         "retrieval_terms": retrieval_terms,
         "selected_memory_ids": [memory.id for memory in injected_memories],
@@ -139,6 +262,22 @@ def build_context_receipt(
         "estimated_chars_after": sanitized_after,
         "continuity_chars": continuity_chars,
         "estimated_context_chars": sanitized_after + continuity_chars + sum(len(memory.content) for memory in injected_memories),
+        "retained_messages": kept_messages,
+        "dropped_messages": dropped_messages,
+        "compressed_messages": compressed_messages,
+        "budget_trimmed_messages": budget_trimmed_messages,
+        "reused_memories": reused_memories,
+        "reused_continuity": reused_continuity,
+        "retained_message_count": len(kept_messages),
+        "dropped_message_count": len(dropped_messages),
+        "compressed_message_count": len(compressed_messages),
+        "budget_trimmed_count": len(budget_trimmed_messages),
+        "history_budget_tokens": stats.get("history_budget_tokens", 0),
+        "history_tokens_before_budget": stats.get("history_tokens_before_budget", 0),
+        "history_tokens_after_budget": stats.get("history_tokens_after_budget", 0),
+        "reused_memory_count": len(reused_memories),
+        "reused_continuity_count": len(reused_continuity),
+        "retention_explanation": retention_explanation,
         "reduction_ratio": reduction_ratio,
         **stats,
     }

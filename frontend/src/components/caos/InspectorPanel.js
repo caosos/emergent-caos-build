@@ -117,6 +117,82 @@ export const InspectorPanel = ({ continuity, isOpen, latestReceipt, memorySurfac
         </div>
       </section>
 
+      <section className="inspector-card" data-testid="caos-inspector-retention-card">
+        <div className="context-card-heading">
+          <Brain size={16} />
+          <h2 data-testid="caos-inspector-retention-heading">Retention reasoning</h2>
+        </div>
+        <div className="context-metric-grid context-metric-grid-compact" data-testid="caos-inspector-retention-grid">
+          <div className="context-metric" data-testid="caos-inspector-retained-count">
+            <span>Kept</span>
+            <strong>{latestReceipt?.retained_message_count || 0}</strong>
+          </div>
+          <div className="context-metric" data-testid="caos-inspector-dropped-count">
+            <span>Dropped</span>
+            <strong>{latestReceipt?.dropped_message_count || 0}</strong>
+          </div>
+          <div className="context-metric" data-testid="caos-inspector-compressed-count">
+            <span>Compressed</span>
+            <strong>{latestReceipt?.compressed_message_count || 0}</strong>
+          </div>
+          <div className="context-metric" data-testid="caos-inspector-reused-count">
+            <span>Reused</span>
+            <strong>{(latestReceipt?.reused_memory_count || 0) + (latestReceipt?.reused_continuity_count || 0)}</strong>
+          </div>
+          <div className="context-metric" data-testid="caos-inspector-budget-trim-count">
+            <span>Budget trim</span>
+            <strong>{latestReceipt?.budget_trimmed_count || 0}</strong>
+          </div>
+        </div>
+        <div className="context-metric-grid context-metric-grid-compact" data-testid="caos-inspector-budget-grid">
+          <div className="context-metric" data-testid="caos-inspector-history-budget-limit">
+            <span>History budget</span>
+            <strong>{latestReceipt?.history_budget_tokens || 0}</strong>
+          </div>
+          <div className="context-metric" data-testid="caos-inspector-history-budget-before">
+            <span>Before</span>
+            <strong>{latestReceipt?.history_tokens_before_budget || 0}</strong>
+          </div>
+          <div className="context-metric" data-testid="caos-inspector-history-budget-after">
+            <span>After</span>
+            <strong>{latestReceipt?.history_tokens_after_budget || 0}</strong>
+          </div>
+        </div>
+        <div className="context-list" data-testid="caos-inspector-retention-explanation-list">
+          {(latestReceipt?.retention_explanation || []).map((line, index) => (
+            <div className="context-list-item" data-testid={`caos-inspector-retention-explanation-${index}`} key={`retention-${index}`}>
+              {line}
+            </div>
+          ))}
+        </div>
+        <div className="context-list" data-testid="caos-inspector-retention-detail-list">
+          {(latestReceipt?.dropped_messages || []).slice(0, 2).map((item) => (
+            <div className="context-list-item" data-testid={`caos-inspector-dropped-item-${item.id}`} key={`dropped-${item.id}`}>
+              <strong>Dropped · {item.reason}</strong>
+              <span>{item.excerpt}</span>
+            </div>
+          ))}
+          {(latestReceipt?.compressed_messages || []).slice(0, 2).map((item) => (
+            <div className="context-list-item" data-testid={`caos-inspector-compressed-item-${item.id}`} key={`compressed-${item.id}`}>
+              <strong>Compressed</strong>
+              <span>{item.excerpt}</span>
+            </div>
+          ))}
+          {(latestReceipt?.budget_trimmed_messages || []).slice(0, 2).map((item) => (
+            <div className="context-list-item" data-testid={`caos-inspector-budget-trim-item-${item.id}`} key={`trimmed-${item.id}`}>
+              <strong>Trimmed for budget</strong>
+              <span>{item.excerpt}</span>
+            </div>
+          ))}
+          {(latestReceipt?.reused_continuity || []).slice(0, 2).map((item) => (
+            <div className="context-list-item" data-testid={`caos-inspector-reused-item-${item.id}`} key={`reused-${item.kind}-${item.id}`}>
+              <strong>Reused · {item.kind}</strong>
+              <span>{item.excerpt}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {memorySurface.length ? (
         <section className="inspector-card" data-testid="caos-inspector-memory-card">
           <div className="context-card-heading">

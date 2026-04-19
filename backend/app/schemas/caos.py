@@ -177,6 +177,7 @@ class ChatRequest(BaseModel):
     hot_head: int = 10
     hot_tail: int = 20
     memory_limit: int = 5
+    history_token_budget: int = 2200
 
 
 class ChatResponse(BaseModel):
@@ -225,6 +226,22 @@ class ReceiptRecord(BaseModel):
     session_prompt_tokens_total: int = 0
     session_completion_tokens_total: int = 0
     session_total_tokens: int = 0
+    retained_messages: list[dict] = Field(default_factory=list)
+    dropped_messages: list[dict] = Field(default_factory=list)
+    compressed_messages: list[dict] = Field(default_factory=list)
+    budget_trimmed_messages: list[dict] = Field(default_factory=list)
+    reused_memories: list[dict] = Field(default_factory=list)
+    reused_continuity: list[dict] = Field(default_factory=list)
+    retained_message_count: int = 0
+    dropped_message_count: int = 0
+    compressed_message_count: int = 0
+    budget_trimmed_count: int = 0
+    history_budget_tokens: int = 0
+    history_tokens_before_budget: int = 0
+    history_tokens_after_budget: int = 0
+    reused_memory_count: int = 0
+    reused_continuity_count: int = 0
+    retention_explanation: list[str] = Field(default_factory=list)
     reduction_ratio: float = 0.0
     final_message_count: int = 0
     wcw_used_estimate: int = 0
