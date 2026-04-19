@@ -12,6 +12,7 @@ import { QuickActionsStrip } from "@/components/caos/QuickActionsStrip";
 import { SearchDrawer } from "@/components/caos/SearchDrawer";
 import { ShellHeader } from "@/components/caos/ShellHeader";
 import { ThreadRail } from "@/components/caos/ThreadRail";
+import { WorkingContextStrip } from "@/components/caos/WorkingContextStrip";
 import { useCaosShell } from "@/components/caos/useCaosShell";
 
 
@@ -168,6 +169,11 @@ export const CaosShell = () => {
               <span data-testid="caos-error-text">{error}</span>
             </div>
           ) : null}
+
+          <WorkingContextStrip
+            receipt={latestReceipt}
+            wcwBudget={latestReceipt?.wcw_budget || lastTurn?.wcw_budget || 200000}
+          />
 
           <MessagePane
             busy={busy}

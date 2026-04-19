@@ -55,77 +55,79 @@ export const ThreadRail = ({ activeSurface, currentSessionId, isCollapsed, onFoc
 
   return (
     <aside className="thread-rail" data-testid="caos-thread-rail">
-      <div className="rail-topline" data-testid="caos-rail-topline">
-        <div className="rail-brand" data-testid="caos-rail-brand">
+      <div className="rail-scroll-shell" data-testid="caos-rail-scroll-shell">
+        <div className="rail-topline" data-testid="caos-rail-topline">
+          <div className="rail-brand" data-testid="caos-rail-brand">
+            <div>
+              <h2 data-testid="caos-thread-rail-title">CAOS</h2>
+              <p data-testid="caos-thread-rail-subtitle">Cognitive Adaptive OS</p>
+            </div>
+          </div>
+          <button className="rail-toggle-button" data-testid="caos-thread-rail-collapse-button" onClick={onToggleRail}>
+            <PanelLeftOpen size={16} />
+          </button>
+        </div>
+
+        <div className="rail-nav" data-testid="caos-rail-nav">
+          <span className="rail-section-label" data-testid="caos-rail-workspace-label">Workspace</span>
+          <button className="rail-nav-primary" data-testid="caos-rail-new-chat-button" onClick={onNewSession}>New Chat</button>
+          <label className="rail-search-field" data-testid="caos-rail-search-field">
+            <input
+              data-testid="caos-rail-search-input"
+              placeholder="Search chats..."
+              value={railSearch}
+              onChange={(event) => setRailSearch(event.target.value)}
+            />
+          </label>
+          <button className={`rail-nav-item ${activeSurface === "chat" ? "rail-nav-item-active" : ""}`} data-testid="caos-rail-chat-button" onClick={onFocusChat}>Chat</button>
+          <button className={`rail-nav-item ${activeSurface === "create" ? "rail-nav-item-active" : ""}`} data-testid="caos-rail-create-button" onClick={onNewSession}><Sparkles size={14} />Create</button>
+          <button className={`rail-nav-item ${activeSurface === "tools" ? "rail-nav-item-active" : ""}`} data-testid="caos-rail-tools-button" onClick={onOpenInspector}><Wrench size={14} />Tools</button>
+          <button className={`rail-nav-item ${activeSurface === "models" ? "rail-nav-item-active" : ""}`} data-testid="caos-rail-models-button" onClick={onOpenProfile}><Sparkles size={14} />Models</button>
+          <button className={`rail-nav-item ${activeSurface === "projects" ? "rail-nav-item-active" : ""}`} data-testid="caos-rail-projects-button" onClick={onOpenArtifacts}><FolderKanban size={14} />Projects</button>
+          <button className={`rail-nav-item ${activeSurface === "threads" ? "rail-nav-item-active" : ""}`} data-testid="caos-rail-threads-button" onClick={onOpenThreads}><MessageSquareText size={14} />Threads</button>
+        </div>
+
+        <div className="rail-header" data-testid="caos-thread-rail-header">
           <div>
-            <h2 data-testid="caos-thread-rail-title">CAOS</h2>
-            <p data-testid="caos-thread-rail-subtitle">Cognitive Adaptive OS</p>
+            <span className="rail-section-label" data-testid="caos-thread-rail-section-label">Threads</span>
+            <h2 data-testid="caos-thread-rail-recent-title">Recent</h2>
           </div>
+          <p data-testid="caos-thread-rail-count">Showing {recentSessions.length} of {sessions.length}</p>
         </div>
-        <button className="rail-toggle-button" data-testid="caos-thread-rail-collapse-button" onClick={onToggleRail}>
-          <PanelLeftOpen size={16} />
-        </button>
-      </div>
 
-      <div className="rail-nav" data-testid="caos-rail-nav">
-        <span className="rail-section-label" data-testid="caos-rail-workspace-label">Workspace</span>
-        <button className="rail-nav-primary" data-testid="caos-rail-new-chat-button" onClick={onNewSession}>New Chat</button>
-        <label className="rail-search-field" data-testid="caos-rail-search-field">
-          <input
-            data-testid="caos-rail-search-input"
-            placeholder="Search chats..."
-            value={railSearch}
-            onChange={(event) => setRailSearch(event.target.value)}
-          />
-        </label>
-        <button className={`rail-nav-item ${activeSurface === "chat" ? "rail-nav-item-active" : ""}`} data-testid="caos-rail-chat-button" onClick={onFocusChat}>Chat</button>
-        <button className={`rail-nav-item ${activeSurface === "create" ? "rail-nav-item-active" : ""}`} data-testid="caos-rail-create-button" onClick={onNewSession}><Sparkles size={14} />Create</button>
-        <button className={`rail-nav-item ${activeSurface === "tools" ? "rail-nav-item-active" : ""}`} data-testid="caos-rail-tools-button" onClick={onOpenInspector}><Wrench size={14} />Tools</button>
-        <button className={`rail-nav-item ${activeSurface === "models" ? "rail-nav-item-active" : ""}`} data-testid="caos-rail-models-button" onClick={onOpenProfile}><Sparkles size={14} />Models</button>
-        <button className={`rail-nav-item ${activeSurface === "projects" ? "rail-nav-item-active" : ""}`} data-testid="caos-rail-projects-button" onClick={onOpenArtifacts}><FolderKanban size={14} />Projects</button>
-        <button className={`rail-nav-item ${activeSurface === "threads" ? "rail-nav-item-active" : ""}`} data-testid="caos-rail-threads-button" onClick={onOpenThreads}><MessageSquareText size={14} />Threads</button>
-      </div>
-
-      <div className="rail-header" data-testid="caos-thread-rail-header">
-        <div>
-          <span className="rail-section-label" data-testid="caos-thread-rail-section-label">Threads</span>
-          <h2 data-testid="caos-thread-rail-recent-title">Recent</h2>
-        </div>
-        <p data-testid="caos-thread-rail-count">Showing {recentSessions.length} of {sessions.length}</p>
-      </div>
-
-      <div className="thread-list" data-testid="caos-thread-list">
-        {recentSessions.length === 0 ? (
-          <div className="thread-empty" data-testid="caos-thread-empty-state">
-            <MessageSquareText size={18} />
-            <span>No sessions yet</span>
-          </div>
-        ) : (
-          recentSessions.map((session) => (
-            <button
-              className={`thread-card ${currentSessionId === session.session_id ? "thread-card-active" : ""}`}
-              data-testid={`caos-thread-card-${session.session_id}`}
-              key={session.session_id}
-              onClick={() => onSelectSession(session)}
-            >
-              <div className="thread-card-topline">
-                <strong data-testid={`caos-thread-title-${session.session_id}`}>{session.title}</strong>
-                <div className="thread-card-topline-meta">
-                  {session.title_source === "auto" ? (
-                    <span className="thread-title-badge" data-testid={`caos-thread-title-badge-${session.session_id}`}>Auto</span>
-                  ) : null}
-                  <Clock3 size={14} />
+        <div className="thread-list" data-testid="caos-thread-list">
+          {recentSessions.length === 0 ? (
+            <div className="thread-empty" data-testid="caos-thread-empty-state">
+              <MessageSquareText size={18} />
+              <span>No sessions yet</span>
+            </div>
+          ) : (
+            recentSessions.map((session) => (
+              <button
+                className={`thread-card ${currentSessionId === session.session_id ? "thread-card-active" : ""}`}
+                data-testid={`caos-thread-card-${session.session_id}`}
+                key={session.session_id}
+                onClick={() => onSelectSession(session)}
+              >
+                <div className="thread-card-topline">
+                  <strong data-testid={`caos-thread-title-${session.session_id}`}>{session.title}</strong>
+                  <div className="thread-card-topline-meta">
+                    {session.title_source === "auto" ? (
+                      <span className="thread-title-badge" data-testid={`caos-thread-title-badge-${session.session_id}`}>Auto</span>
+                    ) : null}
+                    <Clock3 size={14} />
+                  </div>
                 </div>
-              </div>
-              <span className="thread-card-lane" data-testid={`caos-thread-lane-${session.session_id}`}>
-                Lane · {session.lane || "general"}
-              </span>
-              <span data-testid={`caos-thread-preview-${session.session_id}`}>
-                {session.last_message_preview || "No messages yet"}
-              </span>
-            </button>
-          ))
-        )}
+                <span className="thread-card-lane" data-testid={`caos-thread-lane-${session.session_id}`}>
+                  Lane · {session.lane || "general"}
+                </span>
+                <span data-testid={`caos-thread-preview-${session.session_id}`}>
+                  {session.last_message_preview || "No messages yet"}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
       </div>
 
       <div className="rail-footer" data-testid="caos-rail-footer">

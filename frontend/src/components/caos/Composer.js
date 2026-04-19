@@ -123,7 +123,7 @@ export const Composer = ({ busy, lastAssistantMessage, onSend, onSpeak, onTransc
           data-testid="caos-composer-textarea"
           id="caos-draft"
           placeholder="Type into the real CAOS shell..."
-          rows={2}
+          rows={4}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
         />
