@@ -1,0 +1,86 @@
+{
+  "summary": "Verified rehydration order contract and personal facts preferential recall. All 13 backend tests passed (100%). Frontend Inspector Panel displays rehydration_order, personal_facts_count, and all new receipt fields without crashing.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_rehydration_receipt.py",
+    "/app/test_reports/pytest/pytest_rehydration_receipt.xml",
+    "/app/test_reports/frontend_inspector_panel_open.jpeg",
+    "/app/test_reports/frontend_inspector_scrolled.jpeg",
+    "/app/test_reports/frontend_inspector_bottom.jpeg"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_rehydration_receipt.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": "No credentials required - using michael@example.com as default user context",
+  "seed_data_creation": "Created test memories with TEST_ prefix during testing (TEST_I prefer thermal checks before all other diagnostics, TEST_The project deadline is next Friday)",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Rehydration order contract and personal facts separation fully verified. Backend receipt now includes: rehydration_order (list), global_bin_status (string), selected_personal_fact_ids (list), selected_general_memory_ids (list), personal_facts_count (int), general_memory_count (int). Frontend Inspector Panel (accessed via Tools button in left rail) displays all these fields correctly.",
+  "verified_features": {
+    "backend_receipt_contract": {
+      "rehydration_order": "Returns list ['thread_history', 'lane_continuity', 'personal_facts', 'structured_memory', 'global_bin_empty']",
+      "global_bin_status": "Returns 'empty' string",
+      "selected_personal_fact_ids": "Returns list of memory IDs where bin_name='personal_facts'",
+      "selected_general_memory_ids": "Returns list of memory IDs where bin_name!='personal_facts'",
+      "personal_facts_count": "Returns integer count matching len(selected_personal_fact_ids)",
+      "general_memory_count": "Returns integer count matching len(selected_general_memory_ids)"
+    },
+    "personal_facts_preferential_recall": {
+      "preference_queries": "Personal facts recalled for queries containing 'prefer', 'preference', 'favorite', 'usually', 'always', 'myself'",
+      "fact_bonus_scoring": "Personal facts get +3 base bonus, +4 additional for preference queries",
+      "ranking_priority": "Personal facts sorted higher in rank_memories() output"
+    },
+    "frontend_inspector_panel": {
+      "location": "Opened via Tools button in left rail",
+      "rehydration_order_display": "Shows 'thread_history → lane_continuity → personal_facts → structured_memory → global_bin_empty'",
+      "facts_count_display": "Shows personal_facts_count value (e.g., 'Facts 1')",
+      "memory_count_display": "Shows total selected_memory_ids count",
+      "no_crashes": "Panel renders without errors for all receipt data"
+    }
+  },
+  "test_cases_executed": {
+    "backend": [
+      "test_chat_receipt_contains_rehydration_order",
+      "test_chat_receipt_contains_global_bin_status",
+      "test_receipt_separates_personal_fact_ids",
+      "test_receipt_separates_general_memory_ids",
+      "test_receipt_contains_personal_facts_count",
+      "test_receipt_contains_general_memory_count",
+      "test_preference_query_recalls_personal_facts",
+      "test_self_query_recalls_personal_facts",
+      "test_favorite_query_recalls_personal_facts",
+      "test_personal_facts_count_matches_ids_length",
+      "test_general_memory_count_matches_ids_length",
+      "test_total_memory_ids_equals_sum_of_personal_and_general",
+      "test_cleanup_test_memories"
+    ],
+    "frontend": [
+      "Inspector panel opens via Tools button",
+      "Rehydration order element displays correctly (data-testid='caos-inspector-rehydration-order')",
+      "Personal facts count element displays correctly (data-testid='caos-inspector-personal-facts-count')",
+      "Memory count element displays correctly (data-testid='caos-inspector-packet-memory-count')",
+      "Lane element displays correctly",
+      "Continuity count displays correctly",
+      "Worker count displays correctly",
+      "Runtime info displays correctly",
+      "Retrieval terms display correctly",
+      "Subject bins display correctly",
+      "Retention counts (Kept/Dropped/Compressed) display correctly",
+      "No console errors or crashes"
+    ]
+  }
+}

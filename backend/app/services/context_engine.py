@@ -193,6 +193,7 @@ def rank_memories(
     subject_bins: list[str] | None = None,
 ) -> tuple[list[MemoryEntry], list[str]]:
     retrieval_terms = tokenize(query)
+    personal_query = any(term in retrieval_terms for term in ["prefer", "preference", "favorite", "usually", "always", "myself"])
     bin_terms = {item.split(":", 1)[-1] for item in (subject_bins or [])}
     for message in recent_messages[-5:]:
         for token in tokenize(message.content):
@@ -205,10 +206,19 @@ def rank_memories(
         haystack.update(tokenize(memory.bin_name))
         overlap = sum(1 for term in retrieval_terms if term in haystack)
         bin_bonus = 2 if memory.bin_name in bin_terms else 0
-        if overlap or bin_bonus:
-            score = overlap + bin_bonus + (max(0, min(memory.priority, 100)) // 25)
+        fact_bonus = 3 if memory.bin_name == "personal_facts" else 0
+        if memory.bin_name == "personal_facts" and personal_query:
+            fact_bonus += 4
+        if overlap or bin_bonus or (memory.bin_name == "personal_facts" and personal_query):
+            score = overlap + bin_bonus + fact_bonus + (max(0, min(memory.priority, 100)) // 25)
             scores.append((score, memory))
-    ranked = [memory for _, memory in sorted(scores, key=lambda item: item[0], reverse=True)[:limit]]
+    ranked = [
+        memory for _, memory in sorted(
+            scores,
+            key=lambda item: (item[0], item[1].bin_name == "personal_facts", item[1].priority),
+            reverse=True,
+        )[:limit]
+    ]
     return ranked, retrieval_terms[:20]
 
 
@@ -240,6 +250,8 @@ def build_context_receipt(
     reused_memories = [_memory_snapshot(memory) for memory in injected_memories]
     reused_continuity = _continuity_snapshots(continuity_packet)
     budget_trimmed_messages = stats.get("budget_trimmed_messages", [])
+    personal_fact_ids = [memory.id for memory in injected_memories if memory.bin_name == "personal_facts"]
+    general_memory_ids = [memory.id for memory in injected_memories if memory.bin_name != "personal_facts"]
     retention_explanation = [
         f"Kept {len(kept_messages)} messages in the live ARC packet.",
         f"Dropped {len(dropped_messages)} messages during sanitization ({stats.get('removed_duplicates', 0)} duplicate, {stats.get('removed_low_signal', 0)} low-signal).",
@@ -253,8 +265,12 @@ def build_context_receipt(
         "selected_summary_ids": [summary.id for summary in (continuity_packet or {}).get("selected_summaries", [])],
         "selected_seed_ids": [seed.id for seed in (continuity_packet or {}).get("selected_seeds", [])],
         "selected_worker_ids": [worker.id for worker in (continuity_packet or {}).get("selected_workers", [])],
+        "selected_personal_fact_ids": personal_fact_ids,
+        "selected_general_memory_ids": general_memory_ids,
         "lane": (continuity_packet or {}).get("lane", "general"),
         "subject_bins": subject_bins or [],
+        "rehydration_order": ["thread_history", "lane_continuity", "personal_facts", "structured_memory", "global_bin_empty"],
+        "global_bin_status": "empty",
         "injected_memory_count": len(injected_memories),
         "estimated_injected_memory_chars": sum(len(memory.content) for memory in injected_memories),
         "final_message_count": len(compressed),
@@ -275,6 +291,8 @@ def build_context_receipt(
         "history_budget_tokens": stats.get("history_budget_tokens", 0),
         "history_tokens_before_budget": stats.get("history_tokens_before_budget", 0),
         "history_tokens_after_budget": stats.get("history_tokens_after_budget", 0),
+        "personal_facts_count": len(personal_fact_ids),
+        "general_memory_count": len(general_memory_ids),
         "reused_memory_count": len(reused_memories),
         "reused_continuity_count": len(reused_continuity),
         "retention_explanation": retention_explanation,

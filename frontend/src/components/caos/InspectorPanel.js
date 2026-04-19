@@ -52,6 +52,10 @@ export const InspectorPanel = ({ continuity, isOpen, latestReceipt, memorySurfac
           <span>Subject bins</span>
           <strong>{latestReceipt?.subject_bins?.join(", ") || "No bins selected"}</strong>
         </div>
+        <div className="context-metric" data-testid="caos-inspector-rehydration-order">
+          <span>Rehydration order</span>
+          <strong>{latestReceipt?.rehydration_order?.join(" → ") || "thread_history → lane_continuity → personal_facts → structured_memory"}</strong>
+        </div>
         <div className="context-metric-grid context-metric-grid-compact" data-testid="caos-inspector-packet-grid">
           <div className="context-metric" data-testid="caos-inspector-packet-context-chars">
             <span>Packet chars</span>
@@ -60,6 +64,10 @@ export const InspectorPanel = ({ continuity, isOpen, latestReceipt, memorySurfac
           <div className="context-metric" data-testid="caos-inspector-packet-memory-count">
             <span>Memories</span>
             <strong>{latestReceipt?.selected_memory_ids?.length || 0}</strong>
+          </div>
+          <div className="context-metric" data-testid="caos-inspector-personal-facts-count">
+            <span>Facts</span>
+            <strong>{latestReceipt?.personal_facts_count || 0}</strong>
           </div>
         </div>
         <div className="context-metric-grid context-metric-grid-compact" data-testid="caos-inspector-token-grid">

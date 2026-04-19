@@ -223,8 +223,12 @@ class ReceiptRecord(BaseModel):
     selected_summary_ids: list[str] = Field(default_factory=list)
     selected_seed_ids: list[str] = Field(default_factory=list)
     selected_worker_ids: list[str] = Field(default_factory=list)
+    selected_personal_fact_ids: list[str] = Field(default_factory=list)
+    selected_general_memory_ids: list[str] = Field(default_factory=list)
     lane: str = "general"
     subject_bins: list[str] = Field(default_factory=list)
+    rehydration_order: list[str] = Field(default_factory=list)
+    global_bin_status: str = "empty"
     previous_receipt_id: str | None = None
     previous_summary_id: str | None = None
     previous_seed_id: str | None = None
@@ -255,6 +259,8 @@ class ReceiptRecord(BaseModel):
     history_budget_tokens: int = 0
     history_tokens_before_budget: int = 0
     history_tokens_after_budget: int = 0
+    personal_facts_count: int = 0
+    general_memory_count: int = 0
     reused_memory_count: int = 0
     reused_continuity_count: int = 0
     retention_explanation: list[str] = Field(default_factory=list)
