@@ -64,6 +64,15 @@ export const CaosShell = () => {
         subject_bins: lastTurn.subject_bins,
       }
     : (artifacts.receipts[0] || null);
+  const workingContextReceipt = latestReceipt || {
+    active_context_tokens: 0,
+    prompt_tokens: 0,
+    completion_tokens: 0,
+    personal_facts_count: 0,
+    global_cache_count: 0,
+    global_bin_status: "empty",
+    wcw_budget: 200000,
+  };
   const memorySurface = lastTurn?.injected_memories || [];
   const lastAssistantMessage = [...filteredMessages].reverse().find((message) => message.role === "assistant") || null;
   const activeSurface = showSearch
@@ -171,8 +180,8 @@ export const CaosShell = () => {
           ) : null}
 
           <WorkingContextStrip
-            receipt={latestReceipt}
-            wcwBudget={latestReceipt?.wcw_budget || lastTurn?.wcw_budget || 200000}
+            receipt={workingContextReceipt}
+            wcwBudget={workingContextReceipt?.wcw_budget || lastTurn?.wcw_budget || 200000}
           />
 
           <MessagePane
