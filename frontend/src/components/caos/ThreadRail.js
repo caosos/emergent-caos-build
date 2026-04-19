@@ -108,7 +108,12 @@ export const ThreadRail = ({ activeSurface, currentSessionId, isCollapsed, onFoc
             >
               <div className="thread-card-topline">
                 <strong data-testid={`caos-thread-title-${session.session_id}`}>{session.title}</strong>
-                <Clock3 size={14} />
+                <div className="thread-card-topline-meta">
+                  {session.title_source === "auto" ? (
+                    <span className="thread-title-badge" data-testid={`caos-thread-title-badge-${session.session_id}`}>Auto</span>
+                  ) : null}
+                  <Clock3 size={14} />
+                </div>
               </div>
               <span className="thread-card-lane" data-testid={`caos-thread-lane-${session.session_id}`}>
                 Lane · {session.lane || "general"}

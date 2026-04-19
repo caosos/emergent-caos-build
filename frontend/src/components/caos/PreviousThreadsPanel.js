@@ -47,7 +47,12 @@ export const PreviousThreadsPanel = ({ currentSessionId, isOpen, onClose, onSele
           >
             <div className="thread-card-topline">
               <strong data-testid={`caos-previous-thread-title-${session.session_id}`}>{session.title}</strong>
-              <Clock3 size={14} />
+              <div className="thread-card-topline-meta">
+                {session.title_source === "auto" ? (
+                  <span className="thread-title-badge" data-testid={`caos-previous-thread-title-badge-${session.session_id}`}>Auto</span>
+                ) : null}
+                <Clock3 size={14} />
+              </div>
             </div>
             <span className="thread-card-lane" data-testid={`caos-previous-thread-lane-${session.session_id}`}>Lane · {session.lane || "general"}</span>
             <span data-testid={`caos-previous-thread-preview-${session.session_id}`}>{session.last_message_preview || "No messages yet"}</span>

@@ -3,6 +3,7 @@ import { FolderKanban, X } from "lucide-react";
 
 
 export const ArtifactsDrawer = ({ artifacts, files, isOpen, onClose, onSaveLink, onUploadFile }) => {
+  const [activeTab, setActiveTab] = useState("files");
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
   if (!isOpen) return null;
@@ -16,6 +17,12 @@ export const ArtifactsDrawer = ({ artifacts, files, isOpen, onClose, onSaveLink,
   const recentReceipts = (artifacts?.receipts || []).slice(0, 8);
   const recentSummaries = (artifacts?.summaries || []).slice(0, 6);
   const recentSeeds = (artifacts?.seeds || []).slice(0, 6);
+  const tabs = [
+    { id: "files", label: "Files", count: grouped.files.length + grouped.photos.length + grouped.links.length },
+    { id: "receipts", label: "Receipts", count: recentReceipts.length },
+    { id: "summaries", label: "Summaries", count: recentSummaries.length },
+    { id: "seeds", label: "Seeds", count: recentSeeds.length },
+  ];
 
   return (
     <div className="drawer-overlay" data-testid="caos-artifacts-drawer-overlay">
@@ -30,7 +37,37 @@ export const ArtifactsDrawer = ({ artifacts, files, isOpen, onClose, onSaveLink,
           </button>
         </div>
 
-        <section className="drawer-section" data-testid="caos-files-section">
+        <div className="drawer-stats-row" data-testid="caos-artifacts-stats-row">
+          <div className="drawer-stat-card" data-testid="caos-artifacts-files-stat">
+            <span>Stored items</span>
+            <strong>{grouped.files.length + grouped.photos.length + grouped.links.length}</strong>
+          </div>
+          <div className="drawer-stat-card" data-testid="caos-artifacts-receipts-stat">
+            <span>Receipts</span>
+            <strong>{recentReceipts.length}</strong>
+          </div>
+          <div className="drawer-stat-card" data-testid="caos-artifacts-memory-stat">
+            <span>Memory artifacts</span>
+            <strong>{recentSummaries.length + recentSeeds.length}</strong>
+          </div>
+        </div>
+
+        <div className="drawer-tab-row" data-testid="caos-artifacts-tab-row">
+          {tabs.map((tab) => (
+            <button
+              className={`drawer-tab-button ${activeTab === tab.id ? "drawer-tab-button-active" : ""}`}
+              data-testid={`caos-artifacts-tab-${tab.id}`}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              type="button"
+            >
+              <span>{tab.label}</span>
+              <strong>{tab.count}</strong>
+            </button>
+          ))}
+        </div>
+
+        <section className="drawer-section" data-testid="caos-files-section" hidden={activeTab !== "files"}>
           <h3 data-testid="caos-files-heading">Files / Photos / Links</h3>
           <label className="message-action-button" data-testid="caos-files-upload-button">
             Upload file
@@ -63,7 +100,7 @@ export const ArtifactsDrawer = ({ artifacts, files, isOpen, onClose, onSaveLink,
           ))}
         </section>
 
-        <section className="drawer-section" data-testid="caos-artifacts-receipts-section">
+        <section className="drawer-section" data-testid="caos-artifacts-receipts-section" hidden={activeTab !== "receipts"}>
           <h3 data-testid="caos-artifacts-receipts-heading">Receipts</h3>
           {recentReceipts.map((receipt) => (
             <div className="drawer-list-item drawer-list-item-rich" data-testid={`caos-artifact-receipt-${receipt.id}`} key={receipt.id}>
@@ -75,7 +112,7 @@ export const ArtifactsDrawer = ({ artifacts, files, isOpen, onClose, onSaveLink,
           ))}
         </section>
 
-        <section className="drawer-section" data-testid="caos-artifacts-summaries-section">
+        <section className="drawer-section" data-testid="caos-artifacts-summaries-section" hidden={activeTab !== "summaries"}>
           <h3 data-testid="caos-artifacts-summaries-heading">Summaries</h3>
           {recentSummaries.map((summary) => (
             <div className="drawer-list-item drawer-list-item-rich" data-testid={`caos-artifact-summary-${summary.id}`} key={summary.id}>
@@ -85,7 +122,7 @@ export const ArtifactsDrawer = ({ artifacts, files, isOpen, onClose, onSaveLink,
           ))}
         </section>
 
-        <section className="drawer-section" data-testid="caos-artifacts-seeds-section">
+        <section className="drawer-section" data-testid="caos-artifacts-seeds-section" hidden={activeTab !== "seeds"}>
           <h3 data-testid="caos-artifacts-seeds-heading">Seeds</h3>
           {recentSeeds.map((seed) => (
             <div className="drawer-list-item drawer-list-item-rich" data-testid={`caos-artifact-seed-${seed.id}`} key={seed.id}>
