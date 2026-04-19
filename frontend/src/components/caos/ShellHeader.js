@@ -1,12 +1,4 @@
-import { Cpu, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
-
-
-const PROVIDER_LABELS = {
-  openai: "ChatGPT",
-  anthropic: "Claude",
-  gemini: "Gemini",
-  xai: "Grok",
-};
+import { PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 
 const SURFACE_LABELS = {
   chat: "Chat",
@@ -19,9 +11,7 @@ const SURFACE_LABELS = {
 };
 
 
-export const ShellHeader = ({ activeModel, activeProvider, activeSurface, currentSession, isRailOpen, keySource, onOpenThreads, onToggleRail, onToggleSearch, wcwBudget, wcwUsed }) => {
-  const percent = Math.min(100, Math.round(((wcwUsed || 0) / (wcwBudget || 1)) * 100));
-  const providerLabel = PROVIDER_LABELS[activeProvider] || activeProvider || "ChatGPT";
+export const ShellHeader = ({ activeSurface, currentSession, isRailOpen, onOpenThreads, onToggleRail, onToggleSearch }) => {
   const surfaceLabel = SURFACE_LABELS[activeSurface] || "Chat";
 
   return (
@@ -44,19 +34,6 @@ export const ShellHeader = ({ activeModel, activeProvider, activeSurface, curren
         <button className="search-icon-button" data-testid="caos-search-toggle-button" onClick={onToggleSearch}>
           <Search size={14} />
         </button>
-
-        <div className="engine-chip" data-testid="caos-engine-chip">
-          <Cpu size={14} />
-          <span>{providerLabel} · {activeModel}</span>
-          <small data-testid="caos-engine-key-source">{keySource}</small>
-        </div>
-
-        <div className="token-chip" data-testid="caos-token-meter">
-          <span>{wcwUsed || 0} / {wcwBudget || 200000}</span>
-          <div className="token-bar" data-testid="caos-token-meter-bar">
-            <div className="token-bar-fill" style={{ width: `${percent}%` }} />
-          </div>
-        </div>
       </div>
     </header>
   );

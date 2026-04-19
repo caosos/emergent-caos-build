@@ -5,11 +5,12 @@ import { useMemo, useState } from "react";
 const labelForProvider = (provider) => ({ openai: "ChatGPT", anthropic: "Claude", gemini: "Gemini", xai: "Grok" }[provider] || provider || "ChatGPT");
 
 
-export const RailAccountMenu = ({ currentSessionId, displayName, email, isCollapsed, onNewSession, onOpenArtifacts, onOpenProfile, onOpenSearch, runtimeSettings }) => {
+export const RailAccountMenu = ({ currentSessionId, displayName, email, isCollapsed, onNewSession, onOpenArtifacts, onOpenProfile, onOpenSearch, runtimeSettings, wcwBudget, wcwUsed }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [activePanel, setActivePanel] = useState("desktop");
   const [menuStatus, setMenuStatus] = useState("");
   const engineLabel = useMemo(() => `${labelForProvider(runtimeSettings?.default_provider)} · ${runtimeSettings?.default_model || "gpt-5.2"}`, [runtimeSettings?.default_model, runtimeSettings?.default_provider]);
+  const packetPercent = Math.min(100, Math.round(((wcwUsed || 0) / (wcwBudget || 1)) * 100));
 
   const copySessionToken = async () => {
     if (!currentSessionId) return setMenuStatus("Open a thread first to copy its token.");
@@ -60,6 +61,12 @@ export const RailAccountMenu = ({ currentSessionId, displayName, email, isCollap
             ))}
 
             <div className="rail-account-engine" data-testid="caos-rail-account-engine">{engineLabel}</div>
+            <div className="rail-account-packet" data-testid="caos-rail-account-packet">
+              <strong data-testid="caos-rail-account-packet-count">{wcwUsed || 0} / {wcwBudget || 200000}</strong>
+              <div className="token-bar" data-testid="caos-rail-account-packet-bar">
+                <div className="token-bar-fill" style={{ width: `${packetPercent}%` }} />
+              </div>
+            </div>
             <button className="rail-account-item rail-account-item-muted" data-testid="caos-rail-account-item-logout" type="button">
               <span><LogOut size={15} />Log Out</span>
             </button>

@@ -138,17 +138,12 @@ export const CaosShell = () => {
   return (
     <main className={`caos-shell-root ${isRailOpen ? "caos-shell-rail-open" : "caos-shell-rail-closed"}`} data-testid="caos-shell-root">
       <ShellHeader
-        activeModel={runtimeSettings.default_model}
-        activeProvider={runtimeSettings.default_provider}
         activeSurface={activeSurface}
         currentSession={currentSession}
         isRailOpen={isRailOpen}
-        keySource={runtimeSettings.key_source}
         onOpenThreads={toggleThreads}
         onToggleRail={() => setIsRailOpen((value) => !value)}
         onToggleSearch={openSearch}
-        wcwBudget={lastTurn?.wcw_budget || 200000}
-        wcwUsed={lastTurn?.wcw_used_estimate || 0}
       />
 
       <div className="caos-shell-grid caos-shell-grid-layout" data-testid="caos-shell-grid">
@@ -169,6 +164,8 @@ export const CaosShell = () => {
           runtimeSettings={runtimeSettings}
           sessions={sessions}
           userEmail={userEmail}
+          wcwBudget={lastTurn?.wcw_budget || 200000}
+          wcwUsed={lastTurn?.wcw_used_estimate || 0}
         />
 
         <section className="caos-main-column" data-testid="caos-main-column">

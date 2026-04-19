@@ -120,16 +120,21 @@
 
 .caos-header-actions {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     align-items: center;
     flex-wrap: wrap;
     justify-content: flex-end;
 }
 
+.caos-thread-pill {
+    max-width: 280px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .inline-field,
-.engine-chip,
 .search-icon-button,
-.token-chip,
 .thread-card,
 .message-bubble,
 .context-metric,
@@ -144,8 +149,7 @@
 }
 
 
-.inline-field,
-.engine-chip {
+.inline-field {
     padding: 10px 12px;
     min-width: 0;
 }
@@ -163,13 +167,6 @@
     cursor: pointer;
 }
 
-.engine-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: rgba(191, 219, 254, 0.88);
-}
-
 .inline-field input,
 .composer-shell textarea {
     width: 100%;
@@ -178,11 +175,6 @@
     background: transparent;
     color: #eff6ff;
     outline: none;
-}
-
-.token-chip {
-    padding: 10px 12px;
-    min-width: 130px;
 }
 
 .token-bar {
@@ -400,12 +392,18 @@
 }
 
 .rail-account-engine,
+.rail-account-packet,
 .rail-account-status {
     padding: 10px 12px;
     border-radius: 14px;
     color: rgba(191, 219, 254, 0.82);
     background: rgba(15, 23, 42, 0.74);
     border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.rail-account-packet strong {
+    font-size: 0.88rem;
+    color: #eff6ff;
 }
 
 .rail-nav,
