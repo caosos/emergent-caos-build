@@ -747,29 +747,31 @@
     height: 100%;
     margin-inline: auto;
     padding-bottom: 240px;
+    justify-items: stretch;
 }
 
 .message-bubble {
     padding: 12px 14px 10px;
     border-radius: 20px;
     box-shadow: 0 14px 40px rgba(0, 0, 0, 0.14);
+    width: min(100%, 760px);
 }
 
 .message-bubble-user {
     border-color: rgba(59, 130, 246, 0.28);
     background: linear-gradient(180deg, rgba(37, 99, 235, 0.6), rgba(30, 64, 175, 0.48));
-    margin-left: 44px;
+    justify-self: end;
 }
 
 .message-bubble-assistant {
     border-color: rgba(148, 163, 184, 0.16);
     background: rgba(11, 18, 32, 0.82);
-    margin-right: 44px;
+    justify-self: start;
 }
 
 .message-bubble-system {
     border-style: dashed;
-    margin-right: 44px;
+    justify-self: start;
 }
 
 .thread-card-lane {

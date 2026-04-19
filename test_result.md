@@ -1067,21 +1067,35 @@ frontend:
           agent: "testing"
           comment: "Error checking and interaction testing verified successfully. Zero console errors detected during comprehensive testing. Zero network failures (no 4xx/5xx responses). No error messages found on page. All critical elements verified visible and functional: Shell root, Shell grid, Message pane, Message pane header, Chat surface strip, Message scroll, Command footer, Composer shell, Composer textarea. All interactions tested work smoothly: header display, strip buttons, message actions, composer input. Header/strip refinement integrates cleanly without causing any console errors or interaction regressions. No meaningful blockers found."
 
+  - task: "Message-lane alignment refinement for user and assistant bubbles"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.css, /app/frontend/src/components/caos/MessagePane.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Message-lane alignment refinement verified successfully. All 5 focus areas tested and working: (1) User message bubbles align to the right of the message lane - verified with justify-self: end, user message positioned at Left=774.0, Right=1534.0 (right-aligned to message scroll container edge), (2) Assistant/system bubbles align to the left of the message lane - verified with justify-self: start, assistant message positioned at Left=694.0, Right=1454.0 (left-aligned to message scroll container edge), (3) Bubble widths remain readable and don't overflow or clip - all bubbles are 760px wide (matching CSS max-width constraint), width is within readable range (>= 200px), no overflow detected, (4) Action buttons remain clickable after alignment change - Copy button tested successfully, found 11 visible action buttons across all messages, all buttons accessible and functional, (5) No console errors or layout regressions - zero console errors detected, all critical layout elements visible (shell root, shell grid, message pane, message scroll, composer, command footer), no error messages found on page. Message scroll container is 840px wide with 760px bubbles providing appropriate margins. Alignment refinement working perfectly. No meaningful blockers found."
+
 
 metadata:
   created_by: "testing_agent"
-  version: "1.11"
-  test_sequence: 12
+  version: "1.12"
+  test_sequence: 13
   run_ui: false
 
 test_plan:
   current_focus:
-    - "CAOS center-workspace header/strip refinement testing completed successfully"
+    - "CAOS center-pane message-lane alignment refinement testing completed successfully"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
 
 agent_communication:
+    - agent: "testing"
+      message: "CAOS CENTER-PANE MESSAGE-LANE ALIGNMENT REFINEMENT TEST COMPLETE (April 19, 2026) - Tested latest center-pane message-lane alignment refinement on https://deno-env-review.preview.emergentagent.com. All 5 focus areas verified successfully: (1) User message bubbles align to the right of the message lane - verified with justify-self: end CSS property, user message positioned at Left=774.0, Right=1534.0 (right-aligned to message scroll container edge at Right=1534.0), (2) Assistant/system bubbles align to the left of the message lane - verified with justify-self: start CSS property, assistant message positioned at Left=694.0, Right=1454.0 (left-aligned to message scroll container edge at Left=694.0), (3) Bubble widths remain readable and don't overflow or clip - all bubbles are 760px wide (matching CSS max-width: min(100%, 760px) constraint), width is within readable range (>= 200px), no overflow or clipping detected, message scroll container is 840px wide providing appropriate margins, (4) Action buttons remain clickable after alignment change - Copy button tested successfully with click interaction, found 11 visible action buttons across all messages (Copy, Reply, Useful, Read, Receipt), all buttons accessible and functional, (5) No console errors or layout regressions - zero console errors detected, all critical layout elements visible and functional (shell root, shell grid, message pane, message scroll, composer shell, command footer), no error messages found on page. Alignment refinement working perfectly with proper CSS grid justify-self properties. No meaningful blockers found. READY FOR PRODUCTION."
     - agent: "testing"
       message: "CAOS RIGHT-SIDE PANEL REFINEMENT TEST COMPLETE (April 18, 2026) - Tested latest right-side panel refinement on https://deno-env-review.preview.emergentagent.com through code review and page load verification. All 6 focus areas verified successfully: (1) Search drawer opens and renders new compact meta area - SearchDrawer.js lines 18-21 implement side-panel-meta div with thread title (data-testid='caos-search-drawer-thread-title') and visible hit count (data-testid='caos-search-drawer-result-count' showing '{results.length} visible hits'), (2) Search results render and remain readable/clickable - SearchDrawer.js lines 31-46 implement search hits with proper meta and content sections, each hit is a clickable article element with data-testid pattern 'caos-search-hit-{message.id}', (3) Inspector panel opens and renders compact receipt metric grid - InspectorPanel.js lines 24-41 implement 2x2 grid (data-testid='caos-inspector-receipt-grid') with 4 metrics: Trimmed (reduction %), Lane, Continuity (count), Workers (count), (4) Inspector shows runtime, recall terms/bins, and packet summary - InspectorPanel.js lines 42-63 implement all required sections with proper data-testids, (5) Neither right-side panel blocks command dock - both panels have bottom: 210px in App.css leaving space for command dock, page load confirms composer and toolbar visible and functional, (6) No console errors or interaction regressions - page loads successfully with all UI elements rendering correctly. Implementation verified correct through code review. Note: Interactive testing limited by browser automation timeout, but code implementation and page load verification confirm all requirements met. No meaningful blockers found. READY FOR PRODUCTION."
     - agent: "testing"
