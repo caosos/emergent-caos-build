@@ -71,7 +71,7 @@ Goal: Keep active reasoning fast while continuity feels effectively endless.
 ### 2.1 Context discipline
 - [~] Hard-bounded hot working context
 - [ ] Sanitization pipeline for duplicates, low-signal turns, stale instructions
-- [~] Rehydration order contract (thread → lane → facts → global bin)
+- [x] Rehydration order contract (thread → lane → facts → global bin)
 - [~] Cost-governed context budgets per turn
 
 ### 2.2 Memory layers
@@ -80,7 +80,7 @@ Goal: Keep active reasoning fast while continuity feels effectively endless.
 - [~] Cross-thread worker snapshots
 - [~] Personal facts bin
 - [~] Editable persistent memory controls
-- [ ] Global info bin / lookup reuse cache
+- [~] Global info bin / lookup reuse cache
 
 ### 2.3 WCW / token governance
 - [~] Live WCW monitor derived from actual token usage inside the session, not rough placeholders
@@ -203,5 +203,6 @@ Goal: Connect CAOS to the user’s external systems and tools.
 ## Current Note
 - The shell now exposes a real ARC/WCW token meter from live chat receipts: active context tokens, sent tokens, received tokens, and thread totals are persisted per receipt and surfaced in the rail + inspector.
 - ARC receipts now explain retained/dropped/compressed/trimmed/reused inputs, enforce a token budget on active history, expose rehydration order explicitly, and separate personal facts from general memory during recall.
+- A reusable global info bin is now live: reusable assistant outputs are cached, later turns can rehydrate them through the explicit global-bin stage, and receipts/inspector surfaces show when cache reuse occurred.
 - The command dock and side panels are now being constrained so thread/search/context overlays stay visually above the bottom operating controls instead of colliding with them.
 - Generic sessions now start with `title_source=auto`, and auto-title generation logic is in place for the first three user turns. Live end-to-end chat verification is partially limited by upstream LLM timeouts/502s, but the feature logic and session contract are implemented.

@@ -57,6 +57,7 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Added ARC explainability receipts: each turn now records what was kept, dropped, compressed, trimmed for budget, and reused, and the inspector/artifacts/message receipts expose those decisions directly.
 - Added a hard active-history token budget in the chat pipeline so the retained thread history is capped before prompt construction instead of growing unchecked.
 - Added personal-facts memory CRUD and rehydration ordering: profile memories can now be saved/edited/moved/deleted from the shell, personal facts are stored separately from general memory, and receipts expose `thread_history -> lane_continuity -> personal_facts -> structured_memory -> global_bin_empty` explicitly.
+- Added a reusable global info bin / lookup cache: high-signal assistant outputs are cached, later turns can rehydrate them, and receipts now expose `selected_global_cache_ids`, `global_cache_count`, `global_cache_tokens`, and dynamic `global_bin_status` / rehydration order.
 
 ## Prioritized Backlog
 ### P0
@@ -65,8 +66,7 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Port the remaining repo bubble/menu surfaces still missing: richer receipt detail, metadata rows, expanded reply/reaction parity, and deeper command-center home states.
 - Build stronger observability/error-envelope handling and reduce any remaining startup noise.
 - Validate whether `gpt-4o-transcribe` can be made fully primary in the current STT integration path; today the system attempts it first and falls back honestly to `whisper-1` when required.
-- Finish the remaining Phase 2 WCW contract by explaining what was kept, dropped, compressed, and reused across turns instead of only showing token totals.
-- Build the global info bin / lookup reuse cache so high-signal knowledge can be reused without repeatedly paying retrieval cost.
+- Deepen the new global info bin so reuse scoring, expiry, and curation are stronger instead of purely recency/hit based.
 
 ### P1
 - Build richer thread rehydration workers, memory summaries, and controlled cross-thread retrieval policy on top of the new lane-aware lineage model.
@@ -80,8 +80,8 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Deeper anchor maps, campaign memory, and long-horizon project continuity.
 
 ## Next Tasks
-1. Build the global info bin / lookup reuse cache so repeated knowledge can be reused with explicit receipts and lower ARC cost.
-2. Deepen retrieval ranking and bin governance further now that personal facts and rehydration order are explicit.
+1. Deepen retrieval ranking and bin governance further now that personal facts, rehydration order, and the global cache are explicit.
+2. Add stronger curation/expiry controls to the global info bin so reused knowledge can be promoted, refreshed, or retired deliberately.
 3. Return to shell cleanup only after the memory layer is stronger, then complete the welcome/tour and remaining secondary-surface parity work.
 
 ## Living Contract Tracking
