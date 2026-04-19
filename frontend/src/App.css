@@ -37,8 +37,11 @@
 }
 
 .thread-rail {
+    position: relative;
+    z-index: 20;
     background: rgba(7, 13, 26, 0.62);
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+    overflow: visible;
 }
 
 .caos-header {
@@ -335,10 +338,12 @@
 }
 
 .rail-account-popover {
-    position: absolute;
-    left: 0;
-    bottom: calc(100% + 12px);
+    position: fixed;
+    left: 32px;
+    bottom: 112px;
     min-width: 420px;
+    max-width: min(420px, calc(100vw - 72px));
+    max-height: min(520px, calc(100vh - 72px));
     display: grid;
     grid-template-columns: 200px 1fr;
     gap: 12px;
@@ -348,12 +353,13 @@
     backdrop-filter: blur(22px);
     border-radius: 22px;
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+    overflow: auto;
     z-index: 30;
 }
 
 .rail-account-popover-collapsed {
-    left: calc(100% + 12px);
-    bottom: 0;
+    left: 104px;
+    bottom: 32px;
 }
 
 .rail-account-primary,
@@ -422,6 +428,19 @@
 .rail-account-packet strong {
     font-size: 0.88rem;
     color: #eff6ff;
+}
+
+.rail-account-packet span {
+    display: block;
+}
+
+.rail-account-packet-meta {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    color: rgba(191, 219, 254, 0.66);
+    font-size: 0.75rem;
 }
 
 .rail-nav,
@@ -587,7 +606,7 @@
 .thread-list {
     flex: 1 1 auto;
     min-height: 0;
-    overflow: hidden;
+    overflow: auto;
 }
 
 .thread-card {

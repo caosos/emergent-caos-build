@@ -21,8 +21,9 @@ from app.services.context_engine import (
     sanitize_history,
 )
 from app.services.memory_worker_service import derive_lane, list_lane_workers, rebuild_lane_workers
-from app.services.prompt_builder import build_system_prompt
+from app.services.prompt_builder import build_prompt_sections, build_system_prompt_from_sections
 from app.services.runtime_service import resolve_chat_runtime
+from app.services.token_meter import build_token_receipt
 from app.services.thread_title_service import build_auto_thread_title, is_generic_session_title
 
 
@@ -73,14 +74,20 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         session_id=payload.session_id,
     )
     receipt = build_context_receipt(stats, messages, compressed, injected_memories, retrieval_terms, subject_bins, continuity_packet)
+    prompt_sections = build_prompt_sections(profile, compressed, injected_memories, continuity_packet)
+    system_prompt = build_system_prompt_from_sections(prompt_sections)
 
     runtime = resolve_chat_runtime(profile, payload.provider, payload.model)
     chat = LlmChat(
         api_key=runtime["api_key"],
         session_id=f"{payload.session_id}-{uuid.uuid4()}",
-        system_message=build_system_prompt(profile, compressed, injected_memories, continuity_packet),
+        system_message=system_prompt,
     ).with_model(runtime["provider"], runtime["model"])
-    reply = await chat.send_message(UserMessage(text=payload.content))
+    pending_messages = await chat.get_messages()
+    await chat._add_user_message(pending_messages, UserMessage(text=payload.content))
+    llm_response = await chat._execute_completion(pending_messages)
+    reply = await chat._extract_response_text(llm_response)
+    await chat._add_assistant_message(pending_messages, reply)
 
     assistant_message = MessageRecord(
         session_id=payload.session_id,
@@ -102,8 +109,23 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     if user_turn_count <= 3 and (session.get("title_source") == "auto" or is_generic_session_title(session.get("title"))):
         title_updates["title"] = build_auto_thread_title(messages, session_lane)
         title_updates["title_source"] = "auto"
-    wcw_used_estimate = max(1, sum(len(message.content) for message in compressed) // 4)
     wcw_budget = 200000
+    prior_receipts = await collection(
+        "receipts"
+    ).find({"session_id": payload.session_id}, {"_id": 0, "prompt_tokens": 1, "completion_tokens": 1}).to_list(500)
+    token_receipt = build_token_receipt(
+        runtime["model"],
+        prompt_sections,
+        system_prompt,
+        payload.content,
+        reply,
+        llm_response,
+        prior_prompt_total=sum(item.get("prompt_tokens", 0) for item in prior_receipts),
+        prior_completion_total=sum(item.get("completion_tokens", 0) for item in prior_receipts),
+    )
+    receipt.update(token_receipt)
+    receipt["wcw_budget"] = wcw_budget
+    wcw_used_estimate = token_receipt["active_context_tokens"]
     previous_receipt = await collection("receipts").find_one({"session_id": payload.session_id}, {"_id": 0}, sort=[("created_at", -1)])
     previous_summary = await collection("thread_summaries").find_one({"session_id": payload.session_id}, {"_id": 0}, sort=[("created_at", -1)])
     previous_seed = await collection("context_seeds").find_one({"session_id": payload.session_id}, {"_id": 0}, sort=[("created_at", -1)])

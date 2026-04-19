@@ -4,7 +4,7 @@ import { Clock3, FolderKanban, MessageSquareText, PanelLeftOpen, Sparkles, Wrenc
 import { RailAccountMenu } from "@/components/caos/RailAccountMenu";
 
 
-export const ThreadRail = ({ activeSurface, currentSessionId, isCollapsed, onFocusChat, onNewSession, onOpenArtifacts, onOpenInspector, onOpenProfile, onOpenSearch, onOpenThreads, onSelectSession, onToggleRail, profile, runtimeSettings, sessions, userEmail, wcwBudget, wcwUsed }) => {
+export const ThreadRail = ({ activeSurface, currentSessionId, isCollapsed, onFocusChat, onNewSession, onOpenArtifacts, onOpenInspector, onOpenProfile, onOpenSearch, onOpenThreads, onSelectSession, onToggleRail, profile, runtimeSettings, sessions, userEmail, wcwBudget, wcwUsed, wcwSent, wcwReceived }) => {
   const displayName = profile?.preferred_name || userEmail?.split("@")[0] || "Michael";
   const [railSearch, setRailSearch] = useState("");
   const visibleSessions = useMemo(() => {
@@ -46,6 +46,8 @@ export const ThreadRail = ({ activeSurface, currentSessionId, isCollapsed, onFoc
           runtimeSettings={runtimeSettings}
           wcwBudget={wcwBudget}
           wcwUsed={wcwUsed}
+          wcwSent={wcwSent}
+          wcwReceived={wcwReceived}
         />
       </aside>
     );
@@ -139,6 +141,8 @@ export const ThreadRail = ({ activeSurface, currentSessionId, isCollapsed, onFoc
           runtimeSettings={runtimeSettings}
           wcwBudget={wcwBudget}
           wcwUsed={wcwUsed}
+          wcwSent={wcwSent}
+          wcwReceived={wcwReceived}
         />
       </div>
     </aside>

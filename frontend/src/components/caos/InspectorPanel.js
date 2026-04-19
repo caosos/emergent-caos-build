@@ -6,6 +6,7 @@ export const InspectorPanel = ({ continuity, isOpen, latestReceipt, memorySurfac
 
   const continuityCount = (latestReceipt?.selected_summary_ids?.length || 0) + (latestReceipt?.selected_seed_ids?.length || 0);
   const workerCount = latestReceipt?.selected_worker_ids?.length || 0;
+  const tokenSourceLabel = latestReceipt?.token_source === "provider_usage" ? "provider usage" : "tokenizer fallback";
 
   return (
     <aside className="inspector-panel" data-testid="caos-inspector-panel">
@@ -59,6 +60,42 @@ export const InspectorPanel = ({ continuity, isOpen, latestReceipt, memorySurfac
           <div className="context-metric" data-testid="caos-inspector-packet-memory-count">
             <span>Memories</span>
             <strong>{latestReceipt?.selected_memory_ids?.length || 0}</strong>
+          </div>
+        </div>
+        <div className="context-metric-grid context-metric-grid-compact" data-testid="caos-inspector-token-grid">
+          <div className="context-metric" data-testid="caos-inspector-active-context-tokens">
+            <span>ARC tokens</span>
+            <strong>{latestReceipt?.active_context_tokens || 0}</strong>
+          </div>
+          <div className="context-metric" data-testid="caos-inspector-prompt-tokens">
+            <span>Sent</span>
+            <strong>{latestReceipt?.prompt_tokens || 0}</strong>
+          </div>
+          <div className="context-metric" data-testid="caos-inspector-completion-tokens">
+            <span>Received</span>
+            <strong>{latestReceipt?.completion_tokens || 0}</strong>
+          </div>
+          <div className="context-metric" data-testid="caos-inspector-thread-total-tokens">
+            <span>Thread total</span>
+            <strong>{latestReceipt?.session_total_tokens || 0}</strong>
+          </div>
+        </div>
+        <div className="context-metric-grid context-metric-grid-compact" data-testid="caos-inspector-token-breakdown-grid">
+          <div className="context-metric" data-testid="caos-inspector-history-tokens">
+            <span>History</span>
+            <strong>{latestReceipt?.history_tokens || 0}</strong>
+          </div>
+          <div className="context-metric" data-testid="caos-inspector-memory-tokens">
+            <span>Memory</span>
+            <strong>{latestReceipt?.memory_tokens || 0}</strong>
+          </div>
+          <div className="context-metric" data-testid="caos-inspector-continuity-tokens">
+            <span>Continuity</span>
+            <strong>{latestReceipt?.continuity_tokens || 0}</strong>
+          </div>
+          <div className="context-metric" data-testid="caos-inspector-token-source">
+            <span>Meter source</span>
+            <strong>{tokenSourceLabel}</strong>
           </div>
         </div>
       </section>

@@ -23,13 +23,22 @@ def _format_continuity(continuity_packet: dict) -> str:
     return "\n".join(lines)
 
 
-def build_system_prompt(
+def build_prompt_sections(
     profile: UserProfileRecord,
     sanitized_history: list[MessageRecord],
     injected_memories: list[MemoryEntry],
     continuity_packet: dict,
-) -> str:
-    preferred_name = profile.preferred_name or "the user"
+) -> dict:
+    return {
+        "preferred_name": profile.preferred_name or "the user",
+        "environment_name": profile.environment_name,
+        "memory_block": _format_memories(injected_memories),
+        "continuity_block": _format_continuity(continuity_packet),
+        "history_block": _format_history(sanitized_history),
+    }
+
+
+def build_system_prompt_from_sections(sections: dict) -> str:
     return f"""
 You are Aria inside CAOS, a continuous AI workspace.
 
@@ -42,15 +51,26 @@ Operating rules:
 - If the active history is thin, say so plainly instead of pretending continuity exists.
 
 User profile:
-- Preferred name: {preferred_name}
-- Environment: {profile.environment_name}
+- Preferred name: {sections['preferred_name']}
+- Environment: {sections['environment_name']}
 
 Retrieved structured memory:
-{_format_memories(injected_memories)}
+{sections['memory_block']}
 
 Rehydrated continuity anchors:
-{_format_continuity(continuity_packet)}
+{sections['continuity_block']}
 
 Sanitized active session history:
-{_format_history(sanitized_history)}
+{sections['history_block']}
 """.strip()
+
+
+def build_system_prompt(
+    profile: UserProfileRecord,
+    sanitized_history: list[MessageRecord],
+    injected_memories: list[MemoryEntry],
+    continuity_packet: dict,
+) -> str:
+    return build_system_prompt_from_sections(
+        build_prompt_sections(profile, sanitized_history, injected_memories, continuity_packet)
+    )

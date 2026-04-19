@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 const labelForProvider = (provider) => ({ openai: "ChatGPT", anthropic: "Claude", gemini: "Gemini", xai: "Grok" }[provider] || provider || "ChatGPT");
 
 
-export const RailAccountMenu = ({ currentSessionId, displayName, email, isCollapsed, onNewSession, onOpenArtifacts, onOpenProfile, onOpenSearch, runtimeSettings, wcwBudget, wcwUsed }) => {
+export const RailAccountMenu = ({ currentSessionId, displayName, email, isCollapsed, onNewSession, onOpenArtifacts, onOpenProfile, onOpenSearch, runtimeSettings, wcwBudget, wcwUsed, wcwSent, wcwReceived }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [activePanel, setActivePanel] = useState("desktop");
   const [menuStatus, setMenuStatus] = useState("");
@@ -62,9 +62,14 @@ export const RailAccountMenu = ({ currentSessionId, displayName, email, isCollap
 
             <div className="rail-account-engine" data-testid="caos-rail-account-engine">{engineLabel}</div>
             <div className="rail-account-packet" data-testid="caos-rail-account-packet">
+              <span data-testid="caos-rail-account-packet-label">ARC / WCW</span>
               <strong data-testid="caos-rail-account-packet-count">{wcwUsed || 0} / {wcwBudget || 200000}</strong>
               <div className="token-bar" data-testid="caos-rail-account-packet-bar">
                 <div className="token-bar-fill" style={{ width: `${packetPercent}%` }} />
+              </div>
+              <div className="rail-account-packet-meta" data-testid="caos-rail-account-packet-meta">
+                <span data-testid="caos-rail-account-prompt-tokens">Sent {wcwSent || 0}</span>
+                <span data-testid="caos-rail-account-completion-tokens">Received {wcwReceived || 0}</span>
               </div>
             </div>
             <button className="rail-account-item rail-account-item-muted" data-testid="caos-rail-account-item-logout" type="button">

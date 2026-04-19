@@ -50,28 +50,16 @@ export const CaosShell = () => {
     updateVoiceSettings,
     voiceSettings,
   } = useCaosShell();
-  const latestReceipt = lastTurn?.receipt || (artifacts.receipts[0]
+  const latestReceipt = lastTurn?.receipt
     ? {
-        provider: artifacts.receipts[0].provider,
-        model: artifacts.receipts[0].model,
-        lane: artifacts.receipts[0].lane,
-        retrieval_terms: artifacts.receipts[0].retrieval_terms,
-        reduction_ratio: artifacts.receipts[0].reduction_ratio,
-        injected_memory_count: artifacts.receipts[0].selected_memory_ids?.length || 0,
-        selected_summary_ids: artifacts.receipts[0].selected_summary_ids,
-        selected_seed_ids: artifacts.receipts[0].selected_seed_ids,
-        selected_worker_ids: artifacts.receipts[0].selected_worker_ids,
-        subject_bins: artifacts.receipts[0].subject_bins,
-      }
-    : null);
-  const runtimeReceipt = lastTurn?.receipt
-    ? {
+        ...(artifacts.receipts[0] || {}),
         ...lastTurn.receipt,
         provider: lastTurn.provider,
         model: lastTurn.model,
+        lane: lastTurn.lane,
         subject_bins: lastTurn.subject_bins,
       }
-    : latestReceipt;
+    : (artifacts.receipts[0] || null);
   const memorySurface = lastTurn?.injected_memories || [];
   const lastAssistantMessage = [...filteredMessages].reverse().find((message) => message.role === "assistant") || null;
   const activeSurface = showSearch
@@ -164,8 +152,10 @@ export const CaosShell = () => {
           runtimeSettings={runtimeSettings}
           sessions={sessions}
           userEmail={userEmail}
-          wcwBudget={lastTurn?.wcw_budget || 200000}
-          wcwUsed={lastTurn?.wcw_used_estimate || 0}
+          wcwBudget={latestReceipt?.wcw_budget || lastTurn?.wcw_budget || 200000}
+          wcwUsed={latestReceipt?.active_context_tokens || lastTurn?.wcw_used_estimate || 0}
+          wcwSent={latestReceipt?.prompt_tokens || 0}
+          wcwReceived={latestReceipt?.completion_tokens || 0}
         />
 
         <section className="caos-main-column" data-testid="caos-main-column">
@@ -224,7 +214,7 @@ export const CaosShell = () => {
       <InspectorPanel
         continuity={continuity}
         isOpen={showInspector && !showSearch}
-        latestReceipt={runtimeReceipt}
+        latestReceipt={latestReceipt}
         memorySurface={memorySurface}
         onClose={() => setShowInspector(false)}
       />
