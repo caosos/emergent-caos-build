@@ -51,6 +51,7 @@ Goal: Make the main shell structurally match the intended CAOS operating experie
 - [~] Top-header chrome is being thinned further so the center workspace starts with less branding and more usable vertical room
 - [~] Idle command-area clutter is being stripped out so the input bar stays clean when nothing important needs to be said
 - [~] Center conversation lane and bottom command area are being visually aligned so the chat canvas reads as one coherent vertical workspace
+- [~] Artifacts/files workspace is being upgraded from a long stacked drawer into a more navigable operational panel
 
 ### 1.3 First-run / welcome
 - [ ] `/Welcome` landing with starfield hero and feature tiles
@@ -58,7 +59,7 @@ Goal: Make the main shell structurally match the intended CAOS operating experie
 - [ ] `Take the Tour` / `Sign In` / `Continue as Guest` flow
 
 ### 1.4 Supporting shell surfaces
-- [ ] Richer files / photos / links surfaces
+- [~] Richer files / photos / links surfaces
 - [ ] Deeper profile/settings drawer parity
 - [ ] Cleaner WCW visibility in the shell header/surfaces
 

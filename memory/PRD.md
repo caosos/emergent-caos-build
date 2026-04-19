@@ -51,6 +51,7 @@ Replatform CAOS away from the Base44/Deno serverless environment into a normal f
 - Removed idle command-area clutter from the composer zone: always-on STT labels and passive loaded-session text no longer sit under the input bar by default, keeping the input area cleaner while preserving all controls and live recording feedback when it actually matters.
 - Removed the in-pane active-thread header block from the message lane and centered the bottom command area onto the same visual canvas as the conversation stream, making the `/chat` body read as a more coherent single workspace.
 - Added automatic thread-titling foundations: generic sessions now persist `title_source=auto`, and the backend generates descriptive session titles from the first three user turns so placeholder titles like `New Thread` can be replaced automatically.
+- Refined the Artifacts workspace into a clearer operational panel: added stats cards, tabbed navigation for Files/Receipts/Summaries/Seeds, and kept upload/save-link controls visible so files/photos/links parity is moving beyond a long stacked drawer.
 
 ## Prioritized Backlog
 ### P0
