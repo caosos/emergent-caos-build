@@ -599,9 +599,32 @@
 }
 
 .message-pane-header {
-    width: min(100%, 860px);
+    width: min(100%, 840px);
     margin: 0 auto 8px;
     padding: 0 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 16px;
+}
+
+.message-pane-header-copy {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.message-pane-kicker {
+    color: rgba(191, 219, 254, 0.62);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.message-pane-header h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.2;
 }
 
 .message-pane-header p {
@@ -609,13 +632,20 @@
     color: rgba(191, 219, 254, 0.62);
 }
 
+.message-pane-session-id {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 420px;
+}
+
 .chat-surface-strip {
-    width: min(100%, 860px);
-    margin: 0 auto 12px;
+    width: min(100%, 840px);
+    margin: 0 auto 10px;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
-    gap: 10px;
-    padding: 0 0 10px;
+    grid-template-columns: repeat(3, minmax(112px, max-content)) minmax(0, 1fr);
+    gap: 8px;
+    padding: 0 0 8px;
 }
 
 .chat-surface-chip,
@@ -627,19 +657,23 @@
 }
 
 .chat-surface-chip {
-    padding: 10px 12px;
+    padding: 8px 10px;
     display: grid;
-    gap: 4px;
+    gap: 3px;
 }
 
 .chat-surface-chip span {
     color: rgba(191, 219, 254, 0.7);
-    font-size: 0.77rem;
+    font-size: 0.72rem;
+}
+
+.chat-surface-chip strong {
+    font-size: 0.94rem;
 }
 
 .chat-surface-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     justify-content: flex-end;
     flex-wrap: wrap;
 }
@@ -697,8 +731,9 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 12px;
+    padding: 8px 10px;
     cursor: pointer;
+    font-size: 0.84rem;
 }
 
 .surface-strip-passive {

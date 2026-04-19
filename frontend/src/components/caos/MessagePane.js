@@ -49,9 +49,10 @@ export const MessagePane = ({ busy, currentSession, latestReceipt, messages, onO
   return (
     <section className="message-pane" data-testid="caos-message-pane">
       <div className="message-pane-header" data-testid="caos-message-pane-header">
-        <div>
+        <div className="message-pane-header-copy" data-testid="caos-message-pane-header-copy">
+          <span className="message-pane-kicker" data-testid="caos-message-pane-kicker">Active thread</span>
           <h2 data-testid="caos-current-thread-title">{currentSession?.title || "No active thread"}</h2>
-          <p data-testid="caos-current-thread-id">{currentSession?.session_id || "Create a thread to begin."}</p>
+          <p className="message-pane-session-id" data-testid="caos-current-thread-id">{currentSession?.session_id || "Create a thread to begin."}</p>
         </div>
         {busy ? <span className="busy-chip" data-testid="caos-busy-chip">Thinking…</span> : null}
       </div>
