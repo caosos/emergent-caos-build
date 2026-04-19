@@ -69,24 +69,24 @@ Goal: Make the main shell structurally match the intended CAOS operating experie
 Goal: Keep active reasoning fast while continuity feels effectively endless.
 
 ### 2.1 Context discipline
-- [ ] Hard-bounded hot working context
+- [~] Hard-bounded hot working context
 - [ ] Sanitization pipeline for duplicates, low-signal turns, stale instructions
-- [ ] Rehydration order contract (thread → lane → facts → global bin)
-- [ ] Cost-governed context budgets per turn
+- [~] Rehydration order contract (thread → lane → facts → global bin)
+- [~] Cost-governed context budgets per turn
 
 ### 2.2 Memory layers
 - [~] Subject bins / lanes
 - [~] Receipts / summaries / seeds
 - [~] Cross-thread worker snapshots
-- [ ] Personal facts bin
-- [ ] Editable persistent memory controls
+- [~] Personal facts bin
+- [~] Editable persistent memory controls
 - [ ] Global info bin / lookup reuse cache
 
 ### 2.3 WCW / token governance
 - [~] Live WCW monitor derived from actual token usage inside the session, not rough placeholders
 - [~] Track sent tokens, received tokens, and currently active packet tokens per session
 - [~] Distinguish thread total vs active context vs compressed memory vs rehydrated memory
-- [ ] Explain what was kept, dropped, compressed, and reused
+- [x] Explain what was kept, dropped, compressed, and reused
 
 ### 2.4 Thread intelligence
 - [~] Auto-title new threads within first 1–3 useful turns
@@ -201,6 +201,7 @@ Goal: Connect CAOS to the user’s external systems and tools.
 - [~] Start `/chat` visual parity pass before moving deeper into the welcome flow
 
 ## Current Note
-- The shell now exposes a real ARC/WCW token meter from live chat receipts: active context tokens, sent tokens, received tokens, and thread totals are persisted per receipt and surfaced in the rail + inspector. The remaining Phase 2 work is to explain retention/drop/compression decisions more explicitly across turns.
+- The shell now exposes a real ARC/WCW token meter from live chat receipts: active context tokens, sent tokens, received tokens, and thread totals are persisted per receipt and surfaced in the rail + inspector.
+- ARC receipts now explain retained/dropped/compressed/trimmed/reused inputs, enforce a token budget on active history, expose rehydration order explicitly, and separate personal facts from general memory during recall.
 - The command dock and side panels are now being constrained so thread/search/context overlays stay visually above the bottom operating controls instead of colliding with them.
 - Generic sessions now start with `title_source=auto`, and auto-title generation logic is in place for the first three user turns. Live end-to-end chat verification is partially limited by upstream LLM timeouts/502s, but the feature logic and session contract are implemented.
