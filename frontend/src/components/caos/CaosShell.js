@@ -96,31 +96,43 @@ export const CaosShell = () => {
   };
 
   const openInspector = () => {
+    setShowArtifacts(false);
+    setShowProfile(false);
+    setShowSearch(false);
+    setShowThreadExplorer(false);
     setShowInspector(true);
+  };
+
+  const openArtifacts = () => {
+    setShowInspector(false);
+    setShowProfile(false);
+    setShowSearch(false);
+    setShowThreadExplorer(false);
+    setShowArtifacts(true);
+  };
+
+  const openProfile = () => {
+    setShowArtifacts(false);
+    setShowInspector(false);
+    setShowProfile(true);
     setShowSearch(false);
     setShowThreadExplorer(false);
   };
 
-  const openArtifacts = () => {
-    setShowArtifacts(true);
-    setShowProfile(false);
-  };
-
-  const openProfile = () => {
-    setShowProfile(true);
-    setShowSearch(false);
-  };
-
   const openSearch = () => {
+    setShowArtifacts(false);
+    setShowProfile(false);
     setShowSearch(true);
     setShowInspector(false);
     setShowThreadExplorer(false);
   };
 
   const toggleThreads = () => {
-    setShowThreadExplorer((value) => !value);
+    setShowArtifacts(false);
+    setShowProfile(false);
     setShowSearch(false);
     setShowInspector(false);
+    setShowThreadExplorer((value) => !value);
   };
 
   return (
