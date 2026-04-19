@@ -498,6 +498,7 @@
 .rail-nav-item-active {
     border-color: rgba(124, 58, 237, 0.36);
     background: rgba(49, 18, 99, 0.86);
+    box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.18);
 }
 
 .caos-main-column {
@@ -864,7 +865,7 @@
     right: 24px;
     bottom: 18px;
     display: grid;
-    gap: 8px;
+    gap: 6px;
     z-index: 14;
 }
 
@@ -873,7 +874,7 @@
     align-items: flex-end;
     justify-content: space-between;
     gap: 14px;
-    padding: 8px 6px 0;
+    padding: 4px 6px 0;
 }
 
 .composer-shell {

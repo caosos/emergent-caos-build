@@ -74,32 +74,83 @@ export const CaosShell = () => {
     : latestReceipt;
   const memorySurface = lastTurn?.injected_memories || [];
   const lastAssistantMessage = [...filteredMessages].reverse().find((message) => message.role === "assistant") || null;
+  const activeSurface = showSearch
+    ? "search"
+    : showThreadExplorer
+      ? "threads"
+      : showInspector
+        ? "tools"
+        : showProfile
+          ? "models"
+          : showArtifacts
+            ? "projects"
+            : "chat";
+  const showCommandToolbar = activeSurface === "chat";
+
+  const focusChat = () => {
+    setShowArtifacts(false);
+    setShowInspector(false);
+    setShowProfile(false);
+    setShowSearch(false);
+    setShowThreadExplorer(false);
+  };
+
+  const openInspector = () => {
+    setShowInspector(true);
+    setShowSearch(false);
+    setShowThreadExplorer(false);
+  };
+
+  const openArtifacts = () => {
+    setShowArtifacts(true);
+    setShowProfile(false);
+  };
+
+  const openProfile = () => {
+    setShowProfile(true);
+    setShowSearch(false);
+  };
+
+  const openSearch = () => {
+    setShowSearch(true);
+    setShowInspector(false);
+    setShowThreadExplorer(false);
+  };
+
+  const toggleThreads = () => {
+    setShowThreadExplorer((value) => !value);
+    setShowSearch(false);
+    setShowInspector(false);
+  };
 
   return (
     <main className={`caos-shell-root ${isRailOpen ? "caos-shell-rail-open" : "caos-shell-rail-closed"}`} data-testid="caos-shell-root">
       <ShellHeader
         activeModel={runtimeSettings.default_model}
         activeProvider={runtimeSettings.default_provider}
+        activeSurface={activeSurface}
         currentSession={currentSession}
         isRailOpen={isRailOpen}
         keySource={runtimeSettings.key_source}
-        onOpenThreads={() => setShowThreadExplorer((value) => !value)}
+        onOpenThreads={toggleThreads}
         onToggleRail={() => setIsRailOpen((value) => !value)}
-        onToggleSearch={() => setShowSearch((value) => !value)}
+        onToggleSearch={openSearch}
         wcwBudget={lastTurn?.wcw_budget || 200000}
         wcwUsed={lastTurn?.wcw_used_estimate || 0}
       />
 
       <div className="caos-shell-grid caos-shell-grid-layout" data-testid="caos-shell-grid">
         <ThreadRail
+          activeSurface={activeSurface}
           currentSessionId={currentSession?.session_id}
           isCollapsed={!isRailOpen}
+          onFocusChat={focusChat}
           onNewSession={() => createSession()}
-          onOpenArtifacts={() => setShowArtifacts(true)}
-          onOpenInspector={() => setShowInspector(true)}
-          onOpenProfile={() => setShowProfile(true)}
-          onOpenSearch={() => setShowSearch(true)}
-          onOpenThreads={() => setShowThreadExplorer((value) => !value)}
+          onOpenArtifacts={openArtifacts}
+          onOpenInspector={openInspector}
+          onOpenProfile={openProfile}
+          onOpenSearch={openSearch}
+          onOpenThreads={toggleThreads}
           onSelectSession={selectSession}
           onToggleRail={() => setIsRailOpen((value) => !value)}
           profile={profile}
@@ -135,16 +186,18 @@ export const CaosShell = () => {
       />
 
       <div className="command-footer" data-testid="caos-command-footer">
-        <div className="command-footer-toolbar" data-testid="caos-command-footer-toolbar">
-          <QuickActionsStrip onContinueThread={() => createSession("Continued Thread")} onOpenArtifacts={() => setShowArtifacts(true)} />
-          <ModelBar
-            activeModel={runtimeSettings.default_model}
-            activeProvider={runtimeSettings.default_provider}
-            keySource={runtimeSettings.key_source}
-            onSelect={updateRuntimeSelection}
-            providerCatalog={runtimeSettings.provider_catalog}
-          />
-        </div>
+        {showCommandToolbar ? (
+          <div className="command-footer-toolbar" data-testid="caos-command-footer-toolbar">
+            <QuickActionsStrip onContinueThread={() => createSession("Continued Thread")} onOpenArtifacts={openArtifacts} />
+            <ModelBar
+              activeModel={runtimeSettings.default_model}
+              activeProvider={runtimeSettings.default_provider}
+              keySource={runtimeSettings.key_source}
+              onSelect={updateRuntimeSelection}
+              providerCatalog={runtimeSettings.provider_catalog}
+            />
+          </div>
+        ) : null}
         <Composer
           busy={busy}
           lastAssistantMessage={lastAssistantMessage}

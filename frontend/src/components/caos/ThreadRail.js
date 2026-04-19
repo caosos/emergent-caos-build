@@ -4,7 +4,7 @@ import { Clock3, FolderKanban, MessageSquareText, PanelLeftOpen, Sparkles, Wrenc
 import { RailAccountMenu } from "@/components/caos/RailAccountMenu";
 
 
-export const ThreadRail = ({ currentSessionId, isCollapsed, onNewSession, onOpenArtifacts, onOpenInspector, onOpenProfile, onOpenSearch, onOpenThreads, onSelectSession, onToggleRail, profile, runtimeSettings, sessions, userEmail }) => {
+export const ThreadRail = ({ activeSurface, currentSessionId, isCollapsed, onFocusChat, onNewSession, onOpenArtifacts, onOpenInspector, onOpenProfile, onOpenSearch, onOpenThreads, onSelectSession, onToggleRail, profile, runtimeSettings, sessions, userEmail }) => {
   const displayName = profile?.preferred_name || userEmail?.split("@")[0] || "Michael";
   const [railSearch, setRailSearch] = useState("");
   const visibleSessions = useMemo(() => {
@@ -73,12 +73,12 @@ export const ThreadRail = ({ currentSessionId, isCollapsed, onNewSession, onOpen
             onChange={(event) => setRailSearch(event.target.value)}
           />
         </label>
-        <button className="rail-nav-item rail-nav-item-active" data-testid="caos-rail-chat-button">Chat</button>
-        <button className="rail-nav-item" data-testid="caos-rail-create-button"><Sparkles size={14} />Create</button>
-        <button className="rail-nav-item" data-testid="caos-rail-tools-button" onClick={onOpenInspector}><Wrench size={14} />Tools</button>
-        <button className="rail-nav-item" data-testid="caos-rail-models-button"><Sparkles size={14} />Models</button>
-        <button className="rail-nav-item" data-testid="caos-rail-projects-button"><FolderKanban size={14} />Projects</button>
-        <button className="rail-nav-item" data-testid="caos-rail-threads-button" onClick={onOpenThreads}><MessageSquareText size={14} />Threads</button>
+        <button className={`rail-nav-item ${activeSurface === "chat" ? "rail-nav-item-active" : ""}`} data-testid="caos-rail-chat-button" onClick={onFocusChat}>Chat</button>
+        <button className={`rail-nav-item ${activeSurface === "create" ? "rail-nav-item-active" : ""}`} data-testid="caos-rail-create-button" onClick={onNewSession}><Sparkles size={14} />Create</button>
+        <button className={`rail-nav-item ${activeSurface === "tools" ? "rail-nav-item-active" : ""}`} data-testid="caos-rail-tools-button" onClick={onOpenInspector}><Wrench size={14} />Tools</button>
+        <button className={`rail-nav-item ${activeSurface === "models" ? "rail-nav-item-active" : ""}`} data-testid="caos-rail-models-button" onClick={onOpenProfile}><Sparkles size={14} />Models</button>
+        <button className={`rail-nav-item ${activeSurface === "projects" ? "rail-nav-item-active" : ""}`} data-testid="caos-rail-projects-button" onClick={onOpenArtifacts}><FolderKanban size={14} />Projects</button>
+        <button className={`rail-nav-item ${activeSurface === "threads" ? "rail-nav-item-active" : ""}`} data-testid="caos-rail-threads-button" onClick={onOpenThreads}><MessageSquareText size={14} />Threads</button>
       </div>
 
       <div className="rail-header" data-testid="caos-thread-rail-header">

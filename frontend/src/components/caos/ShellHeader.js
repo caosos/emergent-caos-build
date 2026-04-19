@@ -8,10 +8,21 @@ const PROVIDER_LABELS = {
   xai: "Grok",
 };
 
+const SURFACE_LABELS = {
+  chat: "Chat",
+  create: "Create",
+  tools: "Tools",
+  models: "Models",
+  projects: "Projects",
+  threads: "Threads",
+  search: "Search",
+};
 
-export const ShellHeader = ({ activeModel, activeProvider, currentSession, isRailOpen, keySource, onOpenThreads, onToggleRail, onToggleSearch, wcwBudget, wcwUsed }) => {
+
+export const ShellHeader = ({ activeModel, activeProvider, activeSurface, currentSession, isRailOpen, keySource, onOpenThreads, onToggleRail, onToggleSearch, wcwBudget, wcwUsed }) => {
   const percent = Math.min(100, Math.round(((wcwUsed || 0) / (wcwBudget || 1)) * 100));
   const providerLabel = PROVIDER_LABELS[activeProvider] || activeProvider || "ChatGPT";
+  const surfaceLabel = SURFACE_LABELS[activeSurface] || "Chat";
 
   return (
     <header className="caos-header" data-testid="caos-shell-header">
@@ -19,7 +30,7 @@ export const ShellHeader = ({ activeModel, activeProvider, currentSession, isRai
         <button className="search-icon-button" data-testid="caos-rail-toggle-button" onClick={onToggleRail}>
           {isRailOpen ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
         </button>
-        <div className="caos-header-route" data-testid="caos-header-route">Chat surface</div>
+        <div className="caos-header-route" data-testid="caos-header-route">{surfaceLabel}</div>
       </div>
 
       <div className="caos-header-center" data-testid="caos-header-center">
