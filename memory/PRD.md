@@ -61,6 +61,18 @@ Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergen
 - Live-transcript ribbon (breathing purple/blue) while mic records
 - Mic pulsing red ring while recording
 
+## Voice I/O Unblocked — Direct OpenAI Path (Apr 20, 2026 — late)
+- **Root cause confirmed:** Emergent audio proxy's upstream OpenAI key is invalid (HTTP 401 on whisper-1, 500 on tts-*).
+- **Fix:** User provided a direct `OPENAI_API_KEY` (`sk-proj-...`). Stored in `/app/backend/.env`.
+- **`voice_service.py` rewritten** with preference order:
+  1. Direct OpenAI SDK (`openai.AsyncOpenAI`) when `OPENAI_API_KEY` is present — unlocks `gpt-4o-mini-tts` and `gpt-4o-mini-transcribe` (the 2026 defaults, blocked on the Emergent proxy allow-list).
+  2. Graceful fallback chain: `gpt-4o-mini-tts` → `tts-1` → `tts-1-hd` (and `gpt-4o-mini-transcribe` → `whisper-1` for STT).
+  3. Legacy Emergent proxy path retained as last-resort if no direct key.
+- **Verified end-to-end:**
+  - `POST /api/caos/voice/tts` with `model=gpt-4o-mini-tts` → 53KB of real audio_base64 (audio/mpeg), voice=nova.
+  - `POST /api/caos/voice/transcribe` with `model=gpt-4o-mini-transcribe` → correct transcription `"Hello world, this is a test."`
+- Read Aloud + Mic input should now Just Work™ in the UI — no proxy dependency. Support ticket to Emergent still recommended so they rotate the proxy's upstream key.
+
 ## Voice I/O Root-Cause Identified + Support Ticket Armed (Apr 20, 2026)
 - **Ran a diagnostic curl battery against `https://integrations.emergentagent.com/llm`** and caught the exact failure: `POST /audio/transcriptions` with `model=whisper-1` returns **HTTP 401** with `"Incorrect API key provided: sk-proj-********_AIA"`. The upstream OpenAI project key Emergent's proxy uses for audio routes has been invalidated.
 - `tts-1` and `tts-1-hd` return HTTP 500 with empty body — almost certainly the same root cause masked as generic server error.
