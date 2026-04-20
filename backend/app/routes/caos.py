@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
+from pydantic import BaseModel
 
 from app.db import collection
 from app.schemas.caos import (
@@ -40,6 +41,7 @@ from app.schemas.caos import (
 from app.services.file_storage import build_link_record, save_upload_to_disk
 from app.services.chat_pipeline import run_chat_turn
 from app.services.multi_agent import run_multi_agent_turn
+from app.services.swarm_service import run_supervisor, run_workers, run_critic, run_swarm
 from app.services.context_engine import (
     build_context_receipt,
     compress_history,
@@ -312,6 +314,52 @@ async def chat_multi_agent(input: ChatRequest):
     except Exception as error:
         print(f"CAOS multi-agent pipeline error: {error}")
         raise HTTPException(status_code=500, detail="Multi-agent pipeline failed") from error
+
+
+class SwarmRunRequest(BaseModel):
+    task: str
+
+
+@router.post("/swarm/run")
+async def swarm_run(input: SwarmRunRequest):
+    """Non-streaming Swarm v1 — returns plan, per-step outputs, final answer."""
+    if not input.task.strip():
+        raise HTTPException(status_code=400, detail="task is required")
+    try:
+        return await run_swarm(input.task)
+    except Exception as error:
+        print(f"CAOS swarm pipeline error: {error}")
+        raise HTTPException(status_code=500, detail=f"Swarm failed: {str(error)[:200]}") from error
+
+
+@router.post("/swarm/stream")
+async def swarm_stream(input: SwarmRunRequest):
+    """SSE-streaming Swarm — emits `phase`, `plan`, `step`, `final`, `error` events
+    so the UI can show live progress as Supervisor → Workers → Critic execute."""
+    import json as _json
+
+    async def event_stream():
+        try:
+            yield f"event: phase\ndata: {_json.dumps({'phase': 'supervisor', 'message': 'Planning task...'})}\n\n"
+            plan = await run_supervisor(input.task)
+            yield f"event: plan\ndata: {_json.dumps({'plan': plan})}\n\n"
+            steps = plan.get("steps", [])
+            if steps:
+                yield f"event: phase\ndata: {_json.dumps({'phase': 'workers', 'message': f'Running {len(steps)} step(s) in E2B sandbox...'})}\n\n"
+            executed = await run_workers(steps)
+            for step in executed:
+                yield f"event: step\ndata: {_json.dumps(step.__dict__)}\n\n"
+            yield f"event: phase\ndata: {_json.dumps({'phase': 'critic', 'message': 'Critic reviewing outputs...'})}\n\n"
+            final = await run_critic(input.task, plan, executed)
+            yield f"event: final\ndata: {_json.dumps({'final_answer': final, 'task': input.task, 'step_count': len(executed)})}\n\n"
+        except Exception as error:
+            yield f"event: error\ndata: {_json.dumps({'error': str(error)[:400]})}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"},
+    )
 
 
 @router.post("/chat", response_model=ChatResponse)

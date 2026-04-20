@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronRight, History, LogOut, Menu, Monitor, PlusCircle, Sparkles, UserCircle, Zap } from "lucide-react";
+import { ChevronRight, History, LogOut, Menu, Monitor, PlusCircle, Sparkles, UserCircle, Zap, Bot } from "lucide-react";
 
 const LABELS = { openai: "OpenAI", anthropic: "Claude", gemini: "Gemini", xai: "Grok" };
 
@@ -10,9 +10,10 @@ const LABELS = { openai: "OpenAI", anthropic: "Claude", gemini: "Gemini", xai: "
  *   - Previous Threads
  *   - Profile
  *   - Engine (inline — clicking expands a sub-menu of providers)
+ *   - Agent Swarm (opens the LangGraph+E2B orchestration panel)
  *   - Log Out
  */
-export const InspectorMenu = ({ activeProvider, activeModel, onLogOut, onNewThread, onOpenProfile, onOpenThreads, onSelectProvider, providerCatalog }) => {
+export const InspectorMenu = ({ activeProvider, activeModel, onLogOut, onNewThread, onOpenProfile, onOpenSwarm, onOpenThreads, onSelectProvider, providerCatalog }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [engineSubOpen, setEngineSubOpen] = useState(false);
   const ref = useRef(null);
@@ -126,6 +127,16 @@ export const InspectorMenu = ({ activeProvider, activeModel, onLogOut, onNewThre
               </div>
             ) : null}
           </div>
+          <button
+            className="inspector-menu-item"
+            data-testid="caos-inspector-menu-swarm"
+            onClick={pick(onOpenSwarm)}
+            type="button"
+          >
+            <Bot size={14} />
+            <span>Agent Swarm</span>
+            <em style={{ marginLeft: "auto", fontSize: 10, color: "rgba(167, 139, 250, 0.7)" }}>E2B</em>
+          </button>
           <div className="inspector-menu-divider" />
           <button
             className="inspector-menu-item inspector-menu-item-danger"

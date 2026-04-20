@@ -8,6 +8,7 @@ import { InspectorPanel } from "@/components/caos/InspectorPanel";
 import { MessagePane } from "@/components/caos/MessagePane";
 import { PreviousThreadsPanel } from "@/components/caos/PreviousThreadsPanel";
 import { ProfileDrawer } from "@/components/caos/ProfileDrawer";
+import { SwarmPanel } from "@/components/caos/SwarmPanel";
 import { SearchDrawer } from "@/components/caos/SearchDrawer";
 import { ShellHeader } from "@/components/caos/ShellHeader";
 import { ThreadRail } from "@/components/caos/ThreadRail";
@@ -25,6 +26,7 @@ export const CaosShell = () => {
   const [showInspector, setShowInspector] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showSwarm, setShowSwarm] = useState(false);
   const [showThreadExplorer, setShowThreadExplorer] = useState(false);
   const {
     artifacts,
@@ -166,6 +168,7 @@ export const CaosShell = () => {
         onLogOut={() => { window.location.reload(); }}
         onNewThread={() => { createSession("New Thread"); }}
         onOpenProfile={openProfile}
+        onOpenSwarm={() => setShowSwarm(true)}
         onOpenThreads={toggleThreads}
         onSelectProvider={updateRuntimeSelection}
         onToggleRail={() => setIsRailOpen((value) => !value)}
@@ -308,6 +311,10 @@ export const CaosShell = () => {
         onClose={() => setShowArtifacts(false)}
         onSaveLink={saveLink}
         onUploadFile={uploadFile}
+      />
+      <SwarmPanel
+        isOpen={showSwarm}
+        onClose={() => setShowSwarm(false)}
       />
     </main>
   );

@@ -61,6 +61,16 @@ Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergen
 - Live-transcript ribbon (breathing purple/blue) while mic records
 - Mic pulsing red ring while recording
 
+## Phase 4 — Agent Swarm v1 (Apr 20, 2026 — overnight)
+- **Backend** `/app/backend/app/services/swarm_service.py` (~140 lines): Supervisor (Claude Sonnet 4.5 → JSON plan) → Worker (E2B `Sandbox.create()` runs each step's Python, preserves state across steps, 45s timeout per step) → Critic (Claude Sonnet 4.5 reads stdout + writes final answer).
+- **Routes**: `POST /api/caos/swarm/run` (non-streaming) and `POST /api/caos/swarm/stream` (SSE: `phase` → `plan` → `step` × N → `final`).
+- **Frontend** `SwarmPanel.js` (~180 lines): modal with task input, Run button, live phase chips (Plan / Execute / Review / Done), rendered plan, per-step sandbox stdout/stderr, final answer card.
+- **Inspector menu** gained an "Agent Swarm · E2B" entry to open the panel.
+- Verified end-to-end: "Compute 7 factorial" → plan step → E2B prints `7! = 5040` → Critic writes "7! = 5040".
+
+## Auto-route to Gemini on image attach (Apr 20, 2026 — overnight)
+- `useCaosShell.sendMessage` now checks session attachments; if an image is present and the active provider isn't Gemini, it transparently overrides `provider=gemini` / `model=gemini-3-flash-preview` for that turn and surfaces a status toast. Keeps the user's default engine choice intact for non-image turns.
+
 ## UI Polish — Base44 Parity (Apr 20, 2026 — midnight)
 - **Auto-clearing status banner** — `MessagePane` and `Composer` both auto-dismiss transient status strings after 4s. No more "Read aloud is unavailable" or similar banners sticking around. Fade-out animation on the status chip.
 - **Message bubble visual match** — big solid violet-gradient user bubbles (right-aligned, asymmetric bottom-right corner, violet glow shadow); subtle dark AI bubbles with a purple avatar orb on the left; action chips restyled as pill buttons below each bubble.

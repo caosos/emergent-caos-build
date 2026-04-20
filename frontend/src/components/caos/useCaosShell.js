@@ -234,6 +234,17 @@ export const useCaosShell = () => {
         return;
       }
 
+      // Auto-route to Gemini when images are attached on Claude/GPT (Gemini is the
+      // only provider whose binary attachments are supported by emergentintegrations).
+      const sessionImages = files.filter((f) => f.session_id === session.session_id && (f.mime_type || "").startsWith("image/"));
+      let effectiveProvider = runtimeSettings.default_provider;
+      let effectiveModel = runtimeSettings.default_model;
+      if (sessionImages.length > 0 && effectiveProvider !== "gemini") {
+        effectiveProvider = "gemini";
+        effectiveModel = "gemini-3-flash-preview";
+        setStatus(`Auto-routed to Gemini so it can see your ${sessionImages.length} image${sessionImages.length === 1 ? "" : "s"}.`);
+      }
+
       // Multi-agent branch: fan out to Claude/OpenAI/Gemini + Synthesizer. Replace
       // the pending assistant bubble with a multi-agent group once all return.
       if (multiAgentMode) {
@@ -242,8 +253,8 @@ export const useCaosShell = () => {
             user_email: userEmail,
             session_id: session.session_id,
             content: trimmed,
-            provider: runtimeSettings.default_provider,
-            model: runtimeSettings.default_model,
+            provider: effectiveProvider,
+            model: effectiveModel,
           });
           setMessages((prev) => prev.map((message) => message.id === pendingAssistantId
             ? {
@@ -279,8 +290,8 @@ export const useCaosShell = () => {
           user_email: userEmail,
           session_id: session.session_id,
           content: trimmed,
-          provider: runtimeSettings.default_provider,
-          model: runtimeSettings.default_model,
+          provider: effectiveProvider,
+          model: effectiveModel,
         }),
       });
 
@@ -336,7 +347,7 @@ export const useCaosShell = () => {
     } finally {
       setBusy(false);
     }
-  }, [createSession, currentSession, loadArtifacts, loadContinuity, loadFiles, loadMessages, loadProfile, loadSessions, multiAgentMode, runtimeSettings.default_model, runtimeSettings.default_provider, userEmail]);
+  }, [createSession, currentSession, files, loadArtifacts, loadContinuity, loadFiles, loadMessages, loadProfile, loadSessions, multiAgentMode, runtimeSettings.default_model, runtimeSettings.default_provider, userEmail]);
 
   useEffect(() => {
     const hydrate = async () => {
