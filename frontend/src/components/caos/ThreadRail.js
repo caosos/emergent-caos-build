@@ -2,6 +2,14 @@ import { useMemo, useState } from "react";
 import { Clock3, FolderKanban, MessageSquareText, PanelLeftOpen, Sparkles, Wrench } from "lucide-react";
 
 import { RailAccountMenu } from "@/components/caos/RailAccountMenu";
+import { ThreadMiniMeter } from "@/components/caos/ThreadMiniMeter";
+
+
+const estimateSessionTokens = (session) => {
+  const previewLen = String(session?.last_message_preview || "").length;
+  const baseline = Math.max(0, session?.message_count || 0) * 180;
+  return Math.ceil((previewLen * 4 + baseline) / 4);
+};
 
 
 export const ThreadRail = ({ activeSurface, currentSessionId, isCollapsed, onFocusChat, onNewSession, onOpenArtifacts, onOpenInspector, onOpenProfile, onOpenSearch, onOpenThreads, onSelectSession, onToggleRail, profile, runtimeSettings, sessions, userEmail, wcwBudget, wcwUsed, wcwSent, wcwReceived }) => {
@@ -102,30 +110,41 @@ export const ThreadRail = ({ activeSurface, currentSessionId, isCollapsed, onFoc
               <span>No sessions yet</span>
             </div>
           ) : (
-            recentSessions.map((session) => (
-              <button
-                className={`thread-card ${currentSessionId === session.session_id ? "thread-card-active" : ""}`}
-                data-testid={`caos-thread-card-${session.session_id}`}
-                key={session.session_id}
-                onClick={() => onSelectSession(session)}
-              >
-                <div className="thread-card-topline">
-                  <strong data-testid={`caos-thread-title-${session.session_id}`}>{session.title}</strong>
-                  <div className="thread-card-topline-meta">
-                    {session.title_source === "auto" ? (
-                      <span className="thread-title-badge" data-testid={`caos-thread-title-badge-${session.session_id}`}>Auto</span>
-                    ) : null}
-                    <Clock3 size={14} />
+            recentSessions.map((session) => {
+              const isActive = currentSessionId === session.session_id;
+              const sessionTokens = isActive ? (wcwUsed || estimateSessionTokens(session)) : estimateSessionTokens(session);
+              return (
+                <button
+                  className={`thread-card ${isActive ? "thread-card-active" : ""}`}
+                  data-testid={`caos-thread-card-${session.session_id}`}
+                  key={session.session_id}
+                  onClick={() => onSelectSession(session)}
+                >
+                  <div className="thread-card-topline">
+                    <strong data-testid={`caos-thread-title-${session.session_id}`}>{session.title}</strong>
+                    <div className="thread-card-topline-meta">
+                      {session.title_source === "auto" ? (
+                        <span className="thread-title-badge" data-testid={`caos-thread-title-badge-${session.session_id}`}>Auto</span>
+                      ) : null}
+                      <Clock3 size={14} />
+                    </div>
                   </div>
-                </div>
-                <span className="thread-card-lane" data-testid={`caos-thread-lane-${session.session_id}`}>
-                  Lane · {session.lane || "general"}
-                </span>
-                <span data-testid={`caos-thread-preview-${session.session_id}`}>
-                  {session.last_message_preview || "No messages yet"}
-                </span>
-              </button>
-            ))
+                  <span className="thread-card-lane" data-testid={`caos-thread-lane-${session.session_id}`}>
+                    Lane · {session.lane || "general"}
+                  </span>
+                  <span data-testid={`caos-thread-preview-${session.session_id}`}>
+                    {session.last_message_preview || "No messages yet"}
+                  </span>
+                  <ThreadMiniMeter
+                    budget={wcwBudget}
+                    isEstimate={!isActive}
+                    provider={runtimeSettings?.default_provider}
+                    testId={`caos-thread-meter-${session.session_id}`}
+                    tokens={sessionTokens}
+                  />
+                </button>
+              );
+            })
           )}
         </div>
 

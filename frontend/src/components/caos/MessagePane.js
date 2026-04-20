@@ -1,6 +1,7 @@
 import { Copy, CornerDownLeft, FileSearch, ThumbsUp, Volume2 } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { LatencyIndicator } from "@/components/caos/LatencyIndicator";
 import { SelectionReactionPopover } from "@/components/caos/SelectionReactionPopover";
 
 
@@ -82,6 +83,9 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
                 <div className="message-bubble-topline">
                   <strong data-testid={`caos-message-role-${message.id}`}>{formatRole(message.role)}</strong>
                   <span data-testid={`caos-message-time-${message.id}`}>{formatTimestamp(message.timestamp)}</span>
+                  {message.role === "assistant" && linkedReceipt ? (
+                    <LatencyIndicator receipt={linkedReceipt} />
+                  ) : null}
                 </div>
                 <p data-testid={`caos-message-content-${message.id}`}>{message.content}</p>
                 <div className="message-actions-row" data-testid={`caos-message-actions-${message.id}`}>

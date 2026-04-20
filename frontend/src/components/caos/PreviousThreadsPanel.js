@@ -1,6 +1,8 @@
 import { Clock3, History, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { ThreadMiniMeter } from "@/components/caos/ThreadMiniMeter";
+
 
 export const PreviousThreadsPanel = ({ currentSessionId, isOpen, onClose, onSelectSession, sessions }) => {
   const [query, setQuery] = useState("");
@@ -56,6 +58,11 @@ export const PreviousThreadsPanel = ({ currentSessionId, isOpen, onClose, onSele
             </div>
             <span className="thread-card-lane" data-testid={`caos-previous-thread-lane-${session.session_id}`}>Lane · {session.lane || "general"}</span>
             <span data-testid={`caos-previous-thread-preview-${session.session_id}`}>{session.last_message_preview || "No messages yet"}</span>
+            <ThreadMiniMeter
+              isEstimate
+              testId={`caos-previous-thread-meter-${session.session_id}`}
+              tokens={Math.ceil((String(session?.last_message_preview || "").length * 4) / 4)}
+            />
           </button>
         ))}
       </div>
