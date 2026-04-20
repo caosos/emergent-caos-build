@@ -19,7 +19,7 @@ import "./caos-redesign-shell.css";
 import "./caos-base44-parity.css";
 
 
-export const CaosShell = () => {
+export const CaosShell = ({ authenticatedUser }) => {
   const [isRailOpen, setIsRailOpen] = useState(true);
   const [draft, setDraft] = useState("");
   const [showArtifacts, setShowArtifacts] = useState(false);
@@ -61,7 +61,7 @@ export const CaosShell = () => {
     updateProfile,
     updateVoiceSettings,
     voiceSettings,
-  } = useCaosShell();
+  } = useCaosShell(authenticatedUser);
   const latestReceipt = lastTurn?.receipt
     ? {
         ...(artifacts.receipts[0] || {}),

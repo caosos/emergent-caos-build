@@ -8,9 +8,12 @@ from datetime import datetime, timezone
 
 from app.config import settings
 from app.db import client, db
+from app.routes.auth import router as auth_router
 from app.routes.caos import router as caos_router
 from app.routes.memory_profile import router as memory_profile_router
 from app.routes.memory_workers import router as memory_workers_router
+from app.services.object_storage import init_storage
+from app.startup import ensure_indexes
 
 # Create the main app without a prefix
 app = FastAPI()
@@ -71,6 +74,7 @@ async def caos_contract():
 
 # Include the router in the main app
 app.include_router(api_router)
+app.include_router(auth_router, prefix="/api")
 app.include_router(caos_router, prefix="/api")
 app.include_router(memory_profile_router, prefix="/api")
 app.include_router(memory_workers_router, prefix="/api")
@@ -78,7 +82,11 @@ app.include_router(memory_workers_router, prefix="/api")
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=settings.cors_origins,
+    # Browsers reject `*` when allow_credentials=True. If the configured origins
+    # contain "*", we switch to `allow_origin_regex=".*"` which echoes the caller
+    # origin and keeps credentials working. Otherwise use the explicit list.
+    allow_origin_regex=".*" if "*" in settings.cors_origins else None,
+    allow_origins=[] if "*" in settings.cors_origins else settings.cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -89,6 +97,13 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+@app.on_event("startup")
+async def on_startup():
+    # Create MongoDB indexes (idempotent) + bootstrap Emergent object storage.
+    await ensure_indexes()
+    init_storage()
+
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

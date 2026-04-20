@@ -61,6 +61,36 @@ Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergen
 - Live-transcript ribbon (breathing purple/blue) while mic records
 - Mic pulsing red ring while recording
 
+## Security + Scale Hardening (Apr 20, 2026 — dawn)
+Tackled all 5 items from the Emergent team's code review.
+
+### 1. MongoDB Indexes (`app/startup.py`, wired into `on_startup`)
+- 14 compound indexes created on every hot collection: sessions(user_email, session_id), sessions(user_email, updated_at DESC), messages(session_id, timestamp), user_profiles(user_email UNIQUE), user_files(user_email, created_at DESC), user_files(user_email, session_id), receipts(session_id, created_at DESC), thread_summaries(session_id), context_seeds(session_id), global_info_entries(user_email, lane), user_sessions(session_token UNIQUE), user_sessions(user_id, expires_at), users(email UNIQUE), users(user_id UNIQUE).
+- Idempotent — safe on every boot.
+
+### 2. Emergent-managed Google OAuth (replaces client-supplied user_email)
+- New `auth_service.py` + `routes/auth.py` implementing the exact playbook flow:
+  - `POST /api/auth/process-session` — exchanges the one-time `session_id` from the URL fragment with Emergent's `oauth/session-data` endpoint, upserts `users`, records a 7-day `user_sessions` row, sets an httpOnly `samesite=none; secure` cookie.
+  - `GET /api/auth/me` — returns the current user or 401.
+  - `POST /api/auth/logout` — deletes the session + clears cookie.
+- `require_user` FastAPI dependency reads either the `session_token` cookie OR a `Bearer` header, validates against `user_sessions`, rejects expired sessions, returns the user dict.
+- **Every `/api/caos/*` route is now gated** via `dependencies=[Depends(require_user)]` on the router. Unauthenticated calls return 401.
+- `/files/upload` + `/files/link` + `/files/{id}/download` now use the authenticated user's identity instead of a client-supplied email, with owner-check on downloads (IDOR hardening).
+- **Frontend**: `AuthGate` probes `/auth/me` on boot, renders `LoginScreen` on 401 or `CaosShell` on 200. `LoginScreen` has a polished "Continue with Google" CTA. `AuthCallback` at `/auth/callback` processes the OAuth return and redirects to `/`. `axios.defaults.withCredentials = true` so cookies flow.
+- **Axios 401 interceptor** — if any `/api/caos/*` call 401s mid-use (expired session), auto-reloads `/` to show the login screen.
+
+### 3. Object Storage (replaces ephemeral `/app/backend/uploads/`)
+- New `services/object_storage.py` wraps Emergent's object-storage REST API. `init_storage()` runs at FastAPI startup, calls `POST /storage/init` with the Universal Key, caches the returned storage_key.
+- `file_storage.py` rewritten: `save_upload(file, user, session_id)` uploads bytes via `PUT /storage/objects/<path>` and returns the metadata dict. Gracefully falls back to local disk only if storage init failed.
+- Download route serves object-storage files via `GET /storage/objects/<path>` when `storage_backend == "emergent_objstore"`, falls through to local file response otherwise.
+- Files outlive pod restarts. Path scheme: `caos/uploads/<user_id>/<uuid>.<ext>`.
+
+### 4. CORS fix for cookie flow
+- Replaced `allow_origins=[*]` + `allow_credentials=true` (browser-illegal combo) with `allow_origin_regex=".*"` when env has `CORS_ORIGINS=*`, which echoes the caller origin and keeps credentials working. Explicit list honored when a real origin is configured.
+
+### 5. Frontend resilience
+- Low-level helpers (`load*`) already run inside try/catch wrappers at the caller level; remaining polish is the 401 interceptor above (single-point-of-truth for auth-expiry UX).
+
 ## Voice I/O Unblocked — Direct OpenAI Path (Apr 20, 2026 — late)
 - **Root cause confirmed:** Emergent audio proxy's upstream OpenAI key is invalid (HTTP 401 on whisper-1, 500 on tts-*).
 - **Fix:** User provided a direct `OPENAI_API_KEY` (`sk-proj-...`). Stored in `/app/backend/.env`.

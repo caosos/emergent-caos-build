@@ -23,8 +23,8 @@ const DEFAULT_VOICE = {
   tts_speed: 1.0,
 };
 
-export const useCaosShell = () => {
-  const [userEmail, setUserEmailState] = useState(() => localStorage.getItem(USER_KEY) || "michael@example.com");
+export const useCaosShell = (authenticatedUser = null) => {
+  const [userEmail, setUserEmailState] = useState(() => authenticatedUser?.email || "michael@example.com");
   const [sessions, setSessions] = useState([]);
   const [currentSession, setCurrentSession] = useState(null);
   const [messages, setMessages] = useState([]);

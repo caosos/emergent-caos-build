@@ -1041,3 +1041,47 @@
 
 .spin { animation: swarmSpin 0.9s linear infinite; }
 @keyframes swarmSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ---------------- Login Screen ---------------- */
+.login-shell {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(124, 58, 237, 0.18) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(99, 102, 241, 0.12) 0%, transparent 45%),
+    #0b1020;
+  padding: 24px;
+  color: #e2e8f0;
+}
+.login-card {
+  width: 100%; max-width: 420px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(147, 51, 234, 0.28);
+  border-radius: 20px;
+  padding: 36px 32px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(14px);
+  text-align: center;
+}
+.login-brand { margin-bottom: 18px; }
+.login-title {
+  margin: 0; font-size: 44px; letter-spacing: 6px;
+  background: linear-gradient(135deg, #a78bfa, #7c3aed);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  font-weight: 800;
+}
+.login-subtitle { margin: 6px 0 0; font-size: 12px; color: rgba(167, 139, 250, 0.75); letter-spacing: 1.6px; text-transform: uppercase; }
+.login-blurb { font-size: 14px; color: rgba(226, 232, 240, 0.75); line-height: 1.55; margin: 20px 0 28px; }
+.login-google-btn {
+  width: 100%;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 12px 16px; border-radius: 12px;
+  background: #ffffff; color: #1f2937;
+  border: none; font-size: 14.5px; font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.login-google-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45); }
+.login-footer { margin: 22px 0 0; font-size: 11px; color: rgba(148, 163, 184, 0.6); }

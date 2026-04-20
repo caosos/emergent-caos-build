@@ -2,7 +2,7 @@ from pathlib import Path
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
@@ -38,7 +38,7 @@ from app.schemas.caos import (
     UserProfileRecord,
     UserProfileUpsertRequest,
 )
-from app.services.file_storage import build_link_record, save_upload_to_disk
+from app.services.file_storage import build_link_record, save_upload, save_upload_to_disk
 from app.services.chat_pipeline import run_chat_turn
 from app.services.multi_agent import run_multi_agent_turn
 from app.services.swarm_service import run_supervisor, run_workers, run_critic, run_swarm
@@ -53,7 +53,9 @@ from app.services.thread_title_service import is_generic_session_title
 from app.services.voice_service import generate_tts_base64, transcribe_upload
 
 
-router = APIRouter(prefix="/caos", tags=["caos"])
+from app.services.auth_service import require_user
+
+router = APIRouter(prefix="/caos", tags=["caos"], dependencies=[Depends(require_user)])
 
 
 @router.post("/sessions", response_model=SessionRecord)
@@ -242,28 +244,42 @@ async def upload_file(
     user_email: str = Form(...),
     session_id: str | None = Form(default=None),
     file: UploadFile = File(...),
+    user: dict = Depends(require_user),
 ):
-    metadata = save_upload_to_disk(file, user_email, session_id)
+    # Use authenticated user's identity, not the client-supplied user_email (IDOR hardening).
+    metadata = await save_upload(file, user, session_id)
     metadata["url"] = f"/api/caos/files/{metadata['id']}/download"
     await collection("user_files").insert_one(metadata)
     return UserFileRecord(**metadata)
 
 
 @router.post("/files/link", response_model=UserFileRecord)
-async def save_link(input: LinkCreateRequest):
-    record = build_link_record(input.user_email, input.url, input.label, input.session_id)
+async def save_link(input: LinkCreateRequest, user: dict = Depends(require_user)):
+    record = build_link_record(user, input.url, input.label, input.session_id)
     await collection("user_files").insert_one(record)
     return UserFileRecord(**record)
 
 
 @router.get("/files/{file_id}/download")
-async def download_file(file_id: str):
+async def download_file(file_id: str, user: dict = Depends(require_user)):
     record = await collection("user_files").find_one({"id": file_id}, {"_id": 0})
     if not record:
         raise HTTPException(status_code=404, detail="File not found")
+    # Enforce owner access
+    if record.get("user_id") and record.get("user_id") != user["user_id"]:
+        raise HTTPException(status_code=403, detail="Not your file")
     if record.get("kind") == "link":
         raise HTTPException(status_code=400, detail="Links do not have downloadable files")
-    file_path = Path(record["storage_path"])
+    storage_path = record.get("storage_path", "")
+    if record.get("storage_backend") == "emergent_objstore":
+        from app.services.object_storage import get_object
+        from fastapi.responses import Response as FastResponse
+        try:
+            data, content_type = get_object(storage_path)
+        except Exception as error:
+            raise HTTPException(status_code=404, detail=f"Storage fetch failed: {str(error)[:160]}") from error
+        return FastResponse(content=data, media_type=record.get("mime_type") or content_type)
+    file_path = Path(storage_path)
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Stored file is missing")
     return FileResponse(path=file_path, media_type=record.get("mime_type"), filename=record.get("name"))
