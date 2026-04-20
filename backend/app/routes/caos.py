@@ -317,7 +317,7 @@ async def text_to_speech(input: TTSRequest):
 async def speech_to_text(
     file: UploadFile = File(...),
     user_email: str | None = Form(default=None),
-    model: str = Form(default="gpt-4o-transcribe"),
+    model: str = Form(default="whisper-1"),
     fallback_model: str = Form(default="whisper-1"),
     language: str | None = Form(default="en"),
     prompt: str | None = Form(default=None),

@@ -253,7 +253,26 @@
 /* ---------------- Hide legacy bits ---------------- */
 .command-footer-toolbar { display: none !important; }
 .caos-header .caos-header-route { display: none; }
-.composer-live-transcript { display: none; }
+
+/* Live transcript ribbon (visible while recording) */
+.composer-live-transcript {
+  display: block;
+  font-size: 13px; color: #e9d5ff; line-height: 1.4;
+  padding: 8px 14px; margin-top: 6px;
+  background: linear-gradient(90deg, rgba(147, 51, 234, 0.18), rgba(59, 130, 246, 0.12));
+  border: 1px solid rgba(147, 51, 234, 0.35);
+  border-radius: 12px;
+  animation: liveTranscriptPulse 2.2s ease-in-out infinite;
+}
+@keyframes liveTranscriptPulse {
+  0%, 100% { border-color: rgba(147, 51, 234, 0.35); }
+  50% { border-color: rgba(59, 130, 246, 0.55); }
+}
+.composer-live-status {
+  font-size: 10.5px; color: rgba(167, 243, 208, 0.75);
+  letter-spacing: 0.04em;
+  padding: 4px 14px 0;
+}
 
 /* Rail no longer duplicates the CAOS brand — identity lives only in header */
 .rail-topline .rail-brand { display: none; }

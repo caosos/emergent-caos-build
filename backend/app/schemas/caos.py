@@ -139,7 +139,7 @@ class RuntimeSettingsResponse(BaseModel):
 
 
 class VoicePreferences(BaseModel):
-    stt_primary_model: str = "gpt-4o-transcribe"
+    stt_primary_model: str = "whisper-1"
     stt_fallback_model: str = "whisper-1"
     stt_language: str = "en"
     tts_model: str = "tts-1-hd"
@@ -149,7 +149,7 @@ class VoicePreferences(BaseModel):
 
 class VoiceSettingsUpsertRequest(BaseModel):
     user_email: str
-    stt_primary_model: str = "gpt-4o-transcribe"
+    stt_primary_model: str = "whisper-1"
     stt_fallback_model: str = "whisper-1"
     stt_language: str = "en"
     tts_model: str = "tts-1-hd"

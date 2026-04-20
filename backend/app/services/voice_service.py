@@ -21,40 +21,45 @@ async def generate_tts_base64(text: str, voice: str = "nova", speed: float = 1.0
 
 async def transcribe_upload(
     file: UploadFile,
-    model: str = "gpt-4o-transcribe",
+    model: str = "whisper-1",
     fallback_model: str = "whisper-1",
     language: str | None = "en",
     prompt: str | None = None,
 ) -> dict:
+    # Emergent Universal Key only supports whisper-1 for STT. Any other model name
+    # is silently coerced to whisper-1 here (frontend may still request others).
+    # See: OPENAI_SPEECH_TO_TEXT_INTEGRATION_PLAYBOOK — only whisper-1 is available.
     suffix = Path(file.filename or "audio.webm").suffix or ".webm"
     with NamedTemporaryFile(delete=False, suffix=suffix) as temp:
         temp.write(await file.read())
         temp_path = temp.name
     try:
         stt = OpenAISpeechToText(api_key=os.environ["EMERGENT_LLM_KEY"])
-        attempted_models = [model]
-        if fallback_model and fallback_model != model:
-            attempted_models.append(fallback_model)
-        last_error = None
-        for candidate in attempted_models:
-            try:
+        safe_prompt = (prompt[:200] if prompt else None)
+        try:
+            with open(temp_path, "rb") as audio_fh:
                 result = await stt.transcribe(
-                    Path(temp_path),
-                    model=candidate,
+                    file=audio_fh,
+                    model="whisper-1",
                     response_format="json",
                     language=language or None,
-                    prompt=prompt[:200] if prompt else None,
+                    prompt=safe_prompt,
                     temperature=0.0,
                 )
-                text = getattr(result, "text", None) or result.get("text", "")
-                return {
-                    "text": text.strip(),
-                    "raw": result,
-                    "model_used": candidate,
-                    "fallback_used": candidate != model,
-                }
-            except Exception as error:
-                last_error = error
-        raise last_error
+            text = getattr(result, "text", None) or (result.get("text", "") if isinstance(result, dict) else "")
+            return {
+                "text": (text or "").strip(),
+                "model_used": "whisper-1",
+                "fallback_used": model != "whisper-1",
+            }
+        except Exception as error:
+            # Fail soft: surface an empty transcript with a diagnostic flag instead of 500.
+            # The mic button will still show an error toast, but the session continues.
+            return {
+                "text": "",
+                "model_used": "whisper-1",
+                "fallback_used": False,
+                "error": str(error)[:240],
+            }
     finally:
         Path(temp_path).unlink(missing_ok=True)

@@ -11,6 +11,7 @@ const LINE_HEIGHT = 22;
 export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onSend, onSpeak, onTranscribe, onTranscribeChunk, onUploadFile, status, voiceSettings }) => {
   const [recording, setRecording] = useState(false);
   const [liveStatus, setLiveStatus] = useState("");
+  const [liveTranscript, setLiveTranscript] = useState("");
   const recorderRef = useRef(null);
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
@@ -74,6 +75,7 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
     chunksRef.current = [];
     initialDraftRef.current = draft;
     liveTranscriptRef.current = "";
+    setLiveTranscript("");
     setLiveStatus(`Listening with ${voiceSettings.stt_primary_model}...`);
     setRecording(true);
     recorder.ondataavailable = async (event) => {
@@ -83,6 +85,7 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
         const response = await onTranscribeChunk(event.data, liveTranscriptRef.current || initialDraftRef.current);
         const merged = mergeLiveChunk(response.text || "");
         liveTranscriptRef.current = merged;
+        setLiveTranscript(merged);
         onDraftChange(joinDraft(initialDraftRef.current, merged));
         setLiveStatus(`Streaming with ${response.model_used}${response.fallback_used ? " (fallback)" : ""}`);
       } catch {
@@ -91,11 +94,17 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
     };
     recorder.onstop = async () => {
       const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
-      const response = await onTranscribe(blob);
-      const text = response.text || "";
-      liveTranscriptRef.current = text;
-      onDraftChange(joinDraft(initialDraftRef.current, text));
-      setLiveStatus("");
+      try {
+        const response = await onTranscribe(blob);
+        const text = response.text || liveTranscriptRef.current || "";
+        liveTranscriptRef.current = text;
+        setLiveTranscript(text);
+        onDraftChange(joinDraft(initialDraftRef.current, text));
+        setLiveStatus("");
+      } catch {
+        onDraftChange(joinDraft(initialDraftRef.current, liveTranscriptRef.current));
+        setLiveStatus("Transcription failed — using live stream capture.");
+      }
       setRecording(false);
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
@@ -148,6 +157,7 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
         </button>
       </div>
       {recording && liveStatus ? <div className="composer-live-status" data-testid="caos-composer-live-status">{liveStatus}</div> : null}
+      {recording && liveTranscript ? <div className="composer-live-transcript" data-testid="caos-composer-live-transcript">{liveTranscript}</div> : null}
       {showStatus ? <div className="composer-status" data-testid="caos-composer-status">{status}</div> : null}
     </form>
   );
