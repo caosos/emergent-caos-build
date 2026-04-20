@@ -39,6 +39,7 @@ from app.schemas.caos import (
 )
 from app.services.file_storage import build_link_record, save_upload_to_disk
 from app.services.chat_pipeline import run_chat_turn
+from app.services.multi_agent import run_multi_agent_turn
 from app.services.context_engine import (
     build_context_receipt,
     compress_history,
@@ -295,6 +296,22 @@ async def prepare_context(input: ContextPrepareRequest):
         stats=stats_payload,
         receipt=receipt,
     )
+
+
+@router.post("/chat/multi")
+async def chat_multi_agent(input: ChatRequest):
+    """Parallel multi-agent fan-out: same prompt → Claude + OpenAI + Gemini concurrently.
+
+    Each agent gets its own lane suffix so its turn is stored independently. Returns
+    a list of per-agent responses (reply + wcw + assistant_message_id).
+    """
+    try:
+        return await run_multi_agent_turn(input)
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except Exception as error:
+        print(f"CAOS multi-agent pipeline error: {error}")
+        raise HTTPException(status_code=500, detail="Multi-agent pipeline failed") from error
 
 
 @router.post("/chat", response_model=ChatResponse)

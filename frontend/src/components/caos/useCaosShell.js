@@ -36,7 +36,13 @@ export const useCaosShell = () => {
   const [status, setStatus] = useState("Loading CAOS shell...");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [multiAgentMode, setMultiAgentModeState] = useState(() => localStorage.getItem("caos_multi_agent_mode") === "true");
   const voiceSettings = profile?.voice_preferences || DEFAULT_VOICE;
+
+  const setMultiAgentMode = useCallback((value) => {
+    localStorage.setItem("caos_multi_agent_mode", String(value));
+    setMultiAgentModeState(value);
+  }, []);
 
   const commitUserEmail = useCallback((value) => {
     const nextValue = value.trim();
@@ -276,7 +282,42 @@ export const useCaosShell = () => {
         return;
       }
 
-      // Try SSE streaming first — progressively paint words into the placeholder.
+      // Multi-agent branch: fan out to Claude/OpenAI/Gemini in parallel. Replace the
+      // single pending assistant bubble with a multi-agent group once all agents return.
+      if (multiAgentMode) {
+        try {
+          const multiResponse = await axios.post(`${API}/caos/chat/multi`, {
+            user_email: userEmail,
+            session_id: session.session_id,
+            content: trimmed,
+            provider: runtimeSettings.default_provider,
+            model: runtimeSettings.default_model,
+          });
+          setMessages((prev) => prev.map((message) => message.id === pendingAssistantId
+            ? {
+                id: pendingAssistantId,
+                role: "assistant",
+                timestamp: now,
+                pending: false,
+                multi_agent: true,
+                agents: multiResponse.data.agents,
+                content: "",
+              }
+            : message));
+          const nextSessions = await loadSessions();
+          const refreshedSession = nextSessions.find((item) => item.session_id === session.session_id) || session;
+          setCurrentSession(refreshedSession);
+          await loadArtifacts(session.session_id);
+          await loadProfile();
+          setStatus(`Multi-agent · ${multiResponse.data.ok_count}/${multiResponse.data.agents.length} succeeded`);
+          return;
+        } catch (multiError) {
+          setMessages((prev) => prev.filter((m) => m.id !== pendingAssistantId));
+          throw multiError;
+        }
+      }
+
+      // Single-agent branch: try SSE streaming first — progressively paint words into the placeholder.
       // Any failure cleanly falls back to the POST /chat path.
       let finalPayload = null;
       const streamResponse = await fetch(`${API}/caos/chat/stream`, {
@@ -344,7 +385,7 @@ export const useCaosShell = () => {
     } finally {
       setBusy(false);
     }
-  }, [createSession, currentSession, loadArtifacts, loadContinuity, loadFiles, loadMessages, loadProfile, loadSessions, runtimeSettings.default_model, runtimeSettings.default_provider, userEmail]);
+  }, [createSession, currentSession, loadArtifacts, loadContinuity, loadFiles, loadMessages, loadProfile, loadSessions, multiAgentMode, runtimeSettings.default_model, runtimeSettings.default_provider, userEmail]);
 
   useEffect(() => {
     const hydrate = async () => {
@@ -492,12 +533,14 @@ export const useCaosShell = () => {
     files,
     lastTurn,
     messages,
+    multiAgentMode,
     profile,
     runtimeSettings,
     searchQuery,
     selectSession,
     sendMessage,
     sessions,
+    setMultiAgentMode,
     setSearchQuery,
     commitUserEmail,
     saveLink,

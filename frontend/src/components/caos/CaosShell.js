@@ -37,12 +37,14 @@ export const CaosShell = () => {
     filteredMessages,
     files,
     lastTurn,
+    multiAgentMode,
     searchQuery,
     saveLink,
     saveMemory,
     selectSession,
     sendMessage,
     sessions,
+    setMultiAgentMode,
     setSearchQuery,
     speakText,
     status,
@@ -239,6 +241,16 @@ export const CaosShell = () => {
                 onSelect={updateRuntimeSelection}
                 providerCatalog={runtimeSettings.provider_catalog}
               />
+              <button
+                className={`multi-agent-toggle-chip ${multiAgentMode ? "multi-agent-toggle-chip-active" : ""}`}
+                data-testid="caos-multi-agent-toggle-chip"
+                onClick={() => setMultiAgentMode(!multiAgentMode)}
+                title={multiAgentMode ? "Multi-Agent ON — fan out to Claude + OpenAI + Gemini" : "Click to enable Multi-Agent fan-out"}
+                type="button"
+              >
+                <span>Multi-Agent</span>
+                <strong data-testid="caos-multi-agent-toggle-state">{multiAgentMode ? "ON" : "OFF"}</strong>
+              </button>
             </div>
           ) : null}
           <Composer

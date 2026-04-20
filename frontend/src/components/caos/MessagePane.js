@@ -2,6 +2,7 @@ import { Copy, CornerDownLeft, FileSearch, ThumbsUp, Volume2 } from "lucide-reac
 import { useRef, useState } from "react";
 
 import { LatencyIndicator } from "@/components/caos/LatencyIndicator";
+import { MultiAgentMessageGroup } from "@/components/caos/MultiAgentMessageGroup";
 import { SelectionReactionPopover } from "@/components/caos/SelectionReactionPopover";
 
 
@@ -71,6 +72,16 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
           </div>
         ) : (
           messages.map((message) => {
+            if (message.multi_agent) {
+              return (
+                <MultiAgentMessageGroup
+                  agents={message.agents}
+                  key={message.id}
+                  onSpeak={onSpeak}
+                  timestamp={message.timestamp}
+                />
+              );
+            }
             const meta = messageMeta[message.id] || { reactions: [], replies: [], replyDraft: "", showReceipt: false, showReply: false };
             const linkedReceipt = receipts.find((receipt) => receipt.assistant_message_id === message.id);
             const isPending = message.pending === true;
