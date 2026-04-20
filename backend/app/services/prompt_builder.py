@@ -35,15 +35,38 @@ def _format_global_info(entries: list[dict]) -> str:
     return "\n".join(f"- {entry['snippet']}" for entry in entries)
 
 
+def _format_attachments(attachments: list[dict], provider_supports_vision: bool = False) -> str:
+    if not attachments:
+        return "No files have been attached to this thread."
+    lines = []
+    for item in attachments:
+        size_kb = max(1, int(item.get("size", 0) / 1024))
+        kind = item.get("kind", "file")
+        mime = item.get("mime_type", "application/octet-stream")
+        lines.append(f"- [{kind}] {item.get('name')} ({mime}, ~{size_kb}KB)")
+    hint = (
+        "These attachments are included as binary inputs below; inspect them directly."
+        if provider_supports_vision
+        else "NOTE: Binary contents of these files are NOT visible to you on this provider. "
+        "You can reference them by name/type. To let the AI see image/file contents, "
+        "the user should switch the engine to Gemini."
+    )
+    return "\n".join(lines) + "\n" + hint
+
+
 def build_prompt_sections(
     profile: UserProfileRecord,
     sanitized_history: list[MessageRecord],
     injected_memories: list[MemoryEntry],
     continuity_packet: dict,
     global_info_entries: list[dict] | None = None,
+    attachments: list[dict] | None = None,
+    provider: str | None = None,
 ) -> dict:
     personal_facts, structured_memory = _split_memories(injected_memories)
     global_entries = global_info_entries or []
+    attachment_items = attachments or []
+    provider_supports_vision = provider == "gemini"
     return {
         "preferred_name": profile.preferred_name or "the user",
         "environment_name": profile.environment_name,
@@ -52,6 +75,7 @@ def build_prompt_sections(
         "memory_block": _format_memories(injected_memories),
         "continuity_block": _format_continuity(continuity_packet),
         "global_info_block": _format_global_info(global_entries),
+        "attachments_block": _format_attachments(attachment_items, provider_supports_vision),
         "history_block": _format_history(sanitized_history),
         "rehydration_order": f"thread_history -> lane_continuity -> personal_facts -> structured_memory -> {'global_bin(reused)' if global_entries else 'global_bin(empty)'}",
     }
@@ -88,6 +112,9 @@ Structured memory:
 
 Global bin:
 {sections['global_info_block']}
+
+Attachments in this thread:
+{sections['attachments_block']}
 """.strip()
 
 

@@ -36,6 +36,8 @@ export const useVoiceIO = ({ userEmail, voiceSettings }) => {
     // Primary: OpenAI TTS via backend proxy. Fallback: browser speechSynthesis.
     // Backend TTS currently returns 500 at the Emergent proxy layer — fallback
     // keeps Read Aloud functional while the support ticket is open.
+    // On Linux/Chrome without speech-dispatcher, voices may be empty — we wait
+    // briefly for voiceschanged and then throw a specific, actionable error.
     try {
       const response = await axios.post(`${API}/caos/voice/tts`, {
         text,
@@ -47,14 +49,25 @@ export const useVoiceIO = ({ userEmail, voiceSettings }) => {
       await audio.play();
       return audio;
     } catch (error) {
-      if (typeof window !== "undefined" && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-        const utter = new SpeechSynthesisUtterance(text);
-        utter.rate = overrides.speed || voiceSettings.tts_speed || 1.0;
-        window.speechSynthesis.speak(utter);
-        return utter;
+      if (typeof window === "undefined" || !window.speechSynthesis) {
+        throw new Error("Your browser doesn't support speech synthesis");
       }
-      throw error;
+      let voices = window.speechSynthesis.getVoices();
+      if (!voices || voices.length === 0) {
+        await new Promise((resolve) => {
+          const timer = setTimeout(resolve, 500);
+          window.speechSynthesis.onvoiceschanged = () => { clearTimeout(timer); resolve(); };
+        });
+        voices = window.speechSynthesis.getVoices();
+      }
+      if (!voices || voices.length === 0) {
+        throw new Error("No TTS voices on this system. On Ubuntu: sudo apt install speech-dispatcher");
+      }
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.rate = overrides.speed || voiceSettings.tts_speed || 1.0;
+      window.speechSynthesis.speak(utter);
+      return utter;
     }
   }, [voiceSettings.tts_model, voiceSettings.tts_speed, voiceSettings.tts_voice]);
 

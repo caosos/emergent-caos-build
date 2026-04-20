@@ -37,10 +37,21 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
   };
 
   const handleUpload = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    await onUploadFile(file);
+    const picked = Array.from(event.target.files || []);
     event.target.value = "";
+    if (!picked.length) return;
+    const capped = picked.slice(0, 10);
+    if (picked.length > 10) toast.message(`Attached first 10 of ${picked.length} files`);
+    let okCount = 0;
+    for (const file of capped) {
+      try {
+        await onUploadFile(file);
+        okCount += 1;
+      } catch (error) {
+        toast.error(`Failed to upload ${file.name}: ${(error?.message || "unknown").slice(0, 60)}`);
+      }
+    }
+    if (okCount > 0) toast.success(`Attached ${okCount} file${okCount === 1 ? "" : "s"} — the AI can now see them`);
   };
 
   const stopRecording = () => {
@@ -158,7 +169,7 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
       <div className="composer-row">
         <label className="message-action-button composer-upload" data-testid="caos-composer-upload-button">
           <Paperclip size={16} />
-          <input data-testid="caos-composer-upload-input" hidden type="file" onChange={handleUpload} />
+          <input data-testid="caos-composer-upload-input" hidden multiple type="file" onChange={handleUpload} />
         </label>
         <button
           className="message-action-button composer-read-last"

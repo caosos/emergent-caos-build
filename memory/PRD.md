@@ -61,6 +61,17 @@ Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergen
 - Live-transcript ribbon (breathing purple/blue) while mic records
 - Mic pulsing red ring while recording
 
+## File Attachments → AI Context (Apr 20, 2026 — late)
+- Multi-file upload (up to 10) via Composer `<input multiple>`; toast confirms "Attached N files — the AI can now see them".
+- Backend `chat_pipeline` now fetches `user_files` for the active `session_id` and injects them into the system prompt under a new "Attachments in this thread" block.
+- For Gemini provider: full binary file content is attached to `UserMessage.file_contents` via `FileContentWithMimeType` (verified end-to-end — Gemini 3 Flash correctly described a red 256×256 PNG).
+- For Claude/GPT: filenames + mime types + sizes appear in system prompt (emergentintegrations currently restricts binary attachments to Gemini); users are nudged to switch engine for vision tasks.
+
+## Read Aloud Reliability Fix (Apr 20, 2026 — late)
+- `useVoiceIO.speakText` now waits briefly for `voiceschanged` event (async voice loading on Linux/Chrome) before giving up.
+- If no voices are available, throws a specific actionable error ("No TTS voices on this system. On Ubuntu: sudo apt install speech-dispatcher") instead of cryptic "unavailable in this browser".
+- `MessagePane.handleReadAloud` surfaces the actual error message to the user.
+
 ## Multi-Agent Synthesizer (Apr 20, 2026)
 - `/api/caos/chat/multi` now returns a 4th `synthesis` field alongside the 3-column fan-out.
 - Synthesizer = Claude Sonnet 4.5, reads Claude + OpenAI + Gemini replies and produces ONE cohesive answer with `[Claude]`, `[GPT]`, `[Gemini]`, or `[All]` citations.

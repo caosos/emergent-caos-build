@@ -43,9 +43,9 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
       setActionStatus("Read aloud started.");
       await onSpeak(message.content);
       setSpeakingId("");
-    } catch {
+    } catch (error) {
       setSpeakingId("");
-      setActionStatus("Read aloud is unavailable in this browser.");
+      setActionStatus(`Read aloud failed: ${(error?.message || "unknown").slice(0, 120)}`);
     }
   };
 

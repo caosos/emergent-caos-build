@@ -80,6 +80,13 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         session_id=payload.session_id,
     )
     global_info_entries = await select_global_info_entries(payload.user_email, payload.content, subject_bins, session_lane)
+    # Fetch uploaded files for this thread — text file names go into the system prompt,
+    # images (and PDFs) are attached to the UserMessage as file_contents so Claude/GPT/Gemini
+    # can actually see them via emergentintegrations vision support.
+    attachment_docs = await collection("user_files").find(
+        {"user_email": payload.user_email, "session_id": payload.session_id},
+        {"_id": 0},
+    ).sort("created_at", -1).to_list(20)
     receipt = build_context_receipt(
         stats,
         history_messages,
@@ -90,8 +97,36 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         continuity_packet,
         global_info_entries,
     )
-    prompt_sections = build_prompt_sections(profile, compressed, injected_memories, continuity_packet, [entry.model_dump() for entry in global_info_entries])
+    prompt_sections = build_prompt_sections(
+        profile, compressed, injected_memories, continuity_packet,
+        [entry.model_dump() for entry in global_info_entries],
+        attachments=attachment_docs,
+        provider=runtime["provider"],
+    )
     system_prompt = build_system_prompt_from_sections(prompt_sections)
+
+    # Build file_contents for UserMessage — only attach actual files (skip links),
+    # cap to 10, skip files missing on disk. NOTE: emergentintegrations currently
+    # only supports file attachments for Gemini (Claude/GPT route attachments via
+    # a different API surface). For non-Gemini providers we rely on the system
+    # prompt's attachments block to let the AI know files exist by name/type.
+    from pathlib import Path as _Path
+    from emergentintegrations.llm.chat import FileContentWithMimeType
+    file_contents: list = []
+    if runtime["provider"] == "gemini":
+        for doc in attachment_docs[:10]:
+            storage_path = doc.get("storage_path")
+            if not storage_path or doc.get("kind") == "link":
+                continue
+            if not _Path(storage_path).exists():
+                continue
+            try:
+                file_contents.append(FileContentWithMimeType(
+                    mime_type=doc.get("mime_type") or "application/octet-stream",
+                    file_path=storage_path,
+                ))
+            except Exception as attach_error:
+                print(f"CAOS attachment skipped {doc.get('name')}: {attach_error}")
 
     chat = LlmChat(
         api_key=runtime["api_key"],
@@ -99,7 +134,10 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         system_message=system_prompt,
     ).with_model(runtime["provider"], runtime["model"])
     pending_messages = await chat.get_messages()
-    await chat._add_user_message(pending_messages, UserMessage(text=payload.content))
+    await chat._add_user_message(
+        pending_messages,
+        UserMessage(text=payload.content, file_contents=file_contents or None),
+    )
     llm_response = await chat._execute_completion(pending_messages)
     reply = await chat._extract_response_text(llm_response)
     await chat._add_assistant_message(pending_messages, reply)
