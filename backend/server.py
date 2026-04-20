@@ -10,6 +10,7 @@ from app.config import settings
 from app.db import client, db
 from app.routes.auth import router as auth_router
 from app.routes.caos import router as caos_router
+from app.routes.health import router as health_router
 from app.routes.memory_profile import router as memory_profile_router
 from app.routes.memory_workers import router as memory_workers_router
 from app.services.object_storage import init_storage
@@ -75,6 +76,7 @@ async def caos_contract():
 # Include the router in the main app
 app.include_router(api_router)
 app.include_router(auth_router, prefix="/api")
+app.include_router(health_router, prefix="/api")
 app.include_router(caos_router, prefix="/api")
 app.include_router(memory_profile_router, prefix="/api")
 app.include_router(memory_workers_router, prefix="/api")

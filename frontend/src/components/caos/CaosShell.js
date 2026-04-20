@@ -162,10 +162,16 @@ export const CaosShell = ({ authenticatedUser }) => {
       <ShellHeader
         activeModel={runtimeSettings.default_model}
         activeProvider={runtimeSettings.default_provider}
+        authenticatedUser={authenticatedUser}
         currentSession={currentSession}
-        displayName={profile?.preferred_name || userEmail?.split("@")[0] || "Michael"}
+        displayName={profile?.preferred_name || authenticatedUser?.name || userEmail?.split("@")[0] || "Michael"}
         isRailOpen={isRailOpen}
-        onLogOut={() => { window.location.reload(); }}
+        onLogOut={async () => {
+          try {
+            await (await import("axios")).default.post(`${process.env.REACT_APP_BACKEND_URL}/api/auth/logout`, {}, { withCredentials: true });
+          } catch {}
+          window.location.replace("/");
+        }}
         onNewThread={() => { createSession("New Thread"); }}
         onOpenProfile={openProfile}
         onOpenSwarm={() => setShowSwarm(true)}

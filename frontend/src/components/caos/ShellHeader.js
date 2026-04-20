@@ -19,6 +19,7 @@ const formatTokens = (value) => {
 export const ShellHeader = ({
   activeProvider,
   activeModel,
+  authenticatedUser,
   currentSession,
   displayName,
   isRailOpen,
@@ -70,9 +71,13 @@ export const ShellHeader = ({
             type="button"
           >
             <span className="caos-header-identity-avatar" data-testid="caos-header-identity-avatar">
-              {(displayName || "M").trim().charAt(0).toUpperCase()}
+              {authenticatedUser?.picture ? (
+                <img src={authenticatedUser.picture} alt="" width="22" height="22" style={{ borderRadius: "50%", display: "block" }} />
+              ) : (
+                (displayName || "M").trim().charAt(0).toUpperCase()
+              )}
             </span>
-            <strong data-testid="caos-header-identity-name">{(displayName || "Michael").toUpperCase()}</strong>
+            <strong data-testid="caos-header-identity-name">{(authenticatedUser?.name || displayName || "Michael").toUpperCase()}</strong>
             <ChevronDown size={12} />
           </button>
           {showIdentity ? (
@@ -92,6 +97,19 @@ export const ShellHeader = ({
                 type="button"
               >
                 Previous Threads
+              </button>
+              {authenticatedUser?.email ? (
+                <div className="caos-header-identity-menu-email" data-testid="caos-header-identity-menu-email">
+                  {authenticatedUser.email}
+                </div>
+              ) : null}
+              <button
+                className="caos-header-identity-menu-item caos-header-identity-menu-signout"
+                data-testid="caos-header-identity-menu-signout"
+                onClick={() => { onLogOut?.(); setShowIdentity(false); }}
+                type="button"
+              >
+                Sign out
               </button>
             </div>
           ) : null}

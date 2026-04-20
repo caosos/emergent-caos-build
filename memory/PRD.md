@@ -61,6 +61,24 @@ Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergen
 - Live-transcript ribbon (breathing purple/blue) while mic records
 - Mic pulsing red ring while recording
 
+## Call-Prep Build (Apr 20, 2026 — afternoon)
+Four polish items ahead of tomorrow's Emergent partnership call.
+
+### Thought Stash ("+ Thought" button)
+- Composer now has a `+` button (between attach/read and mic). Click it (or Ctrl+Shift+Enter) to stash the current textarea content as a pending thought, clearing the box for the next one.
+- Stashed thoughts pile up in a purple card above the composer, numbered, with individual `×` removal + "Clear all". Persisted to localStorage so they survive page reloads.
+- Send concatenates all stashed thoughts + current draft into ONE compound message (joined with blank lines), clears both. User's stated need: "follow up and add to things you're thinking about instead of having to write it down and then later putting it in…"
+
+### Profile Chip + Sign Out
+- Top-right identity chip now shows `authenticatedUser.picture` (Google avatar) when available, falls back to initial letter.
+- Display name prefers `authenticatedUser.name` over localStorage guesses.
+- Identity dropdown adds an email subtitle + **Sign out** menu item. Sign-out POSTs `/api/auth/logout` (clears DB session + cookie) then redirects to `/`.
+
+### `/api/health` Dashboard Endpoint
+- Public (no auth) aggregated status check. Probes: Mongo collections, Emergent LLM proxy `/v1/models`, OpenAI voice key `/v1/models`, E2B + GitHub config, object storage, auth.
+- Response verified: `{"ok": true, "subsystems": {...}}` — all six green except GitHub (expected, no token yet).
+- Useful for (a) demo talking points, (b) a future status chip in the UI.
+
 ## Security + Scale Hardening (Apr 20, 2026 — dawn)
 Tackled all 5 items from the Emergent team's code review.
 

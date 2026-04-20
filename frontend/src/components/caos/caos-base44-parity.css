@@ -1085,3 +1085,62 @@
 }
 .login-google-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45); }
 .login-footer { margin: 22px 0 0; font-size: 11px; color: rgba(148, 163, 184, 0.6); }
+
+/* ---------------- Composer: Thought Stash ---------------- */
+.composer-thought-stash {
+  margin: 0 0 10px 0;
+  padding: 10px 12px;
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: 14px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.composer-thought-stash-header {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 10.5px; letter-spacing: 0.5px; text-transform: uppercase;
+  color: rgba(196, 181, 253, 0.85); margin-bottom: 2px;
+}
+.composer-thought-stash-clear {
+  background: transparent; border: none;
+  color: rgba(196, 181, 253, 0.55); cursor: pointer;
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 2px 4px;
+}
+.composer-thought-stash-clear:hover { color: #fca5a5; }
+.composer-thought-chip {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 7px 10px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+}
+.composer-thought-chip p {
+  margin: 0; flex: 1; color: rgba(237, 233, 254, 0.92);
+  font-size: 13px; line-height: 1.45; white-space: pre-wrap; word-break: break-word;
+}
+.composer-thought-chip-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px;
+  border-radius: 50%;
+  background: rgba(139, 92, 246, 0.35); color: #f5f3ff;
+  font-size: 10.5px; font-weight: 600;
+}
+.composer-thought-chip-remove {
+  background: transparent; border: none;
+  color: rgba(226, 232, 240, 0.5); cursor: pointer;
+  font-size: 16px; line-height: 1; padding: 0 4px;
+  align-self: center;
+}
+.composer-thought-chip-remove:hover { color: #fecaca; }
+
+/* ---------------- Identity menu: email display + sign out ---------------- */
+.caos-header-identity-menu-email {
+  padding: 8px 12px 4px;
+  font-size: 10.5px; letter-spacing: 0.3px;
+  color: rgba(148, 163, 184, 0.7);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: 4px;
+  word-break: break-all;
+}
+.caos-header-identity-menu-signout { color: #fca5a5; }
+.caos-header-identity-menu-signout:hover { background: rgba(239, 68, 68, 0.12); }

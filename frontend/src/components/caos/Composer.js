@@ -1,4 +1,4 @@
-import { Mic, Paperclip, SendHorizontal, Square, Volume2 } from "lucide-react";
+import { Mic, Paperclip, Plus, SendHorizontal, Square, Volume2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -14,12 +14,22 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
   const [liveStatus, setLiveStatus] = useState("");
   const [liveTranscript, setLiveTranscript] = useState("");
   const [transientStatus, setTransientStatus] = useState("");
+  const [thoughtStash, setThoughtStash] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("caos_thought_stash") || "[]"); }
+    catch { return []; }
+  });
   const recorderRef = useRef(null);
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
   const initialDraftRef = useRef("");
   const liveTranscriptRef = useRef("");
   const textareaRef = useRef(null);
+
+  // Persist the stash so thoughts survive reloads — the whole point is to
+  // not lose a half-formed idea while you walk away.
+  useEffect(() => {
+    localStorage.setItem("caos_thought_stash", JSON.stringify(thoughtStash));
+  }, [thoughtStash]);
 
   // Mirror the shell status into a transient local state that auto-clears
   // after 4s so banners never stick around longer than the user expects.
@@ -41,10 +51,28 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    if (!draft.trim() || busy) return;
-    onSend(draft);
+    if (busy) return;
+    // Combine stashed thoughts + current draft into one compound message.
+    const compound = [...thoughtStash.map((t) => t.text), draft].filter((s) => s.trim()).join("\n\n");
+    if (!compound.trim()) return;
+    onSend(compound);
     onDraftChange("");
+    setThoughtStash([]);
   };
+
+  const stashCurrentThought = () => {
+    const text = draft.trim();
+    if (!text) return;
+    setThoughtStash((prev) => [...prev, { id: Date.now(), text }]);
+    onDraftChange("");
+    textareaRef.current?.focus();
+  };
+
+  const removeThought = (id) => {
+    setThoughtStash((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const clearStash = () => setThoughtStash([]);
 
   const handleUpload = async (event) => {
     const picked = Array.from(event.target.files || []);
@@ -176,6 +204,32 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
 
   return (
     <form className="composer-shell" data-testid="caos-composer-shell" onSubmit={handleSubmit}>
+      {thoughtStash.length > 0 ? (
+        <div className="composer-thought-stash" data-testid="caos-composer-thought-stash">
+          <div className="composer-thought-stash-header">
+            <span>{thoughtStash.length} thought{thoughtStash.length === 1 ? "" : "s"} queued · send together</span>
+            <button
+              type="button"
+              data-testid="caos-composer-thought-stash-clear"
+              onClick={clearStash}
+              className="composer-thought-stash-clear"
+            >Clear</button>
+          </div>
+          {thoughtStash.map((thought, index) => (
+            <div key={thought.id} className="composer-thought-chip" data-testid={`caos-composer-thought-chip-${index}`}>
+              <span className="composer-thought-chip-num">{index + 1}</span>
+              <p>{thought.text}</p>
+              <button
+                type="button"
+                className="composer-thought-chip-remove"
+                data-testid={`caos-composer-thought-remove-${index}`}
+                onClick={() => removeThought(thought.id)}
+                aria-label="remove thought"
+              >×</button>
+            </div>
+          ))}
+        </div>
+      ) : null}
       <div className="composer-row">
         <label className="message-action-button composer-upload" data-testid="caos-composer-upload-button">
           <Paperclip size={16} />
@@ -190,6 +244,16 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
         >
           <Volume2 size={16} />
         </button>
+        <button
+          className="message-action-button composer-stash-btn"
+          data-testid="caos-composer-stash-button"
+          disabled={!draft.trim()}
+          onClick={stashCurrentThought}
+          title="Stash this thought and start another (Ctrl+Shift+Enter)"
+          type="button"
+        >
+          <Plus size={16} />
+        </button>
         <textarea
           data-testid="caos-composer-textarea"
           id="caos-draft"
@@ -199,6 +263,11 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
           value={draft}
           onChange={(event) => onDraftChange(event.target.value)}
           onKeyDown={(event) => {
+            if (event.key === "Enter" && event.ctrlKey && event.shiftKey) {
+              event.preventDefault();
+              stashCurrentThought();
+              return;
+            }
             if (event.key === "Enter" && !event.shiftKey) {
               event.preventDefault();
               handleSubmit(event);
@@ -208,7 +277,7 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
         <button className={`message-action-button composer-mic ${recording ? "composer-mic-recording" : ""}`} data-testid="caos-composer-mic-button" onClick={handleRecord} type="button">
           {recording ? <Square size={16} /> : <Mic size={16} />}
         </button>
-        <button className="primary-shell-button composer-send" data-testid="caos-composer-send-button" disabled={busy || !draft.trim()}>
+        <button className="primary-shell-button composer-send" data-testid="caos-composer-send-button" disabled={busy || (!draft.trim() && thoughtStash.length === 0)}>
           <SendHorizontal size={16} />
         </button>
       </div>
