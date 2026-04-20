@@ -102,6 +102,9 @@ class UserProfileUpsertRequest(BaseModel):
     preferred_name: str | None = None
     assistant_name: str = "Aria"
     environment_name: str = "CAOS"
+    date_of_birth: str | None = None
+    full_name: str | None = None
+    role: str | None = None
 
 
 class RuntimePreferences(BaseModel):
@@ -168,6 +171,9 @@ class UserProfileRecord(BaseModel):
     preferred_name: str | None = None
     assistant_name: str = "Aria"
     environment_name: str = "CAOS"
+    date_of_birth: str | None = None
+    full_name: str | None = None
+    role: str | None = None
     structured_memory: list[MemoryEntry] = Field(default_factory=list)
     runtime_preferences: RuntimePreferences = Field(default_factory=RuntimePreferences)
     voice_preferences: VoicePreferences = Field(default_factory=VoicePreferences)

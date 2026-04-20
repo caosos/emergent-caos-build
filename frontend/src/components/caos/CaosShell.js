@@ -54,6 +54,7 @@ export const CaosShell = () => {
     runtimeSettings,
     updateRuntimeSelection,
     updateMemory,
+    updateProfile,
     updateVoiceSettings,
     voiceSettings,
   } = useCaosShell();
@@ -271,11 +272,13 @@ export const CaosShell = () => {
         memoryCount={profile?.structured_memory?.length || 0}
         onClose={() => setShowProfile(false)}
         deleteMemory={deleteMemory}
+        onSpeak={speakText}
         profile={profile}
         runtimeSettings={runtimeSettings}
         saveMemory={saveMemory}
         sessionsCount={sessions.length}
         updateMemory={updateMemory}
+        updateProfile={updateProfile}
         updateVoiceSettings={updateVoiceSettings}
         userEmail={userEmail}
         voiceSettings={voiceSettings}

@@ -388,17 +388,27 @@ export const useCaosShell = () => {
     return response.data;
   }, [userEmail, voiceSettings.stt_fallback_model, voiceSettings.stt_language, voiceSettings.stt_primary_model]);
 
-  const speakText = useCallback(async (text) => {
+  const speakText = useCallback(async (text, overrides = {}) => {
     const response = await axios.post(`${API}/caos/voice/tts`, {
       text,
-      voice: voiceSettings.tts_voice,
-      model: voiceSettings.tts_model,
-      speed: voiceSettings.tts_speed,
+      voice: overrides.voice || voiceSettings.tts_voice,
+      model: overrides.model || voiceSettings.tts_model,
+      speed: overrides.speed || voiceSettings.tts_speed,
     });
     const audio = new Audio(`data:${response.data.content_type};base64,${response.data.audio_base64}`);
     await audio.play();
     return audio;
   }, [voiceSettings.tts_model, voiceSettings.tts_speed, voiceSettings.tts_voice]);
+
+  const updateProfile = useCallback(async (changes) => {
+    if (!userEmail) return null;
+    const response = await axios.post(`${API}/caos/profile/upsert`, {
+      user_email: userEmail,
+      ...changes,
+    });
+    await loadProfile();
+    return response.data;
+  }, [loadProfile, userEmail]);
 
   return {
     artifacts,
@@ -426,6 +436,7 @@ export const useCaosShell = () => {
     transcribeAudio,
     transcribeAudioChunk,
     updateMemory,
+    updateProfile,
     updateRuntimeSelection,
     updateVoiceSettings,
     uploadFile,

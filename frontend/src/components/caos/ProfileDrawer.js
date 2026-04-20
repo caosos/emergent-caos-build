@@ -1,231 +1,246 @@
-import { useState } from "react";
-import { UserRound, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Activity, AlertTriangle, Brain, Cake, Calendar, FileText, Gamepad2, Image as ImageIcon, Lock, Mail, Shield, Terminal, Trash2, Unlock, Volume2, X } from "lucide-react";
+import { toast } from "sonner";
 
+import { Switch } from "@/components/ui/switch";
 
-const STT_MODELS = [
-  { value: "gpt-4o-transcribe", label: "GPT-4o Transcribe" },
-  { value: "whisper-1", label: "Whisper-1" },
-];
-const TTS_VOICES = ["nova", "alloy", "verse"];
+import { ProfileFilesView } from "@/components/caos/ProfileFilesView";
+import { ProfileMemoryView } from "@/components/caos/ProfileMemoryView";
+import { VoiceSettings } from "@/components/caos/VoiceSettings";
 
+const formatDate = (value) => {
+  if (!value) return "Unknown";
+  try {
+    return new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  } catch { return "Unknown"; }
+};
 
-export const ProfileDrawer = ({ deleteMemory, isOpen, memoryCount, onClose, profile, runtimeSettings, saveMemory, sessionsCount, updateMemory, updateVoiceSettings, userEmail, voiceSettings }) => {
-  const [factDraft, setFactDraft] = useState("");
-  const [memoryDraft, setMemoryDraft] = useState("");
-  const memories = profile?.structured_memory || [];
-  const personalFacts = memories.filter((memory) => memory.bin_name === "personal_facts");
-  const otherMemories = memories.filter((memory) => memory.bin_name !== "personal_facts");
+const calculateAge = (dob) => {
+  if (!dob) return null;
+  try {
+    const birth = new Date(dob);
+    const diff = Date.now() - birth.getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+  } catch { return null; }
+};
+
+const LOCAL_KEYS = {
+  remember: "caos_remember_conversations",
+  gameMode: "caos_game_mode",
+  devMode: "caos_developer_mode",
+  multiAgent: "caos_multi_agent_mode",
+};
+
+export const ProfileDrawer = ({ deleteMemory, isOpen, memoryCount, onClose, onSpeak, profile, runtimeSettings, saveMemory, sessionsCount, updateMemory, updateProfile, updateVoiceSettings, userEmail, voiceSettings }) => {
+  const [activeView, setActiveView] = useState("profile");
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [memoryOpen, setMemoryOpen] = useState(false);
+  const [isEditingBirthday, setIsEditingBirthday] = useState(false);
+  const [birthday, setBirthday] = useState(profile?.date_of_birth || "");
+  const [toggles, setToggles] = useState({ remember: true, gameMode: false, devMode: false, multiAgent: false });
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setToggles({
+      remember: (localStorage.getItem(LOCAL_KEYS.remember) ?? "true") === "true",
+      gameMode: localStorage.getItem(LOCAL_KEYS.gameMode) === "true",
+      devMode: localStorage.getItem(LOCAL_KEYS.devMode) === "true",
+      multiAgent: localStorage.getItem(LOCAL_KEYS.multiAgent) === "true",
+    });
+    setBirthday(profile?.date_of_birth || "");
+    setActiveView("profile");
+  }, [isOpen, profile?.date_of_birth]);
 
   if (!isOpen) return null;
 
-  return (
-    <div className="drawer-overlay" data-testid="caos-profile-drawer-overlay">
-      <aside className="drawer-shell" data-testid="caos-profile-drawer">
-        <div className="drawer-header">
-          <div className="context-card-heading">
-            <UserRound size={16} />
-            <h2 data-testid="caos-profile-drawer-heading">Profile</h2>
-          </div>
-          <button className="drawer-close-button" data-testid="caos-profile-drawer-close-button" onClick={onClose}>
-            <X size={16} />
+  const isAdmin = profile?.role === "admin" || profile?.is_admin === true;
+  const displayName = profile?.preferred_name || profile?.full_name || userEmail?.split("@")[0] || "User";
+  const roleLabel = isAdmin ? "Admin" : "User";
+
+  const persistToggle = (key, value) => {
+    setToggles((state) => ({ ...state, [key]: value }));
+    localStorage.setItem(LOCAL_KEYS[key], String(value));
+    if (key === "remember") toast.success(value ? "Memory enabled" : "Memory paused");
+    if (key === "gameMode") toast.message(value ? "Game mode on" : "Game mode off");
+    if (key === "devMode") toast.message(value ? "Developer mode on" : "Developer mode off");
+    if (key === "multiAgent") toast.message(value ? "Multi-agent mode on" : "Multi-agent mode off");
+  };
+
+  const handleSaveBirthday = async () => {
+    if (!birthday) { setIsEditingBirthday(false); return; }
+    try {
+      await updateProfile?.({ date_of_birth: birthday });
+      toast.success("Birthday saved");
+      setIsEditingBirthday(false);
+    } catch (error) {
+      toast.error(`Save failed: ${(error?.message || "unknown").slice(0, 60)}`);
+    }
+  };
+
+  const renderHeader = () => (
+    <div className="drawer-header" data-testid="caos-profile-drawer-header">
+      <div className="context-card-heading">
+        {activeView !== "profile" ? (
+          <button className="drawer-back-button" data-testid="caos-profile-drawer-back" onClick={() => setActiveView("profile")} type="button">
+            <X size={14} />
           </button>
-        </div>
-
-        <div className="drawer-card" data-testid="caos-profile-user-card">
-          <span>Email</span>
-          <strong data-testid="caos-profile-email-value">{profile?.user_email || userEmail}</strong>
-        </div>
-        <div className="drawer-card" data-testid="caos-profile-environment-card">
-          <span>Environment</span>
-          <strong data-testid="caos-profile-environment-value">{profile?.environment_name || "CAOS"}</strong>
-        </div>
-        <div className="drawer-card" data-testid="caos-profile-assistant-card">
-          <span>Companion intelligence</span>
-          <strong data-testid="caos-profile-assistant-value">{profile?.assistant_name || "Aria"}</strong>
-        </div>
-        <div className="drawer-card" data-testid="caos-profile-session-count-card">
-          <span>Saved threads</span>
-          <strong data-testid="caos-profile-session-count-value">{sessionsCount}</strong>
-        </div>
-        <div className="drawer-card" data-testid="caos-profile-memory-count-card">
-          <span>Permanent memories</span>
-          <strong data-testid="caos-profile-memory-count-value">{memoryCount}</strong>
-        </div>
-        <div className="drawer-card" data-testid="caos-profile-runtime-card">
-          <span>Inference routing</span>
-          <strong data-testid="caos-profile-runtime-value">{runtimeSettings?.key_source || "hybrid"}</strong>
-        </div>
-        <div className="drawer-card" data-testid="caos-profile-provider-card">
-          <span>Active engine</span>
-          <strong data-testid="caos-profile-provider-value">{runtimeSettings?.default_provider || "openai"} · {runtimeSettings?.default_model || "gpt-5.2"}</strong>
-        </div>
-
-        <div className="drawer-section" data-testid="caos-profile-voice-settings-section">
-          <h3 data-testid="caos-profile-voice-settings-heading">Voice settings</h3>
-          <div className="drawer-card" data-testid="caos-profile-stt-card">
-            <span>Primary speech-to-text</span>
-            <strong data-testid="caos-profile-stt-primary-value">{voiceSettings?.stt_primary_model || "gpt-4o-transcribe"}</strong>
-            <div className="surface-button-row" data-testid="caos-profile-stt-model-row">
-              {STT_MODELS.map((model) => (
-                <button
-                  className={`message-action-button ${voiceSettings?.stt_primary_model === model.value ? "drawer-option-active" : ""}`}
-                  data-testid={`caos-profile-stt-model-${model.value}`}
-                  key={model.value}
-                  onClick={() => updateVoiceSettings({ stt_primary_model: model.value })}
-                  type="button"
-                >
-                  {model.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="drawer-card" data-testid="caos-profile-stt-fallback-card">
-            <span>Fallback speech-to-text</span>
-            <strong data-testid="caos-profile-stt-fallback-value">{voiceSettings?.stt_fallback_model || "whisper-1"}</strong>
-          </div>
-          <div className="drawer-card" data-testid="caos-profile-tts-card">
-            <span>Read-aloud voice</span>
-            <strong data-testid="caos-profile-tts-voice-value">{voiceSettings?.tts_voice || "nova"}</strong>
-            <div className="surface-button-row" data-testid="caos-profile-tts-voice-row">
-              {TTS_VOICES.map((voice) => (
-                <button
-                  className={`message-action-button ${voiceSettings?.tts_voice === voice ? "drawer-option-active" : ""}`}
-                  data-testid={`caos-profile-tts-voice-${voice}`}
-                  key={voice}
-                  onClick={() => updateVoiceSettings({ tts_voice: voice })}
-                  type="button"
-                >
-                  {voice}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="drawer-card" data-testid="caos-profile-voice-language-card">
-            <span>Input language</span>
-            <strong data-testid="caos-profile-voice-language-value">{voiceSettings?.stt_language || "en"}</strong>
-          </div>
-        </div>
-
-        <div className="drawer-section" data-testid="caos-profile-memory-controls-section">
-          <h3 data-testid="caos-profile-memory-controls-heading">Persistent memory controls</h3>
-          <div className="drawer-link-form">
-            <input
-              data-testid="caos-profile-personal-fact-input"
-              placeholder="Save a personal fact"
-              value={factDraft}
-              onChange={(event) => setFactDraft(event.target.value)}
-            />
-            <button
-              className="message-action-button"
-              data-testid="caos-profile-personal-fact-save-button"
-              onClick={() => {
-                saveMemory(factDraft, "personal_facts");
-                setFactDraft("");
-              }}
-              type="button"
-            >
-              Save fact
-            </button>
-          </div>
-          <div className="drawer-link-form">
-            <input
-              data-testid="caos-profile-memory-input"
-              placeholder="Save a working memory"
-              value={memoryDraft}
-              onChange={(event) => setMemoryDraft(event.target.value)}
-            />
-            <button
-              className="message-action-button"
-              data-testid="caos-profile-memory-save-button"
-              onClick={() => {
-                saveMemory(memoryDraft, "general");
-                setMemoryDraft("");
-              }}
-              type="button"
-            >
-              Save memory
-            </button>
-          </div>
-        </div>
-
-        <div className="drawer-section-block" data-testid="caos-profile-personal-facts-list">
-          <h3>Personal facts</h3>
-          {personalFacts.slice(0, 8).map((memory) => (
-            <div className="drawer-list-item drawer-list-item-rich" data-testid={`caos-profile-memory-${memory.id}`} key={memory.id}>
-              <strong>{memory.content}</strong>
-              <span>{(memory.tags || []).join(", ") || "personal_facts"}</span>
-              <div className="surface-button-row" data-testid={`caos-profile-memory-actions-${memory.id}`}>
-                <button
-                  className="message-action-button"
-                  data-testid={`caos-profile-memory-edit-${memory.id}`}
-                  onClick={() => {
-                    const nextValue = window.prompt("Edit memory", memory.content);
-                    if (nextValue && nextValue.trim()) updateMemory(memory.id, { content: nextValue.trim() });
-                  }}
-                  type="button"
-                >
-                  Edit
-                </button>
-                <button
-                  className="message-action-button"
-                  data-testid={`caos-profile-memory-demote-${memory.id}`}
-                  onClick={() => updateMemory(memory.id, { bin_name: "general" })}
-                  type="button"
-                >
-                  Move to memory
-                </button>
-                <button
-                  className="message-action-button"
-                  data-testid={`caos-profile-memory-delete-${memory.id}`}
-                  onClick={() => deleteMemory(memory.id)}
-                  type="button"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="drawer-section-block" data-testid="caos-profile-working-memory-list">
-          <h3>Working memory</h3>
-          {otherMemories.slice(0, 8).map((memory) => (
-            <div className="drawer-list-item drawer-list-item-rich" data-testid={`caos-profile-working-memory-${memory.id}`} key={memory.id}>
-              <strong>{memory.content}</strong>
-              <span>{memory.bin_name || "general"}</span>
-              <div className="surface-button-row" data-testid={`caos-profile-working-memory-actions-${memory.id}`}>
-                <button
-                  className="message-action-button"
-                  data-testid={`caos-profile-working-memory-edit-${memory.id}`}
-                  onClick={() => {
-                    const nextValue = window.prompt("Edit memory", memory.content);
-                    if (nextValue && nextValue.trim()) updateMemory(memory.id, { content: nextValue.trim() });
-                  }}
-                  type="button"
-                >
-                  Edit
-                </button>
-                <button
-                  className="message-action-button"
-                  data-testid={`caos-profile-working-memory-promote-${memory.id}`}
-                  onClick={() => updateMemory(memory.id, { bin_name: "personal_facts" })}
-                  type="button"
-                >
-                  Promote to fact
-                </button>
-                <button
-                  className="message-action-button"
-                  data-testid={`caos-profile-working-memory-delete-${memory.id}`}
-                  onClick={() => deleteMemory(memory.id)}
-                  type="button"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </aside>
+        ) : null}
+        <h2 data-testid="caos-profile-drawer-heading" style={{ textTransform: "capitalize" }}>
+          {activeView === "profile" ? "Profile" : activeView}
+        </h2>
+      </div>
+      <button className="drawer-close-button" data-testid="caos-profile-drawer-close-button" onClick={onClose} type="button">
+        <X size={16} />
+      </button>
     </div>
+  );
+
+  const renderProfileBody = () => (
+    <div className="profile-drawer-body" data-testid="caos-profile-drawer-body">
+      <div className="profile-avatar-block" data-testid="caos-profile-avatar-block">
+        <div className="profile-avatar-circle" data-testid="caos-profile-avatar-circle">{displayName.charAt(0).toUpperCase()}</div>
+        <strong data-testid="caos-profile-display-name">{displayName}</strong>
+        <span data-testid="caos-profile-role-chip" className={`profile-role-chip ${isAdmin ? "profile-role-chip-admin" : ""}`}>{roleLabel}</span>
+      </div>
+
+      <div className="profile-tab-row" data-testid="caos-profile-tab-row">
+        <button className="profile-tab-btn profile-tab-btn-files" data-testid="caos-profile-tab-files" onClick={() => setActiveView("files")} type="button">
+          <FileText size={14} /><span>Files</span>
+        </button>
+        <button className="profile-tab-btn profile-tab-btn-photos" data-testid="caos-profile-tab-photos" onClick={() => setActiveView("photos")} type="button">
+          <ImageIcon size={14} /><span>Photos</span>
+        </button>
+        <button className="profile-tab-btn profile-tab-btn-links" data-testid="caos-profile-tab-links" onClick={() => setActiveView("links")} type="button">
+          <FileText size={14} /><span>Links</span>
+        </button>
+      </div>
+
+      <div className="profile-info-block" data-testid="caos-profile-info-block">
+        <div className="profile-info-row" data-testid="caos-profile-email-row">
+          <Mail size={14} className="profile-info-icon profile-info-icon-blue" />
+          <div><span>Email</span><strong data-testid="caos-profile-email-value">{profile?.user_email || userEmail || "—"}</strong></div>
+        </div>
+        <div className="profile-info-row" data-testid="caos-profile-member-row">
+          <Calendar size={14} className="profile-info-icon profile-info-icon-blue" />
+          <div><span>Member since</span><strong data-testid="caos-profile-member-value">{formatDate(profile?.created_date || profile?.created_at)}</strong></div>
+        </div>
+        <div className="profile-info-row" data-testid="caos-profile-role-row">
+          <Shield size={14} className="profile-info-icon profile-info-icon-blue" />
+          <div><span>Role</span><strong data-testid="caos-profile-role-value">{roleLabel}</strong></div>
+        </div>
+        <div className="profile-info-row profile-info-row-birthday" data-testid="caos-profile-birthday-row">
+          <Cake size={14} className="profile-info-icon profile-info-icon-blue" />
+          <div>
+            <span>Birthday</span>
+            {!isEditingBirthday ? (
+              <div className="profile-birthday-readonly">
+                <strong data-testid="caos-profile-birthday-value">
+                  {profile?.date_of_birth
+                    ? `${formatDate(profile.date_of_birth)} (${calculateAge(profile.date_of_birth)})`
+                    : "Not set"}
+                </strong>
+                <button className="profile-birthday-edit" data-testid="caos-profile-birthday-edit" onClick={() => setIsEditingBirthday(true)} type="button">
+                  {profile?.date_of_birth ? "Edit" : "Add"}
+                </button>
+              </div>
+            ) : (
+              <div className="profile-birthday-editor">
+                <input
+                  className="profile-birthday-input"
+                  data-testid="caos-profile-birthday-input"
+                  onChange={(event) => setBirthday(event.target.value)}
+                  type="date"
+                  value={birthday}
+                />
+                <button className="profile-birthday-save" data-testid="caos-profile-birthday-save" onClick={handleSaveBirthday} type="button">Save</button>
+                <button className="profile-birthday-cancel" data-testid="caos-profile-birthday-cancel" onClick={() => { setIsEditingBirthday(false); setBirthday(profile?.date_of_birth || ""); }} type="button">Cancel</button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <button className="profile-link-row" data-testid="caos-profile-memory-link" onClick={() => setMemoryOpen(true)} type="button">
+          <Brain size={14} className="profile-info-icon profile-info-icon-blue" />
+          <div><span>Permanent Memories</span><strong data-testid="caos-profile-memory-count">{memoryCount} saved · View & edit</strong></div>
+          <span className="profile-link-arrow">→</span>
+        </button>
+
+        <div className="profile-toggle-row" data-testid="caos-profile-toggle-remember">
+          <Brain size={14} className="profile-info-icon profile-info-icon-green" />
+          <div><span>Remember Conversations</span><strong>{toggles.remember ? "Enabled" : "Paused"}</strong></div>
+          <Switch checked={toggles.remember} data-testid="caos-profile-toggle-remember-switch" onCheckedChange={(value) => persistToggle("remember", value)} />
+        </div>
+
+        <div className="profile-toggle-row profile-toggle-row-game" data-testid="caos-profile-toggle-game">
+          <Gamepad2 size={14} className="profile-info-icon profile-info-icon-purple" />
+          <div><span>Game Mode</span><strong>{isAdmin ? "Admin access" : toggles.gameMode ? "Unlocked" : "Earn tokens to unlock"}</strong></div>
+          {toggles.gameMode || isAdmin ? <Unlock size={14} className="profile-toggle-lock-unlocked" /> : <Lock size={14} className="profile-toggle-lock-locked" />}
+          <Switch checked={toggles.gameMode} data-testid="caos-profile-toggle-game-switch" onCheckedChange={(value) => persistToggle("gameMode", value)} />
+        </div>
+
+        {isAdmin ? (
+          <>
+            <div className="profile-toggle-row" data-testid="caos-profile-toggle-dev">
+              <Terminal size={14} className="profile-info-icon profile-info-icon-blue" />
+              <div><span>Developer Mode</span><strong>Split-screen</strong></div>
+              <Switch checked={toggles.devMode} data-testid="caos-profile-toggle-dev-switch" onCheckedChange={(value) => persistToggle("devMode", value)} />
+            </div>
+            <div className="profile-toggle-row" data-testid="caos-profile-toggle-multi">
+              <Shield size={14} className="profile-info-icon profile-info-icon-purple" />
+              <div><span>Multi-Agent Mode</span><strong>Collaboration</strong></div>
+              <Switch checked={toggles.multiAgent} data-testid="caos-profile-toggle-multi-switch" onCheckedChange={(value) => persistToggle("multiAgent", value)} />
+            </div>
+            <button className="profile-link-row profile-link-row-console" data-testid="caos-profile-console-link" onClick={() => toast.message("System Console — coming in Phase 4 (OS Layer)")} type="button">
+              <Activity size={14} className="profile-info-icon profile-info-icon-cyan" />
+              <div><span>System Console</span><strong>Monitor metrics</strong></div>
+            </button>
+          </>
+        ) : null}
+
+        <button className="profile-voice-row" data-testid="caos-profile-voice-link" onClick={() => setVoiceOpen(true)} type="button">
+          <Volume2 size={14} className="profile-info-icon profile-info-icon-purple" />
+          <div><span>Voice & Speech</span><strong>{voiceSettings?.tts_voice || "nova"} · {(voiceSettings?.tts_speed || 1.0).toFixed(2)}×</strong></div>
+          <span className="profile-link-arrow">→</span>
+        </button>
+
+        <button
+          className="profile-danger-row"
+          data-testid="caos-profile-delete-account"
+          onClick={() => toast.error("Account deletion not wired yet — contact admin to remove.")}
+          type="button"
+        >
+          <Trash2 size={14} /><span>Delete Account</span>
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <div className="drawer-overlay" data-testid="caos-profile-drawer-overlay" onClick={onClose}>
+        <aside className="drawer-shell" data-testid="caos-profile-drawer" onClick={(event) => event.stopPropagation()}>
+          {renderHeader()}
+          {activeView === "profile" ? renderProfileBody() : null}
+          {activeView === "files" || activeView === "photos" || activeView === "links" ? (
+            <ProfileFilesView kind={activeView} profile={profile} userEmail={userEmail} />
+          ) : null}
+        </aside>
+      </div>
+      <VoiceSettings
+        isOpen={voiceOpen}
+        onClose={() => setVoiceOpen(false)}
+        onSave={updateVoiceSettings}
+        onSpeak={onSpeak}
+        voiceSettings={voiceSettings}
+      />
+      <ProfileMemoryView
+        deleteMemory={deleteMemory}
+        isOpen={memoryOpen}
+        memories={profile?.structured_memory || []}
+        onClose={() => setMemoryOpen(false)}
+        saveMemory={saveMemory}
+        updateMemory={updateMemory}
+      />
+    </>
   );
 };
