@@ -20,7 +20,7 @@ export const InspectorPanel = ({ continuity, isOpen, latestReceipt, memorySurfac
       <section className="inspector-card" data-testid="caos-inspector-receipt-card">
         <div className="context-card-heading">
           <Brain size={16} />
-          <h2 data-testid="caos-inspector-receipt-heading">Why this reply fits</h2>
+          <h2 data-testid="caos-inspector-receipt-heading">Context Diagnostics</h2>
         </div>
         <div className="context-metric-grid" data-testid="caos-inspector-receipt-grid">
           <div className="context-metric" data-testid="caos-inspector-receipt-reduction">

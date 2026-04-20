@@ -1,19 +1,31 @@
 import { Mic, Paperclip, SendHorizontal, Square, Volume2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 
 const joinDraft = (base, addition) => [base, addition].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+const MIN_ROWS = 1;
+const MAX_ROWS = 6;
+const LINE_HEIGHT = 22;
 
 
 export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onSend, onSpeak, onTranscribe, onTranscribeChunk, onUploadFile, status, voiceSettings }) => {
   const [recording, setRecording] = useState(false);
   const [liveStatus, setLiveStatus] = useState("");
-  const [liveTranscript, setLiveTranscript] = useState("");
   const recorderRef = useRef(null);
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
   const initialDraftRef = useRef("");
   const liveTranscriptRef = useRef("");
+  const textareaRef = useRef(null);
+
+  useEffect(() => {
+    const node = textareaRef.current;
+    if (!node) return;
+    node.style.height = "auto";
+    const next = Math.min(MAX_ROWS * LINE_HEIGHT, Math.max(MIN_ROWS * LINE_HEIGHT, node.scrollHeight));
+    node.style.height = `${next}px`;
+    node.style.overflowY = node.scrollHeight > MAX_ROWS * LINE_HEIGHT ? "auto" : "hidden";
+  }, [draft]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -62,7 +74,6 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
     chunksRef.current = [];
     initialDraftRef.current = draft;
     liveTranscriptRef.current = "";
-    setLiveTranscript("");
     setLiveStatus(`Listening with ${voiceSettings.stt_primary_model}...`);
     setRecording(true);
     recorder.ondataavailable = async (event) => {
@@ -72,7 +83,6 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
         const response = await onTranscribeChunk(event.data, liveTranscriptRef.current || initialDraftRef.current);
         const merged = mergeLiveChunk(response.text || "");
         liveTranscriptRef.current = merged;
-        setLiveTranscript(merged);
         onDraftChange(joinDraft(initialDraftRef.current, merged));
         setLiveStatus(`Streaming with ${response.model_used}${response.fallback_used ? " (fallback)" : ""}`);
       } catch {
@@ -84,9 +94,8 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
       const response = await onTranscribe(blob);
       const text = response.text || "";
       liveTranscriptRef.current = text;
-      setLiveTranscript(text);
       onDraftChange(joinDraft(initialDraftRef.current, text));
-      setLiveStatus(`Transcript ready via ${response.model_used}${response.fallback_used ? " (fallback)" : ""}`);
+      setLiveStatus("");
       setRecording(false);
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
@@ -120,9 +129,16 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
           data-testid="caos-composer-textarea"
           id="caos-draft"
           placeholder="Ask anything... and switch models mid chat with no problem!"
-          rows={4}
+          ref={textareaRef}
+          rows={MIN_ROWS}
           value={draft}
           onChange={(event) => onDraftChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              handleSubmit(event);
+            }
+          }}
         />
         <button className="message-action-button composer-mic" data-testid="caos-composer-mic-button" onClick={handleRecord} type="button">
           {recording ? <Square size={16} /> : <Mic size={16} />}
@@ -131,8 +147,7 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
           <SendHorizontal size={16} />
         </button>
       </div>
-      {liveStatus ? <div className="composer-live-status" data-testid="caos-composer-live-status">{liveStatus}</div> : null}
-      {liveTranscript ? <div className="composer-live-transcript" data-testid="caos-composer-live-transcript">{liveTranscript}</div> : null}
+      {recording && liveStatus ? <div className="composer-live-status" data-testid="caos-composer-live-status">{liveStatus}</div> : null}
       {showStatus ? <div className="composer-status" data-testid="caos-composer-status">{status}</div> : null}
     </form>
   );

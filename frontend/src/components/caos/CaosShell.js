@@ -3,19 +3,19 @@ import { AlertTriangle } from "lucide-react";
 
 import { ArtifactsDrawer } from "@/components/caos/ArtifactsDrawer";
 import { Composer } from "@/components/caos/Composer";
+import { EngineChip } from "@/components/caos/EngineChip";
 import { InspectorPanel } from "@/components/caos/InspectorPanel";
 import { MessagePane } from "@/components/caos/MessagePane";
-import { ModelBar } from "@/components/caos/ModelBar";
 import { PreviousThreadsPanel } from "@/components/caos/PreviousThreadsPanel";
 import { ProfileDrawer } from "@/components/caos/ProfileDrawer";
 import { SearchDrawer } from "@/components/caos/SearchDrawer";
 import { ShellHeader } from "@/components/caos/ShellHeader";
 import { ThreadRail } from "@/components/caos/ThreadRail";
 import { WelcomeHero } from "@/components/caos/WelcomeHero";
-import { WorkingContextStrip } from "@/components/caos/WorkingContextStrip";
 import { useCaosShell } from "@/components/caos/useCaosShell";
 import "./caos-redesign.css";
 import "./caos-redesign-shell.css";
+import "./caos-base44-parity.css";
 
 
 export const CaosShell = () => {
@@ -155,12 +155,15 @@ export const CaosShell = () => {
   return (
     <main className={`caos-shell-root ${isRailOpen ? "caos-shell-rail-open" : "caos-shell-rail-closed"}`} data-testid="caos-shell-root">
       <ShellHeader
-        activeSurface={activeSurface}
         currentSession={currentSession}
+        displayName={profile?.preferred_name || userEmail?.split("@")[0] || "Michael"}
         isRailOpen={isRailOpen}
+        onOpenProfile={openProfile}
         onOpenThreads={toggleThreads}
         onToggleRail={() => setIsRailOpen((value) => !value)}
         onToggleSearch={openSearch}
+        wcwBudget={latestReceipt?.wcw_budget || lastTurn?.wcw_budget || 200000}
+        wcwUsed={latestReceipt?.active_context_tokens || lastTurn?.wcw_used_estimate || 0}
       />
 
       <div className="caos-shell-grid caos-shell-grid-layout" data-testid="caos-shell-grid">
@@ -195,12 +198,7 @@ export const CaosShell = () => {
             </div>
           ) : null}
 
-          {!showWelcome ? (
-            <WorkingContextStrip
-              receipt={workingContextReceipt}
-              wcwBudget={workingContextReceipt?.wcw_budget || lastTurn?.wcw_budget || 200000}
-            />
-          ) : null}
+          {!showWelcome ? null : null}
 
           {showWelcome ? (
             <WelcomeHero onCardAction={handleWelcomeAction} />
@@ -227,11 +225,10 @@ export const CaosShell = () => {
       <div className="command-footer" data-testid="caos-command-footer">
         <div className="command-footer-inner" data-testid="caos-command-footer-inner">
           {showCommandToolbar ? (
-            <div className="command-footer-toolbar" data-testid="caos-command-footer-toolbar">
-              <ModelBar
+            <div className="command-footer-engine" data-testid="caos-command-footer-engine">
+              <EngineChip
                 activeModel={runtimeSettings.default_model}
                 activeProvider={runtimeSettings.default_provider}
-                keySource={runtimeSettings.key_source}
                 onSelect={updateRuntimeSelection}
                 providerCatalog={runtimeSettings.provider_catalog}
               />

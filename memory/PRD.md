@@ -1,91 +1,81 @@
-# CAOS Replatform PRD
+# CAOS — Emergent Replatform PRD
 
 ## Original Problem Statement
-Replatform CAOS away from the Base44/Deno serverless environment into a normal full-stack architecture with a Python FastAPI backend and React/Next-style frontend. The active goals are preserving CAOS continuity/memory, replacing monoliths with modular services, and moving the shell closer to the real CAOS layout: persistent app sidebar, open canvas, high-fidelity menus, files/photos/links, richer bubble controls, artifacts, lineage, and voice/file behaviors on top of the Python backend.
+Port Base44 CAOS (serverless, Deno + Base44 entities) to a clean full-stack React + FastAPI + MongoDB architecture on Emergent. Preserve all behaviors, governance, and UX clarity from the Base44 live build. Aria = persona, CAOS = platform.
 
-## Architecture Decisions
-- Backend runtime: FastAPI (Python) with MongoDB in this workspace.
-- Canonical isolation boundary: `session_id`.
-- Canonical context pipeline: ingest -> sanitize -> compress -> retrieve -> inject -> receipt.
-- Working Context Window (WCW) is a contract surface and must ultimately be derived from actual token usage inside the active session so hydration/sanitization effectiveness can be measured honestly.
-- Artifact model now includes receipts, thread summaries, context seeds, user files/links, and lineage fields across receipts/summaries/seeds.
-- LLM runtime for chat and voice: OpenAI services via the Emergent universal key (`gpt-5.2`, `tts-1-hd`, `whisper-1`).
-- Frontend migration path: CAOS shell with persistent app-style sidebar, open center canvas, live chat pane, composer, thread search drawer, WCW meter, receipt/continuity cards, profile drawer, files/artifacts drawer, and richer bubble controls.
+## Authoritative Contracts (binding)
+- **System Blueprint v2** — governance invariants (sections 0–20)
+- **TSB Log Part 1+2** — TSB-001 through TSB-061
+- **File size**: 200 preferred / 400 hard max
+- **GOV v1.2 Amendment A**: ≥300-line files get extractions, not inline growth
+- **Aria ≠ CAOS**: authority domain separation (Section 0.8)
+- **Pull-only awareness**: no polling, no silent writes (Section 0.9)
+- **Build → Test → Lock**
+- **Edit tracking**: `Changed: <file> +N lines` after every modifying response
 
-## What's Implemented
-- Modular backend foundation under `backend/app/` with config, DB access, schemas, context engine, prompt builder, artifact builder, file storage service, voice service, chat pipeline, and CAOS routes.
-- Session-scoped endpoints: contract, profile upsert/get, session creation/listing, message storage, structured memory save, context preparation, session artifacts, session continuity, real chat turns, file upload/list/link/download, backend TTS, and backend STT.
-- Artifact persistence on each chat turn: receipts, thread summaries, and context seeds with lineage fields (`previous_*`, `source_message_ids`, `lineage_depth`) for continuity and future rehydration.
-- Real CAOS shell frontend with persistent sidebar navigation, recent threads list, centered open canvas, live message pane, composer, floating search drawer, WCW meter, receipt card, continuity card, profile drawer, files/artifacts drawer, and bootstrap cleanup for fresh identities.
-- Richer CAOS surfaces ported into the shell: working header menu, file upload + saved links, copy action for all messages, backend read-aloud action for assistant messages, microphone transcription flow, graceful action feedback/errors, inline replies, Useful reaction chips, and inline linked receipt panels.
-- Backend regression tests and browser validation for shell/chat/artifact/file/voice/menu/continuity flows.
-- Added a dedicated System Blueprint and TSB log in `/app/memory` so architecture and recurring failures are documented for the team.
-- Simplified the shell hierarchy based on latest feedback: left rail owns new-thread/navigation behavior, header is lighter, search is icon-first, and user identity is moving into the lower rail instead of living in the header.
-- Continued the shell cleanup: user identity now sits in the lower rail with settings/files/logout, and the top search surface has been reduced toward a compact inspector-style interaction.
-- Began the command-center parity shift: rail search, a calmer empty-state prompt, quick action pills, bottom model bar, and an on-demand inspector instead of a permanently heavy right column.
-- Locked the next shell move: sticky left rail, full-width fixed bottom command footer, and input-bar read-aloud for the last assistant message alongside per-bubble TTS.
-- Removed the Emergent badge markup from `frontend/public/index.html` and verified in preview that the badge text is gone.
-- Added a portable runtime layer for CAOS so model/provider routing now resolves from stored user runtime preferences instead of being hard-wired to one inference engine.
-- Added runtime settings endpoints and catalog support for OpenAI/Claude/Gemini via the Emergent Universal Key, with Grok/xAI staged honestly as a BYO-provider placeholder until credentials are attached.
-- Deepened the memory pipeline with subject-bin inference, continuity packet selection from prior summaries/seeds, and deterministic reinjection metadata returned in chat receipts.
-- Finished the shell’s viewport-lock pass: the app now runs as a viewport-contained workspace with a collapsible left rail, a bottom-spanning command footer, and refreshed model routing controls in the shell UI.
-- Added runtime visibility to the profile drawer and exposed provider chips in the model bar so the user can switch between supported engines from the CAOS shell.
-- Added the Phase 1 voice/settings pass: profile-based voice preferences, GPT-4o Transcribe as the preferred STT target, whisper-1 fallback handling, selectable TTS voices, and composer draft-preservation during mic capture.
-- Added a streaming-style transcription UX in the composer: chunk-based interim transcript updates are shown live while recording, then replaced with the finalized transcript on stop so typed draft text is preserved.
-- Added Phase 2A lane-aware memory: sessions now persist a derived lane, receipts carry lane/worker/context-budget metadata, cross-thread continuity now ranks prior summaries/seeds across the user’s sessions, and lane worker snapshots are rebuilt into `/api/caos/memory/workers/*` endpoints.
-- Added visible lane surfaces in the shell so thread cards and the inspector expose lane + worker usage instead of hiding continuity decisions.
-- Started the canonical shell/menu rewrite: the sidebar remains collapsible and visible by default, while a new rail account menu now holds the user identity, grouped actions, side-panel options, and session token access instead of relying on competing menu patterns.
-- Simplified the top bar into a cleaner CAOS header so the identity model is anchored in the sidebar and the chat surface can move closer to screenshot parity.
-- Continued the `/chat` visual parity pass: added a compact in-surface chat strip for working packet/lane/continuity/actions, tightened message cards, moved search/context/files actions into the chat surface, and reshaped the composer into a slimmer bright control surface while keeping all existing functionality intact.
-- Added overlay-style previous threads behavior with multiple entry points (chat strip, header thread pill, sidebar Threads button), giving the workspace a dedicated thread-switching surface closer to the screenshot contract.
-- Refined chat workspace hierarchy further: grouped quick actions + model routing into a dedicated command dock above the composer and constrained overlay panels so Previous Threads / Search / Context read as workspace layers rather than colliding with the bottom operating controls.
-- Tightened the message stream itself: denser bubbles, shorter timestamps, slimmer action rows, and clearer bubble separation between user/assistant messages so `/chat` reads more like the intended CAOS command surface.
-- Tightened the right-side panels as part of `/chat` parity: Search now shows active thread scope + visible hit count, and Inspector now opens with a compact receipt grid and packet summary so those surfaces behave like compact operational panels rather than generic drawers.
-- Tightened the center workspace header/strip proportions: active-thread title/session info and top chat strip now render as a denser control band, reducing top-of-pane sprawl and moving the workspace closer to the screenshot contract.
-- Tightened message-lane alignment: user bubbles now anchor to the right and assistant/system bubbles anchor to the left inside the center stream, making the chat body behave more like a true conversation lane and less like stacked full-width cards.
-- Tightened left-rail and center-canvas proportions together: reduced sidebar width, tightened rail controls, narrowed the message canvas and bubble widths, and improved the overall shell silhouette so `/chat` reads closer to the CAOS reference.
-- Removed the in-pane working packet / lane / continuity strip from the main viewing area so the conversation lane stays cleaner. Search/Threads remain accessible via header/rail, and Inspector access now lives behind the left-rail Tools entry instead of occupying the center workspace.
-- Added calmer workspace-state behavior: left-rail nav now reflects the active surface, the header route label updates dynamically, and the command toolbar collapses away while side panels like Threads/Tools/Search/Projects are open so the main input remains the only persistent bottom control.
-- Reduced header chrome further: engine/runtime and packet usage were moved out of the main header and into the rail account menu, leaving the center workspace header calmer while preserving all functional access to runtime state.
-- Thinned the top header again: removed the subtitle under CAOS, reduced header height/padding, softened route/thread chip chrome, and kept surface switching/search intact so the center workspace starts calmer and higher on the page.
-- Removed idle command-area clutter from the composer zone: always-on STT labels and passive loaded-session text no longer sit under the input bar by default, keeping the input area cleaner while preserving all controls and live recording feedback when it actually matters.
-- Removed the in-pane active-thread header block from the message lane and centered the bottom command area onto the same visual canvas as the conversation stream, making the `/chat` body read as a more coherent single workspace.
-- Added automatic thread-titling foundations: generic sessions now persist `title_source=auto`, and the backend generates descriptive session titles from the first three user turns so placeholder titles like `New Thread` can be replaced automatically.
-- Refined the Artifacts workspace into a clearer operational panel: added stats cards, tabbed navigation for Files/Receipts/Summaries/Seeds, and kept upload/save-link controls visible so files/photos/links parity is moving beyond a long stacked drawer.
-- Replaced placeholder WCW estimates with live ARC/WCW token accounting: chat receipts now persist active-context, sent, received, total, and running thread token counts, and the shell surfaces them in the rail account menu + inspector.
-- Tightened the rail account menu behavior so the token meter is visible in the shell while the menu remains anchored inside the viewport during inspection.
-- Added ARC explainability receipts: each turn now records what was kept, dropped, compressed, trimmed for budget, and reused, and the inspector/artifacts/message receipts expose those decisions directly.
-- Added a hard active-history token budget in the chat pipeline so the retained thread history is capped before prompt construction instead of growing unchecked.
-- Added personal-facts memory CRUD and rehydration ordering: profile memories can now be saved/edited/moved/deleted from the shell, personal facts are stored separately from general memory, and receipts expose `thread_history -> lane_continuity -> personal_facts -> structured_memory -> global_bin_empty` explicitly.
-- Added a reusable global info bin / lookup cache: high-signal assistant outputs are cached, later turns can rehydrate them, and receipts now expose `selected_global_cache_ids`, `global_cache_count`, `global_cache_tokens`, and dynamic `global_bin_status` / rehydration order.
-- Fixed the current shell usability regressions the user flagged: the left rail now scrolls internally at shorter viewports, the composer textarea is materially larger for multi-line drafting, action buttons are less dominant, and a persistent working-context strip is visible without opening a popover.
-- Rebuilt the CAOS shell first-screen experience to match the uploaded redesign reference: centered Welcome hero, carousel feature cards, dark Swiss-style chrome, bottom composer with inline model bar, left command rail, and a right-side account/settings popover triggered from the bottom-left profile area.
-- The redesign now respects the user’s clarification: the explanatory bottom annotation from the mock is not rendered as live UI, the right profile/settings panel is not always visible, and the working-context strip shows only on active threads rather than cluttering the welcome state.
+## Providers (target state)
+| Provider | Key source | Status |
+|---|---|---|
+| Anthropic Claude (default) | Emergent Universal Key | ✅ Available |
+| OpenAI gpt-5.2 | Emergent Universal Key | ✅ Available |
+| Google Gemini | Emergent Universal Key | ✅ Available |
+| xAI Grok | User's `XAI_API_KEY` (BYO) | Deferred — "2-second fix later" |
 
-## Prioritized Backlog
-### P0
-- Deepen the artifact contracts further so receipts, summaries, seeds, and subject bins can support longer-horizon rehydration across multiple threads and lanes with stronger lane heuristics and worker summarization.
-- Build the actual BYO-provider credential attachment flow for non-Universal engines like Grok/xAI instead of the current placeholder-only registration.
-- Port the remaining repo bubble/menu surfaces still missing: richer receipt detail, metadata rows, expanded reply/reaction parity, and deeper command-center home states.
-- Build stronger observability/error-envelope handling and reduce any remaining startup noise.
-- Validate whether `gpt-4o-transcribe` can be made fully primary in the current STT integration path; today the system attempts it first and falls back honestly to `whisper-1` when required.
-- Deepen the new global info bin so reuse scoring, expiry, and curation are stronger instead of purely recency/hit based.
+TTS: OpenAI tts-1-hd (message bubbles). Google Web Speech (input bar). Locked paths.
+STT: OpenAI Whisper / gpt-4o-transcribe.
 
-### P1
-- Build richer thread rehydration workers, memory summaries, and controlled cross-thread retrieval policy on top of the new lane-aware lineage model.
-- Add better retrieval ranking, metadata tagging, bin governance, and thread title generation.
-- Bring over full files/photos/links parity and richer message evidence surfaces from the repo.
-- Deepen the voice surface further with true streaming transcription transport, richer recording state controls, and transcript receipts tied to artifacts.
+## Implemented on Emergent (as of Apr 20, 2026)
 
-### P2
-- Connector framework for Gmail/Workspace/home automation actions.
-- Account-level storage isolation strategy and migration tooling.
-- Deeper anchor maps, campaign memory, and long-horizon project continuity.
+### Backend — already live
+- `/api/caos/sessions` (create/list) + `/api/caos/sessions/{id}/messages|artifacts|continuity`
+- `/api/caos/chat` — routed inference with provider/model selection
+- `/api/caos/memory/save` + `/memory/{id}` CRUD (structured memory, personal_facts bin, global bin)
+- `/api/caos/voice/transcribe` + `/voice/tts` + `/voice/settings`
+- `/api/caos/runtime/catalog` + `/runtime/settings`
+- `/api/caos/files` upload/link
+- `/api/caos/profile/{email}` upsert/get
+- Real `tiktoken` WCW metering, retention explanations, rehydration ordering
 
-## Next Tasks
-1. Deepen retrieval ranking and bin governance further now that personal facts, rehydration order, and the global cache are explicit.
-2. Add stronger curation/expiry controls to the global info bin so reused knowledge can be promoted, refreshed, or retired deliberately.
-3. Return to shell cleanup only after the memory layer is stronger, then complete the welcome/tour and remaining secondary-surface parity work.
+### Frontend — Base44 parity pass (Apr 20, 2026) ✅
+- **ShellHeader**: 3-column — identity chip (L) / `CAOS` + "Cognitive Adaptive Operating System" (C) / thread pill + search + live WCW meter (R)
+- **EngineChip**: single pill `⚡ Claude — click to switch` above composer; opens 4-provider menu (Claude/OpenAI/Gemini/Grok-BYO)
+- **SelectionReactionPopover**: text-selection-driven popover with 7 emoji reactions + Read/Reply/Copy; positions near selection, dismisses on outside click
+- **SearchDrawer**: full rewrite — snippet builder with `<mark>` highlighted match terms, match count + message count
+- **Composer**: auto-growing textarea (1–6 rows, then internal scroll), Shift+Enter for newline, Enter sends, removed the weird live-transcript bar
+- **MessagePane**: "Receipt" button → "Context"; inline panel heading → "Context Diagnostics"
+- **InspectorPanel**: "Why this reply fits" → "Context Diagnostics"
+- **CaosShell**: WorkingContextStrip removed from main canvas (moved into header WCW meter); ModelBar row removed; identity chip in header + rail footer duplicate hidden
+- **Starfield**: ambient CSS starfield behind the shell, matches Base44 feel
+- **CSS file**: `caos-base44-parity.css` (225 lines) — all new overrides isolated for easy rollback
 
-## Living Contract Tracking
-- Master implementation checklist: `/app/memory/MASTER_IMPLEMENTATION_CHECKLIST.md`
+## Governance / File Sizes (current)
+| File | Lines | Status |
+|---|---|---|
+| `useCaosShell.js` | 435 | ⚠️ OVER 400 — flagged for extraction pass (blueprint §2.2) |
+| `EngineChip.js` | 73 | ✅ |
+| `SelectionReactionPopover.js` | 103 | ✅ |
+| `ShellHeader.js` | 96 | ✅ |
+| `CaosShell.js` | ~290 | ✅ |
+| `Composer.js` | ~145 | ✅ |
+| `MessagePane.js` | ~180 | ✅ |
+| `SearchDrawer.js` | 99 | ✅ |
+| `backend/app/routes/caos.py` | 339 | 🟡 300-line threshold tripped — future-extract gate |
+| `backend/app/schemas/caos.py` | 394 | 🟡 near limit |
+
+## P0 Backlog (next tasks)
+- [ ] Extract `useCaosShell.js` (435 → split into `useShellBootstrap`, `useShellChat`, `useShellMemory`, `useShellVoice`) — only blueprint breach in app code
+- [ ] Rail account menu duplicate — consolidate identity surfaces (cleanup)
+- [ ] Wire `SelectionReactionPopover` reply → actually saves as threaded reply on the source message
+- [ ] `responseReviewer`-equivalent post-inference policy gate (TSB-053 parity)
+- [ ] `mbcrEngine`/TRH v1 parity module behind `chat_pipeline` (TSB-054, TSB-029)
+
+## P1 Backlog
+- [ ] Grok provider adapter (~10 LOC, user supplies XAI_API_KEY)
+- [ ] MemoryWorkbench refactor (363 lines, near limit)
+- [ ] Onboarding tour (Section 20 of blueprint — target Apr 19, 2026)
+- [ ] SSE streaming path (TSB-036 parity, kill-switch off by default)
+
+## P2 / Future
+- [ ] CTC ARC Inspector panel (browse ContextSeed records)
+- [ ] PyAnnote/SpeechBrain audio blueprint (Section 13)
+- [ ] Connectors (Google Workspace, GitHub)

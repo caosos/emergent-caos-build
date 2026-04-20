@@ -1,5 +1,7 @@
-import { Copy, CornerDownLeft, Receipt, ThumbsUp, Volume2 } from "lucide-react";
-import { useState } from "react";
+import { Copy, CornerDownLeft, FileSearch, ThumbsUp, Volume2 } from "lucide-react";
+import { useRef, useState } from "react";
+
+import { SelectionReactionPopover } from "@/components/caos/SelectionReactionPopover";
 
 
 const formatRole = (role) => (role === "assistant" ? "CAOS" : role === "user" ? "You" : "System");
@@ -10,6 +12,7 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
   const [actionStatus, setActionStatus] = useState("");
   const [messageMeta, setMessageMeta] = useState({});
   const [speakingId, setSpeakingId] = useState("");
+  const scrollRef = useRef(null);
 
   const updateMeta = (messageId, updater) => {
     setMessageMeta((previous) => ({
@@ -46,7 +49,17 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
 
   return (
     <section className="message-pane" data-testid="caos-message-pane">
-      <div className="message-scroll" data-testid="caos-message-scroll">
+      <div className="message-scroll" data-testid="caos-message-scroll" ref={scrollRef}>
+        <SelectionReactionPopover
+          containerRef={scrollRef}
+          onCopy={async (text) => {
+            try { await navigator.clipboard.writeText(text); setActionStatus("Copied highlighted text."); }
+            catch { setActionStatus("Clipboard permission denied."); }
+          }}
+          onReact={(emoji) => setActionStatus(`Reacted ${emoji} to selection.`)}
+          onReadAloud={async (text) => { try { await onSpeak(text); } catch { setActionStatus("Read aloud unavailable."); } }}
+          onReply={(text) => setActionStatus(`Reply to: "${text.slice(0, 48)}${text.length > 48 ? "…" : ""}"`)}
+        />
         {busy ? <span className="busy-chip message-pane-busy-chip" data-testid="caos-busy-chip">Thinking…</span> : null}
         {messages.length === 0 ? (
           <div className="message-empty" data-testid="caos-message-empty-state">
@@ -104,8 +117,8 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
                       data-testid={`caos-message-receipt-${message.id}`}
                       onClick={() => updateMeta(message.id, (state) => ({ ...state, showReceipt: !state.showReceipt }))}
                     >
-                      <Receipt size={14} />
-                      <span>Receipt</span>
+                      <FileSearch size={14} />
+                      <span>Context</span>
                     </button>
                   ) : null}
                 </div>
@@ -146,7 +159,7 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
 
                 {meta.showReceipt && linkedReceipt ? (
                   <div className="receipt-inline" data-testid={`caos-message-inline-receipt-${message.id}`}>
-                    <strong>Receipt lineage {linkedReceipt.lineage_depth}</strong>
+                    <strong>Context Diagnostics · lineage {linkedReceipt.lineage_depth}</strong>
                     <span>Runtime: {linkedReceipt.provider} · {linkedReceipt.model}</span>
                     <span>Terms: {linkedReceipt.retrieval_terms.join(", ") || "none"}</span>
                     <span>Bins: {linkedReceipt.subject_bins?.join(", ") || "none"}</span>
