@@ -73,10 +73,12 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
           messages.map((message) => {
             const meta = messageMeta[message.id] || { reactions: [], replies: [], replyDraft: "", showReceipt: false, showReply: false };
             const linkedReceipt = receipts.find((receipt) => receipt.assistant_message_id === message.id);
+            const isPending = message.pending === true;
+            const isStreamingPlaceholder = message.role === "assistant" && isPending && !message.content;
 
             return (
               <article
-                className={`message-bubble message-bubble-${message.role}`}
+                className={`message-bubble message-bubble-${message.role} ${isPending ? "message-bubble-pending" : ""}`}
                 data-testid={`caos-message-bubble-${message.id}`}
                 key={message.id}
               >
@@ -87,7 +89,14 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
                     <LatencyIndicator receipt={linkedReceipt} />
                   ) : null}
                 </div>
-                <p data-testid={`caos-message-content-${message.id}`}>{message.content}</p>
+                {isStreamingPlaceholder ? (
+                  <div className="typing-indicator" data-testid={`caos-typing-indicator-${message.id}`}>
+                    <span /><span /><span />
+                  </div>
+                ) : (
+                  <p data-testid={`caos-message-content-${message.id}`}>{message.content}</p>
+                )}
+                {isPending ? null : (
                 <div className="message-actions-row" data-testid={`caos-message-actions-${message.id}`}>
                   <button className="message-action-button" data-testid={`caos-message-copy-${message.id}`} onClick={() => handleCopy(message)}>
                     <Copy size={14} />
@@ -126,6 +135,7 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
                     </button>
                   ) : null}
                 </div>
+                )}
 
                 {meta.reactions.length ? (
                   <div className="reaction-row" data-testid={`caos-message-reaction-row-${message.id}`}>

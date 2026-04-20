@@ -310,6 +310,45 @@
   margin-left: 8px;
 }
 
+/* ---------------- Typing indicator (pending assistant) ---------------- */
+.typing-indicator {
+  display: inline-flex; gap: 4px; padding: 10px 12px 6px; align-items: center;
+}
+.typing-indicator span {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(196, 181, 253, 0.75);
+  animation: typingBounce 1.1s ease-in-out infinite;
+}
+.typing-indicator span:nth-child(1) { animation-delay: 0s; }
+.typing-indicator span:nth-child(2) { animation-delay: 0.18s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.36s; }
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-5px); opacity: 1; }
+}
+
+.message-bubble-pending {
+  opacity: 0.92;
+  animation: pendingBubbleIn 0.2s ease;
+}
+@keyframes pendingBubbleIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 0.92; transform: translateY(0); }
+}
+
+/* Mic button recording state — pulsing red ring */
+.composer-mic[data-testid="caos-composer-mic-button"] { transition: color 0.15s ease; }
+.composer-mic-recording {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #fecaca !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  animation: micPulse 1.1s ease-in-out infinite;
+}
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
+  50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+}
+
 /* ---------------- Profile drawer rebuild (Base44 parity) ---------------- */
 .profile-drawer-body {
   padding: 0 18px 18px; overflow-y: auto;

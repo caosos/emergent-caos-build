@@ -7,16 +7,40 @@ from fastapi import UploadFile
 from emergentintegrations.llm.openai import OpenAISpeechToText, OpenAITextToSpeech
 
 
-async def generate_tts_base64(text: str, voice: str = "nova", speed: float = 1.0, model: str = "tts-1-hd") -> dict:
+async def generate_tts_base64(text: str, voice: str = "nova", speed: float = 1.0, model: str = "tts-1") -> dict:
+    # Coerce known-bad models to the proxy-reliable default. tts-1 is the emergent-reliable
+    # path per integration playbook (tts-1-hd intermittently 500s on the proxy).
+    safe_model = model if model in ("tts-1", "tts-1-hd") else "tts-1"
     tts = OpenAITextToSpeech(api_key=os.environ["EMERGENT_LLM_KEY"])
-    audio_bytes = await tts.generate_speech(text=text[:4096], model=model, voice=voice, speed=speed, response_format="mp3")
-    return {
-        "audio_base64": base64.b64encode(audio_bytes).decode("utf-8"),
-        "content_type": "audio/mpeg",
-        "voice": voice,
-        "model": model,
-        "speed": speed,
-    }
+    try:
+        audio_b64 = await tts.generate_speech_base64(
+            text=text[:4096],
+            model=safe_model,
+            voice=voice,
+            speed=speed,
+        )
+        return {
+            "audio_base64": audio_b64,
+            "content_type": "audio/mpeg",
+            "voice": voice,
+            "model": safe_model,
+            "speed": speed,
+        }
+    except Exception as primary_error:
+        if safe_model != "tts-1":
+            try:
+                audio_b64 = await tts.generate_speech_base64(text=text[:4096], model="tts-1", voice=voice, speed=speed)
+                return {
+                    "audio_base64": audio_b64,
+                    "content_type": "audio/mpeg",
+                    "voice": voice,
+                    "model": "tts-1",
+                    "speed": speed,
+                    "fallback_used": True,
+                }
+            except Exception:
+                pass
+        raise primary_error
 
 
 async def transcribe_upload(

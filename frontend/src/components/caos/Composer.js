@@ -1,5 +1,6 @@
 import { Mic, Paperclip, SendHorizontal, Square, Volume2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 
 const joinDraft = (base, addition) => [base, addition].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
@@ -68,8 +69,31 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
       stopRecording();
       return;
     }
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const recorder = new MediaRecorder(stream);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast.error("Microphone not available in this browser");
+      return;
+    }
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (error) {
+      if (error?.name === "NotAllowedError") {
+        toast.error("Microphone permission denied — allow it in browser settings");
+      } else if (error?.name === "NotFoundError") {
+        toast.error("No microphone found");
+      } else {
+        toast.error(`Mic error: ${(error?.message || "unknown").slice(0, 60)}`);
+      }
+      return;
+    }
+    let recorder;
+    try {
+      recorder = new MediaRecorder(stream);
+    } catch (error) {
+      toast.error(`Recorder unsupported: ${(error?.message || "unknown").slice(0, 60)}`);
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
     recorderRef.current = recorder;
     streamRef.current = stream;
     chunksRef.current = [];
@@ -78,6 +102,7 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
     setLiveTranscript("");
     setLiveStatus(`Listening with ${voiceSettings.stt_primary_model}...`);
     setRecording(true);
+    toast.success("Recording — tap mic again to stop", { duration: 2000 });
     recorder.ondataavailable = async (event) => {
       if (!event.data?.size) return;
       chunksRef.current.push(event.data);
@@ -149,7 +174,7 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
             }
           }}
         />
-        <button className="message-action-button composer-mic" data-testid="caos-composer-mic-button" onClick={handleRecord} type="button">
+        <button className={`message-action-button composer-mic ${recording ? "composer-mic-recording" : ""}`} data-testid="caos-composer-mic-button" onClick={handleRecord} type="button">
           {recording ? <Square size={16} /> : <Mic size={16} />}
         </button>
         <button className="primary-shell-button composer-send" data-testid="caos-composer-send-button" disabled={busy || !draft.trim()}>

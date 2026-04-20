@@ -145,7 +145,7 @@ class VoicePreferences(BaseModel):
     stt_primary_model: str = "whisper-1"
     stt_fallback_model: str = "whisper-1"
     stt_language: str = "en"
-    tts_model: str = "tts-1-hd"
+    tts_model: str = "tts-1"
     tts_voice: str = "nova"
     tts_speed: float = 1.0
 
@@ -155,7 +155,7 @@ class VoiceSettingsUpsertRequest(BaseModel):
     stt_primary_model: str = "whisper-1"
     stt_fallback_model: str = "whisper-1"
     stt_language: str = "en"
-    tts_model: str = "tts-1-hd"
+    tts_model: str = "tts-1"
     tts_voice: str = "nova"
     tts_speed: float = 1.0
 

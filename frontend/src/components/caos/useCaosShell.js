@@ -257,16 +257,28 @@ export const useCaosShell = () => {
     if (!content.trim()) return;
     setBusy(true);
     setError("");
+    const trimmed = content.trim();
+    const now = new Date().toISOString();
+    const pendingUserId = `pending-user-${Date.now()}`;
+    const pendingAssistantId = `pending-assistant-${Date.now() + 1}`;
+    setMessages((prev) => [
+      ...prev,
+      { id: pendingUserId, role: "user", content: trimmed, timestamp: now, pending: true },
+      { id: pendingAssistantId, role: "assistant", content: "", timestamp: now, pending: true, streaming: true },
+    ]);
     try {
       let session = currentSession;
       if (!session) {
-        session = await createSession(content.slice(0, 48) || "New Thread");
+        session = await createSession(trimmed.slice(0, 48) || "New Thread");
       }
-      if (!session) return;
+      if (!session) {
+        setMessages((prev) => prev.filter((message) => message.id !== pendingUserId && message.id !== pendingAssistantId));
+        return;
+      }
       const response = await axios.post(`${API}/caos/chat`, {
         user_email: userEmail,
         session_id: session.session_id,
-        content,
+        content: trimmed,
         provider: runtimeSettings.default_provider,
         model: runtimeSettings.default_model,
       });
@@ -284,6 +296,7 @@ export const useCaosShell = () => {
       const message = issue?.response?.data?.detail || issue?.message || "Sending message failed.";
       setError(message);
       setStatus(`Sending message failed: ${message}`);
+      setMessages((prev) => prev.filter((m) => m.id !== pendingAssistantId));
     } finally {
       setBusy(false);
     }
@@ -389,15 +402,29 @@ export const useCaosShell = () => {
   }, [userEmail, voiceSettings.stt_fallback_model, voiceSettings.stt_language, voiceSettings.stt_primary_model]);
 
   const speakText = useCallback(async (text, overrides = {}) => {
-    const response = await axios.post(`${API}/caos/voice/tts`, {
-      text,
-      voice: overrides.voice || voiceSettings.tts_voice,
-      model: overrides.model || voiceSettings.tts_model,
-      speed: overrides.speed || voiceSettings.tts_speed,
-    });
-    const audio = new Audio(`data:${response.data.content_type};base64,${response.data.audio_base64}`);
-    await audio.play();
-    return audio;
+    // Primary path: OpenAI TTS via backend (Base44 Path A parity).
+    // Fallback path: browser speechSynthesis (Base44 Path B parity).
+    // Any backend failure silently falls through so Read Aloud never blocks the user.
+    try {
+      const response = await axios.post(`${API}/caos/voice/tts`, {
+        text,
+        voice: overrides.voice || voiceSettings.tts_voice,
+        model: overrides.model || voiceSettings.tts_model,
+        speed: overrides.speed || voiceSettings.tts_speed,
+      });
+      const audio = new Audio(`data:${response.data.content_type};base64,${response.data.audio_base64}`);
+      await audio.play();
+      return audio;
+    } catch (error) {
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.rate = overrides.speed || voiceSettings.tts_speed || 1.0;
+        window.speechSynthesis.speak(utter);
+        return utter;
+      }
+      throw error;
+    }
   }, [voiceSettings.tts_model, voiceSettings.tts_speed, voiceSettings.tts_voice]);
 
   const updateProfile = useCallback(async (changes) => {
