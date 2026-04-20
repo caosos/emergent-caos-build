@@ -77,13 +77,17 @@ async def transcribe_upload(
                 "fallback_used": model != "whisper-1",
             }
         except Exception as error:
-            # Fail soft: surface an empty transcript with a diagnostic flag instead of 500.
-            # The mic button will still show an error toast, but the session continues.
+            # Surface the real error — don't pretend transcription succeeded with empty text.
+            # As of Apr 2026 the Emergent proxy's upstream `sk-proj-...` key for audio routes
+            # has been returning HTTP 401 ("Incorrect API key provided"); previously we
+            # masked this as `{"text":""}` which made debugging impossible.
+            error_text = str(error)[:400]
             return {
                 "text": "",
                 "model_used": "whisper-1",
                 "fallback_used": False,
-                "error": str(error)[:240],
+                "error": error_text,
+                "platform_note": "Emergent audio proxy is currently returning auth errors — upstream OpenAI key issue. TTS/STT is blocked until Emergent rotates the upstream key. Support ticket sent.",
             }
     finally:
         Path(temp_path).unlink(missing_ok=True)

@@ -61,6 +61,13 @@ Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergen
 - Live-transcript ribbon (breathing purple/blue) while mic records
 - Mic pulsing red ring while recording
 
+## Voice I/O Root-Cause Identified + Support Ticket Armed (Apr 20, 2026)
+- **Ran a diagnostic curl battery against `https://integrations.emergentagent.com/llm`** and caught the exact failure: `POST /audio/transcriptions` with `model=whisper-1` returns **HTTP 401** with `"Incorrect API key provided: sk-proj-********_AIA"`. The upstream OpenAI project key Emergent's proxy uses for audio routes has been invalidated.
+- `tts-1` and `tts-1-hd` return HTTP 500 with empty body — almost certainly the same root cause masked as generic server error.
+- `/v1/models` shows the audio allow-list is exactly `{tts-1, tts-1-hd, whisper-1}` — newer models (`gpt-4o-mini-tts`, `gpt-4o-mini-transcribe`) return HTTP 400 "Invalid model name". User's hypothesis was right in direction (try newer models) but the proxy rejects them entirely.
+- **Fixed** `voice_service.py` to stop masking the 401 as an empty transcript; now returns `{"text": "", "error": "...", "platform_note": "..."}` so the UI can show actionable info.
+- **Delivered an armed support letter** with the concrete 401 evidence + `sk-proj-...AIA` key snippet, asking Emergent to rotate the upstream key and expand the audio allow-list to include `gpt-4o-mini-tts` / `gpt-4o-mini-transcribe`.
+
 ## GitHub Adapter — Swarm Reaches Beyond /app (Apr 20, 2026 — overnight pt 3)
 - **New module** `backend/app/services/github_tools.py`: 8 read-only GitHub REST API tools the Supervisor can call as `type="tool"` steps:
   - `gh_whoami()` — auth sanity check
