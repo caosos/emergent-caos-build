@@ -150,10 +150,23 @@ export const SwarmPanel = ({ isOpen, onClose }) => {
 
           {steps.length ? (
             <section className="swarm-section" data-testid="caos-swarm-executed-section">
-              <h4><Terminal size={12} style={{ display: "inline", verticalAlign: "-2px" }} /> Sandbox output</h4>
+              <h4><Terminal size={12} style={{ display: "inline", verticalAlign: "-2px" }} /> Execution trace</h4>
               {steps.map((s) => (
                 <div className="swarm-step-card" key={s.id} data-testid={`caos-swarm-step-${s.id}`}>
-                  <div className="swarm-step-head"><strong>[{s.id}]</strong> {s.description}</div>
+                  <div className="swarm-step-head">
+                    <strong>[{s.id}]</strong>
+                    <span className={`swarm-step-type-${s.type || "python"}`} data-testid={`caos-swarm-step-type-${s.id}`} style={{
+                      display: "inline-block", padding: "2px 7px", marginLeft: 8,
+                      fontSize: 10, borderRadius: 999, fontWeight: 600, letterSpacing: 0.4,
+                      background: s.type === "tool" ? "rgba(34, 197, 94, 0.18)" : "rgba(99, 102, 241, 0.18)",
+                      color: s.type === "tool" ? "#86efac" : "#c7d2fe",
+                      border: `1px solid ${s.type === "tool" ? "rgba(34, 197, 94, 0.35)" : "rgba(99, 102, 241, 0.35)"}`,
+                      textTransform: "uppercase",
+                    }}>
+                      {s.type === "tool" ? `tool · ${s.tool_name || "?"}` : "python"}
+                    </span>
+                    <span style={{ marginLeft: 8 }}>{s.description}</span>
+                  </div>
                   {s.stdout ? <pre className="swarm-stdout" data-testid={`caos-swarm-stdout-${s.id}`}>{s.stdout}</pre> : null}
                   {s.stderr ? <pre className="swarm-stderr" data-testid={`caos-swarm-stderr-${s.id}`}>{s.stderr}</pre> : null}
                   {s.error ? <pre className="swarm-stderr" data-testid={`caos-swarm-error-${s.id}`}>Error: {s.error}</pre> : null}

@@ -20,27 +20,47 @@ from dataclasses import dataclass
 from e2b_code_interpreter import Sandbox
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
+from app.services.swarm_tools import run_tool, TOOL_DOCS
+
 
 SUPERVISOR_MODEL = "claude-sonnet-4-5-20250929"
 CRITIC_MODEL = "claude-sonnet-4-5-20250929"
 SUPERVISOR_PROVIDER = "anthropic"
 CRITIC_PROVIDER = "anthropic"
 
-SUPERVISOR_SYSTEM = """You are the Supervisor for CAOS's Agent Swarm.
+SUPERVISOR_SYSTEM = f"""You are the Supervisor for CAOS's Agent Swarm.
 
-Given a user task, produce a JSON plan with 1 to 4 steps. Each step must be a small, self-contained piece of Python code that a worker will run in a sandboxed environment (stdout is captured and returned to the Critic).
+Given a user task, produce a JSON plan with 1 to 6 steps. Each step is either:
+  - a SERVER-SIDE TOOL CALL (type="tool") — reads the CAOS repo live at /app
+  - a SANDBOX PYTHON SNIPPET (type="python") — runs in an isolated E2B Cloud Sandbox
+
+{TOOL_DOCS}
+
+Python steps run in an E2B sandbox with stdlib + numpy + pandas + requests. Sandbox has NO repo access — use tools for file/grep work, python for computation/data-crunching.
 
 Rules:
 - Output ONLY valid JSON — no prose, no markdown code fences.
-- Shape: {"objective": string, "steps": [{"id": "s1", "description": "…", "python": "…"}, …]}
-- Each `python` is executable Python 3 code that prints useful output.
-- Prefer `print(…)` for results so the Critic can see them.
-- Keep each step small (under ~40 lines).
-- If the task is conversational and doesn't need code execution, return {"objective": "…", "steps": []} and the Critic will answer directly.
-- Available libraries in sandbox: standard library + numpy, pandas, requests. Do NOT assume internet access (it's limited).
+- Top-level shape: {{"objective": string, "steps": [step, ...]}}
+- Each step has: {{"id": "s1", "type": "tool"|"python", "description": "..."}}
+  - If type="tool": add `"tool_name": "...", "tool_args": {{...}}`
+  - If type="python": add `"python": "..."` (valid Python 3; use print() for outputs)
+- Keep each step small. Chain tool calls before python when you need file contents to analyse.
+- If the task is purely conversational, return {{"objective": "...", "steps": []}} — the Critic will answer directly.
 
-Example input: "What are the first 10 prime numbers and their sum?"
-Example output: {"objective":"List first 10 primes and their sum","steps":[{"id":"s1","description":"Generate primes","python":"def is_prime(n):\\n    if n<2: return False\\n    for i in range(2,int(n**0.5)+1):\\n        if n%i==0: return False\\n    return True\\nprimes=[]\\nn=2\\nwhile len(primes)<10:\\n    if is_prime(n): primes.append(n)\\n    n+=1\\nprint('primes:',primes)\\nprint('sum:',sum(primes))"}]}"""
+Example — user asks "What does the chat_pipeline.py file do?":
+{{"objective":"Read chat_pipeline.py and summarise it","steps":[
+  {{"id":"s1","type":"tool","description":"Read the chat pipeline source","tool_name":"caos_read_file","tool_args":{{"path":"backend/app/services/chat_pipeline.py"}}}}
+]}}
+
+Example — user asks "Grep for every function named sendMessage":
+{{"objective":"Find all sendMessage definitions","steps":[
+  {{"id":"s1","type":"tool","description":"Grep for sendMessage definitions","tool_name":"caos_grep","tool_args":{{"pattern":"(def |const |function )sendMessage","path":"."}}}}
+]}}
+
+Example — user asks "Add 1+1":
+{{"objective":"Compute 1+1","steps":[
+  {{"id":"s1","type":"python","description":"Print 1+1","python":"print(1+1)"}}
+]}}"""
 
 CRITIC_SYSTEM = """You are the Critic for CAOS's Agent Swarm.
 
@@ -56,7 +76,10 @@ Write a clear, direct final answer to the user. Use the worker outputs as ground
 class SwarmStep:
     id: str
     description: str
-    python: str
+    type: str = "python"
+    python: str = ""
+    tool_name: str = ""
+    tool_args: dict | None = None
     stdout: str = ""
     stderr: str = ""
     error: str = ""
@@ -110,36 +133,52 @@ def _run_step_in_sandbox(sandbox: Sandbox, python: str) -> dict:
 
 
 async def run_workers(steps: list[dict]) -> list[SwarmStep]:
-    """Spin up a single E2B sandbox and run all steps sequentially in it so state
-    (variables, installed modules) is preserved across steps."""
+    """Dispatch each step: type="tool" runs server-side in this process, type="python"
+    runs in a shared E2B sandbox (state preserved across python steps)."""
     results: list[SwarmStep] = []
     api_key = os.environ.get("E2B_API_KEY")
-    if not api_key:
-        for step in steps:
-            results.append(SwarmStep(
-                id=step.get("id", "s?"),
-                description=step.get("description", ""),
-                python=step.get("python", ""),
-                error="E2B_API_KEY not configured",
-            ))
-        return results
-    sandbox = Sandbox.create(api_key=api_key, timeout=120)
+    sandbox: Sandbox | None = None
+
+    def ensure_sandbox() -> Sandbox | None:
+        nonlocal sandbox
+        if sandbox is not None:
+            return sandbox
+        if not api_key:
+            return None
+        sandbox = Sandbox.create(api_key=api_key, timeout=120)
+        return sandbox
+
     try:
         for step in steps:
-            outcome = _run_step_in_sandbox(sandbox, step.get("python", ""))
+            step_type = step.get("type", "python")
+            base_fields = {
+                "id": step.get("id", "s?"),
+                "description": step.get("description", ""),
+                "type": step_type,
+                "python": step.get("python", ""),
+                "tool_name": step.get("tool_name", ""),
+                "tool_args": step.get("tool_args") or {},
+            }
+            if step_type == "tool":
+                outcome = run_tool(step.get("tool_name", ""), step.get("tool_args") or {})
+            else:
+                sb = ensure_sandbox()
+                if sb is None:
+                    outcome = {"stdout": "", "stderr": "", "error": "E2B_API_KEY not configured"}
+                else:
+                    outcome = _run_step_in_sandbox(sb, step.get("python", ""))
             results.append(SwarmStep(
-                id=step.get("id", "s?"),
-                description=step.get("description", ""),
-                python=step.get("python", ""),
-                stdout=outcome["stdout"][:4000],
+                **base_fields,
+                stdout=outcome["stdout"][:6000],
                 stderr=outcome["stderr"][:2000],
                 error=outcome["error"][:400],
             ))
     finally:
-        try:
-            sandbox.kill()
-        except Exception:
-            pass
+        if sandbox is not None:
+            try:
+                sandbox.kill()
+            except Exception:
+                pass
     return results
 
 

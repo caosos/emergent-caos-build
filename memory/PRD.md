@@ -61,6 +61,17 @@ Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergen
 - Live-transcript ribbon (breathing purple/blue) while mic records
 - Mic pulsing red ring while recording
 
+## Swarm Tools — Real Repo Awareness (Apr 20, 2026 — overnight pt 2)
+- **New module** `backend/app/services/swarm_tools.py`: server-side read-only tools that the Swarm Supervisor can call:
+  - `caos_grep(pattern, path, file_glob)` — recursive grep across `/app` (excludes node_modules/.git/__pycache__/dist/build/.next/.venv, 15s timeout, 6KB output cap)
+  - `caos_read_file(path, start_line, end_line)` — line-ranged file read with line numbers
+  - `caos_ls(path, max_depth)` — directory listing (hides noise dirs)
+  - `caos_git_log(limit)` — recent commits
+  - All tools path-safe (reject escapes outside `/app`), clipped output, no writes, no network.
+- **Swarm now supports two step types**: `type="tool"` (runs server-side in our process) and `type="python"` (runs in E2B sandbox). Supervisor prompt teaches Claude Sonnet 4.5 when to use each.
+- **UI**: step cards now show a green "tool · caos_grep" chip or blue "python" chip so you can see which path ran.
+- **Verified end-to-end**: asked the Swarm "Find voice service files and tell me why TTS might be failing." It planned 3 tool steps (grep → ls → read_file), found `/app/backend/app/services/voice_service.py`, read it, and wrote a correct diagnosis pointing at the Emergent proxy 500s. That's the "Aria reads its own code" vision working.
+
 ## Phase 4 — Agent Swarm v1 (Apr 20, 2026 — overnight)
 - **Backend** `/app/backend/app/services/swarm_service.py` (~140 lines): Supervisor (Claude Sonnet 4.5 → JSON plan) → Worker (E2B `Sandbox.create()` runs each step's Python, preserves state across steps, 45s timeout per step) → Critic (Claude Sonnet 4.5 reads stdout + writes final answer).
 - **Routes**: `POST /api/caos/swarm/run` (non-streaming) and `POST /api/caos/swarm/stream` (SSE: `phase` → `plan` → `step` × N → `final`).
