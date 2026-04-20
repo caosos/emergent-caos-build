@@ -1,5 +1,5 @@
 import { Copy, CornerDownLeft, FileSearch, ThumbsUp, Volume2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { LatencyIndicator } from "@/components/caos/LatencyIndicator";
 import { MultiAgentMessageGroup } from "@/components/caos/MultiAgentMessageGroup";
@@ -15,6 +15,13 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
   const [messageMeta, setMessageMeta] = useState({});
   const [speakingId, setSpeakingId] = useState("");
   const scrollRef = useRef(null);
+
+  // Auto-clear transient status after 4s so stale banners never linger.
+  useEffect(() => {
+    if (!actionStatus) return undefined;
+    const timer = setTimeout(() => setActionStatus(""), 4000);
+    return () => clearTimeout(timer);
+  }, [actionStatus]);
 
   const updateMeta = (messageId, updater) => {
     setMessageMeta((previous) => ({

@@ -13,12 +13,22 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
   const [recording, setRecording] = useState(false);
   const [liveStatus, setLiveStatus] = useState("");
   const [liveTranscript, setLiveTranscript] = useState("");
+  const [transientStatus, setTransientStatus] = useState("");
   const recorderRef = useRef(null);
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
   const initialDraftRef = useRef("");
   const liveTranscriptRef = useRef("");
   const textareaRef = useRef(null);
+
+  // Mirror the shell status into a transient local state that auto-clears
+  // after 4s so banners never stick around longer than the user expects.
+  useEffect(() => {
+    if (!status) return undefined;
+    setTransientStatus(status);
+    const timer = setTimeout(() => setTransientStatus(""), 4000);
+    return () => clearTimeout(timer);
+  }, [status]);
 
   useEffect(() => {
     const node = textareaRef.current;
@@ -70,10 +80,10 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
     return `${previous} ${nextText}`.replace(/\s+/g, " ").trim();
   };
 
-  const showStatus = status
-    && !/^Loaded \d+ saved sessions\.$/.test(status)
-    && status !== "CAOS replied with session-scoped context."
-    && status !== "No sessions yet. Start a thread to begin the CAOS shell.";
+  const showStatus = transientStatus
+    && !/^Loaded \d+ saved sessions\.$/.test(transientStatus)
+    && transientStatus !== "CAOS replied with session-scoped context."
+    && transientStatus !== "No sessions yet. Start a thread to begin the CAOS shell.";
 
   const handleRecord = async () => {
     if (recording) {
@@ -204,7 +214,7 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
       </div>
       {recording && liveStatus ? <div className="composer-live-status" data-testid="caos-composer-live-status">{liveStatus}</div> : null}
       {recording && liveTranscript ? <div className="composer-live-transcript" data-testid="caos-composer-live-transcript">{liveTranscript}</div> : null}
-      {showStatus ? <div className="composer-status" data-testid="caos-composer-status">{status}</div> : null}
+      {showStatus ? <div className="composer-status" data-testid="caos-composer-status">{transientStatus}</div> : null}
     </form>
   );
 };

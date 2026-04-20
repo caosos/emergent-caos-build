@@ -61,6 +61,11 @@ Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergen
 - Live-transcript ribbon (breathing purple/blue) while mic records
 - Mic pulsing red ring while recording
 
+## UI Polish — Base44 Parity (Apr 20, 2026 — midnight)
+- **Auto-clearing status banner** — `MessagePane` and `Composer` both auto-dismiss transient status strings after 4s. No more "Read aloud is unavailable" or similar banners sticking around. Fade-out animation on the status chip.
+- **Message bubble visual match** — big solid violet-gradient user bubbles (right-aligned, asymmetric bottom-right corner, violet glow shadow); subtle dark AI bubbles with a purple avatar orb on the left; action chips restyled as pill buttons below each bubble.
+- **Composer rebuilt** — circular icon buttons for attach/speaker/mic, gradient purple circular send button, roomier padding, blurred glassmorphic shell.
+
 ## File Attachments → AI Context (Apr 20, 2026 — late)
 - Multi-file upload (up to 10) via Composer `<input multiple>`; toast confirms "Attached N files — the AI can now see them".
 - Backend `chat_pipeline` now fetches `user_files` for the active `session_id` and injects them into the system prompt under a new "Attachments in this thread" block.
