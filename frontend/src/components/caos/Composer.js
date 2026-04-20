@@ -106,8 +106,11 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
     recorder.ondataavailable = async (event) => {
       if (!event.data?.size) return;
       chunksRef.current.push(event.data);
+      // WebM chunks aren't independently decodable — send cumulative blob so each
+      // transcription call gets a valid audio stream from t=0 to now.
+      const cumulative = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
       try {
-        const response = await onTranscribeChunk(event.data, liveTranscriptRef.current || initialDraftRef.current);
+        const response = await onTranscribeChunk(cumulative, liveTranscriptRef.current || initialDraftRef.current);
         const merged = mergeLiveChunk(response.text || "");
         liveTranscriptRef.current = merged;
         setLiveTranscript(merged);
@@ -139,8 +142,15 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
   };
 
   const handleReadLastAssistant = async () => {
-    if (!lastAssistantMessage?.content) return;
-    await onSpeak(lastAssistantMessage.content);
+    if (!lastAssistantMessage?.content) {
+      toast.error("No assistant reply to read yet");
+      return;
+    }
+    try {
+      await onSpeak(lastAssistantMessage.content);
+    } catch (error) {
+      toast.error(`Read aloud failed: ${(error?.message || "unknown").slice(0, 60)}`);
+    }
   };
 
   return (

@@ -94,7 +94,12 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
                     <span /><span /><span />
                   </div>
                 ) : (
-                  <p data-testid={`caos-message-content-${message.id}`}>{message.content}</p>
+                  <p data-testid={`caos-message-content-${message.id}`}>
+                    {message.content}
+                    {isPending && message.role === "assistant" && message.content ? (
+                      <span className="streaming-cursor" data-testid={`caos-streaming-cursor-${message.id}`}>▌</span>
+                    ) : null}
+                  </p>
                 )}
                 {isPending ? null : (
                 <div className="message-actions-row" data-testid={`caos-message-actions-${message.id}`}>

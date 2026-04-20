@@ -156,13 +156,19 @@ export const CaosShell = () => {
   return (
     <main className={`caos-shell-root ${isRailOpen ? "caos-shell-rail-open" : "caos-shell-rail-closed"}`} data-testid="caos-shell-root">
       <ShellHeader
+        activeModel={runtimeSettings.default_model}
+        activeProvider={runtimeSettings.default_provider}
         currentSession={currentSession}
         displayName={profile?.preferred_name || userEmail?.split("@")[0] || "Michael"}
         isRailOpen={isRailOpen}
+        onLogOut={() => { window.location.reload(); }}
+        onNewThread={() => { createSession("New Thread"); }}
         onOpenProfile={openProfile}
         onOpenThreads={toggleThreads}
+        onSelectProvider={updateRuntimeSelection}
         onToggleRail={() => setIsRailOpen((value) => !value)}
         onToggleSearch={openSearch}
+        providerCatalog={runtimeSettings.provider_catalog}
         wcwBudget={latestReceipt?.wcw_budget || lastTurn?.wcw_budget || 200000}
         wcwUsed={latestReceipt?.active_context_tokens || lastTurn?.wcw_used_estimate || 0}
       />

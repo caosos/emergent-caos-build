@@ -3,7 +3,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
 from app.db import collection
 from app.schemas.caos import (
@@ -306,6 +306,60 @@ async def chat(input: ChatRequest):
     except Exception as error:
         print(f"CAOS chat pipeline error: {error}")
         raise HTTPException(status_code=500, detail="CAOS chat pipeline failed") from error
+
+
+@router.post("/chat/stream")
+async def chat_stream(input: ChatRequest):
+    """SSE streaming chat endpoint — Base44 TSB-036 parity.
+
+    Flow: Option A — run full pipeline, then stream the final reply text in
+    word-sized deltas so the UI feels incrementally responsive. Metadata
+    (receipts, wcw) arrives on the final event after all deltas.
+    """
+    import asyncio
+    import json
+
+    async def event_stream():
+        try:
+            result = await run_chat_turn(input)
+        except ValueError as error:
+            yield f"event: error\ndata: {json.dumps({'error': str(error), 'code': 'not_found'})}\n\n"
+            return
+        except Exception as error:
+            yield f"event: error\ndata: {json.dumps({'error': str(error), 'code': 'pipeline_failed'})}\n\n"
+            return
+
+        meta = {
+            "session_id": result.session_id,
+            "provider": result.provider,
+            "model": result.model,
+            "assistant_message_id": result.assistant_message.id,
+            "wcw_used_estimate": result.wcw_used_estimate,
+            "wcw_budget": result.wcw_budget,
+        }
+        yield f"event: meta\ndata: {json.dumps(meta)}\n\n"
+
+        text = result.reply or ""
+        words = text.split(" ")
+        buffer = ""
+        for index, word in enumerate(words):
+            buffer = f"{buffer} {word}" if buffer else word
+            delta = word if index == 0 else f" {word}"
+            yield f"event: delta\ndata: {json.dumps({'delta': delta, 'cumulative': buffer})}\n\n"
+            await asyncio.sleep(0.015)
+
+        final_payload = result.model_dump()
+        yield f"event: final\ndata: {json.dumps(final_payload, default=str)}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
 
 
 @router.post("/voice/tts", response_model=TTSResponse)

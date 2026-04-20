@@ -1,81 +1,86 @@
-# CAOS — Emergent Replatform PRD
+# CAOS — Emergent Replatform PRD (LIVE)
 
 ## Original Problem Statement
-Port Base44 CAOS (serverless, Deno + Base44 entities) to a clean full-stack React + FastAPI + MongoDB architecture on Emergent. Preserve all behaviors, governance, and UX clarity from the Base44 live build. Aria = persona, CAOS = platform.
+Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergent. Preserve behaviors, governance, and UX from the Base44 live build. Aria = persona, CAOS = platform.
 
 ## Authoritative Contracts (binding)
-- **System Blueprint v2** — governance invariants (sections 0–20)
-- **TSB Log Part 1+2** — TSB-001 through TSB-061
-- **File size**: 200 preferred / 400 hard max
-- **GOV v1.2 Amendment A**: ≥300-line files get extractions, not inline growth
-- **Aria ≠ CAOS**: authority domain separation (Section 0.8)
-- **Pull-only awareness**: no polling, no silent writes (Section 0.9)
-- **Build → Test → Lock**
-- **Edit tracking**: `Changed: <file> +N lines` after every modifying response
+- System Blueprint v2 — sections 0–20
+- TSB Log Part 1+2 — TSB-001 through TSB-061
+- File sizes: 200 preferred / 400 soft max / 800 acceptable if clean and working (owner directive Apr 20, 2026)
+- GOV v1.2 Amendment A: ≥300-line files get extractions, not inline growth
+- Aria ≠ CAOS: authority domain separation (§0.8)
+- Pull-only awareness (§0.9)
+- Build → Test → Lock
+- Edit tracking: `Changed: <file> +N lines` after every modifying response
+- TTS paths locked: OpenAI tts-1 (bubble) / browser speechSynthesis (input bar fallback)
+- Active chat model: Claude (default) → OpenAI → Gemini → Grok (BYO key deferred)
 
-## Providers (target state)
+## Providers
 | Provider | Key source | Status |
 |---|---|---|
-| Anthropic Claude (default) | Emergent Universal Key | ✅ Available |
-| OpenAI gpt-5.2 | Emergent Universal Key | ✅ Available |
-| Google Gemini | Emergent Universal Key | ✅ Available |
-| xAI Grok | User's `XAI_API_KEY` (BYO) | Deferred — "2-second fix later" |
+| Anthropic Claude (default) | Emergent Universal Key | ✅ Live |
+| OpenAI gpt-5.2 | Emergent Universal Key | ✅ Live |
+| Google Gemini | Emergent Universal Key | ✅ Live |
+| xAI Grok | User XAI_API_KEY (BYO) | Deferred |
 
-TTS: OpenAI tts-1-hd (message bubbles). Google Web Speech (input bar). Locked paths.
-STT: OpenAI Whisper / gpt-4o-transcribe.
+## Implemented on Emergent (cumulative, through Apr 20, 2026)
 
-## Implemented on Emergent (as of Apr 20, 2026)
+### Backend
+- `/api/caos/sessions`, `/messages`, `/artifacts`, `/continuity`
+- `POST /api/caos/chat` — non-streaming full pipeline
+- `POST /api/caos/chat/stream` — SSE with `meta` → word-by-word `delta` → `final` events (TSB-036 parity: Option A)
+- Memory CRUD: `/memory/save`, `/memory/{id}` — structured + personal_facts + global bin
+- `/voice/transcribe` — forced whisper-1 (Emergent proxy limitation)
+- `/voice/tts` — tts-1 primary, fail-soft on proxy 500 (currently 500s at proxy layer; frontend falls back to browser speechSynthesis)
+- `/runtime/catalog`, `/runtime/settings`
+- `/files` upload/link, `/profile/{email}` upsert/get (now incl. date_of_birth, full_name, role)
+- `tiktoken` token metering, retention explanations, rehydration ordering
 
-### Backend — already live
-- `/api/caos/sessions` (create/list) + `/api/caos/sessions/{id}/messages|artifacts|continuity`
-- `/api/caos/chat` — routed inference with provider/model selection
-- `/api/caos/memory/save` + `/memory/{id}` CRUD (structured memory, personal_facts bin, global bin)
-- `/api/caos/voice/transcribe` + `/voice/tts` + `/voice/settings`
-- `/api/caos/runtime/catalog` + `/runtime/settings`
-- `/api/caos/files` upload/link
-- `/api/caos/profile/{email}` upsert/get
-- Real `tiktoken` WCW metering, retention explanations, rehydration ordering
+### Frontend — Base44 parity achieved
+- **ShellHeader** — 3-col: identity chip + hamburger + inspector menu (L) / CAOS + subtitle (C) / thread pill + search + live WCW meter (R)
+- **InspectorMenu** (NEW) — hamburger dropdown with Desktop/New Thread/Previous Threads/Profile/Engine (inline sub-menu)/Log Out
+- **EngineChip** above composer — single pill, 4-provider dropdown
+- **SelectionReactionPopover** — 31 emojis w/ frequency tracking, reply input, browser speechSynthesis Read, sonner toasts
+- **SearchDrawer** — full-text search with `<mark>` yellow highlighting + match count
+- **ThreadMiniMeter** — per-thread WCW bar on every rail + previous-threads card (provider-aware 200K/1M)
+- **LatencyIndicator** — per-message badge (3 tiers)
+- **ProfileDrawer** (rewrite) — avatar + role chip, Files/Photos/Links tabs, Email/Member/Role/Birthday(edit), Permanent Memories link, Remember/Game/Dev/Multi-Agent/Console toggles, Voice & Speech link, Delete Account
+- **VoiceSettings modal** — 6 OpenAI voices (alloy/echo/fable/onyx/nova/shimmer), Test preview, speed slider 0.5–2.0×
+- **ProfileMemoryView** — add/edit/delete permanent memories inline
+- **ProfileFilesView** — tabbed Files/Photos/Links with search
+- **Composer** — auto-grow 1–6 rows, Shift+Enter newline, pulsing red mic, toast on permission/device errors, live-stream transcript ribbon, cumulative WebM chunks (fixes header issue)
+- **MessagePane** — optimistic user message + typing dots + streaming cursor (▌) for SSE deltas
+- **CaosShell** — sonner Toaster mounted globally, starfield background
 
-### Frontend — Base44 parity pass (Apr 20, 2026) ✅
-- **ShellHeader**: 3-column — identity chip (L) / `CAOS` + "Cognitive Adaptive Operating System" (C) / thread pill + search + live WCW meter (R)
-- **EngineChip**: single pill `⚡ Claude — click to switch` above composer; opens 4-provider menu (Claude/OpenAI/Gemini/Grok-BYO)
-- **SelectionReactionPopover**: text-selection-driven popover with 7 emoji reactions + Read/Reply/Copy; positions near selection, dismisses on outside click
-- **SearchDrawer**: full rewrite — snippet builder with `<mark>` highlighted match terms, match count + message count
-- **Composer**: auto-growing textarea (1–6 rows, then internal scroll), Shift+Enter for newline, Enter sends, removed the weird live-transcript bar
-- **MessagePane**: "Receipt" button → "Context"; inline panel heading → "Context Diagnostics"
-- **InspectorPanel**: "Why this reply fits" → "Context Diagnostics"
-- **CaosShell**: WorkingContextStrip removed from main canvas (moved into header WCW meter); ModelBar row removed; identity chip in header + rail footer duplicate hidden
-- **Starfield**: ambient CSS starfield behind the shell, matches Base44 feel
-- **CSS file**: `caos-base44-parity.css` (225 lines) — all new overrides isolated for easy rollback
+### UX micro-wins
+- Optimistic user message (appears instant on send)
+- 3-dot typing indicator for pending assistant (pre-stream)
+- Streaming cursor for in-progress SSE delta rendering
+- Click-outside + Escape on all popovers/drawers/modals
+- Rail-brand + rail-footer hidden (identity lives in header only)
+- Live-transcript ribbon (breathing purple/blue) while mic records
+- Mic pulsing red ring while recording
 
-## Governance / File Sizes (current)
-| File | Lines | Status |
-|---|---|---|
-| `useCaosShell.js` | 435 | ⚠️ OVER 400 — flagged for extraction pass (blueprint §2.2) |
-| `EngineChip.js` | 73 | ✅ |
-| `SelectionReactionPopover.js` | 103 | ✅ |
-| `ShellHeader.js` | 96 | ✅ |
-| `CaosShell.js` | ~290 | ✅ |
-| `Composer.js` | ~145 | ✅ |
-| `MessagePane.js` | ~180 | ✅ |
-| `SearchDrawer.js` | 99 | ✅ |
-| `backend/app/routes/caos.py` | 339 | 🟡 300-line threshold tripped — future-extract gate |
-| `backend/app/schemas/caos.py` | 394 | 🟡 near limit |
+## File Sizes
+- `useCaosShell.js` ~487 (acceptable per owner)
+- `ProfileDrawer.js` 258
+- `SelectionReactionPopover.js` 197
+- `MessagePane.js` 199
+- `caos-base44-parity.css` 540 (CSS doesn't count)
 
-## P0 Backlog (next tasks)
-- [ ] Extract `useCaosShell.js` (435 → split into `useShellBootstrap`, `useShellChat`, `useShellMemory`, `useShellVoice`) — only blueprint breach in app code
-- [ ] Rail account menu duplicate — consolidate identity surfaces (cleanup)
-- [ ] Wire `SelectionReactionPopover` reply → actually saves as threaded reply on the source message
-- [ ] `responseReviewer`-equivalent post-inference policy gate (TSB-053 parity)
-- [ ] `mbcrEngine`/TRH v1 parity module behind `chat_pipeline` (TSB-054, TSB-029)
+## Next Action Items
+- Drive app manually — confirm mic chunking, streaming cursor, TTS fallback all feel right end-to-end
+- Port bubble/* extractions (CopyBlock/LinkPreview/YouTubeEmbed) per TSB-025/027/028
+- Gemini provider adapter with native Google Search grounding (unlocks Google Workspace route)
+- responseReviewer post-inference gate (TSB-053)
+- mbcrEngine + TRH v1 thread rehydration (TSB-054, TSB-029)
+- Resend email integration for selection menu email button
+- Google Workspace (Gmail/Drive/Calendar) via Emergent Google auth
 
-## P1 Backlog
-- [ ] Grok provider adapter (~10 LOC, user supplies XAI_API_KEY)
-- [ ] MemoryWorkbench refactor (363 lines, near limit)
-- [ ] Onboarding tour (Section 20 of blueprint — target Apr 19, 2026)
-- [ ] SSE streaming path (TSB-036 parity, kill-switch off by default)
-
-## P2 / Future
-- [ ] CTC ARC Inspector panel (browse ContextSeed records)
-- [ ] PyAnnote/SpeechBrain audio blueprint (Section 13)
-- [ ] Connectors (Google Workspace, GitHub)
+## Future / Backlog
+- RSoD + errorClassifier (TSB-024)
+- WCWStatusBadge (color tiers)
+- Grok provider adapter (user XAI_API_KEY)
+- Onboarding tour (§20)
+- CTC ARC Inspector panel
+- Emergent platform: open ticket for `/llm/audio/speech` 500 — browser speechSynthesis fallback unblocks users

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 
+import { InspectorMenu } from "@/components/caos/InspectorMenu";
+
 const formatTokens = (value) => {
   const numeric = Number(value) || 0;
   if (numeric >= 1000000) return `${(numeric / 1000000).toFixed(1)}M`;
@@ -10,18 +12,24 @@ const formatTokens = (value) => {
 
 /**
  * Base44-parity header: 3-column layout.
- * Left  : rail toggle + user identity chip
+ * Left  : rail toggle + inspector menu (hamburger) + user identity chip
  * Center: CAOS title + "Cognitive Adaptive Operating System" subtitle
  * Right : active thread pill + search icon + live WCW meter
  */
 export const ShellHeader = ({
+  activeProvider,
+  activeModel,
   currentSession,
   displayName,
   isRailOpen,
+  onLogOut,
+  onNewThread,
   onOpenProfile,
   onOpenThreads,
+  onSelectProvider,
   onToggleRail,
   onToggleSearch,
+  providerCatalog,
   wcwBudget,
   wcwUsed,
 }) => {
@@ -44,6 +52,16 @@ export const ShellHeader = ({
         <button className="search-icon-button" data-testid="caos-rail-toggle-button" onClick={onToggleRail}>
           {isRailOpen ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
         </button>
+        <InspectorMenu
+          activeModel={activeModel}
+          activeProvider={activeProvider}
+          onLogOut={onLogOut}
+          onNewThread={onNewThread}
+          onOpenProfile={onOpenProfile}
+          onOpenThreads={onOpenThreads}
+          onSelectProvider={onSelectProvider}
+          providerCatalog={providerCatalog}
+        />
         <div className="caos-header-identity" data-testid="caos-header-identity" ref={identityRef}>
           <button
             className="caos-header-identity-chip"

@@ -275,14 +275,58 @@ export const useCaosShell = () => {
         setMessages((prev) => prev.filter((message) => message.id !== pendingUserId && message.id !== pendingAssistantId));
         return;
       }
-      const response = await axios.post(`${API}/caos/chat`, {
-        user_email: userEmail,
-        session_id: session.session_id,
-        content: trimmed,
-        provider: runtimeSettings.default_provider,
-        model: runtimeSettings.default_model,
+
+      // Try SSE streaming first — progressively paint words into the placeholder.
+      // Any failure cleanly falls back to the POST /chat path.
+      let finalPayload = null;
+      const streamResponse = await fetch(`${API}/caos/chat/stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_email: userEmail,
+          session_id: session.session_id,
+          content: trimmed,
+          provider: runtimeSettings.default_provider,
+          model: runtimeSettings.default_model,
+        }),
       });
-      setLastTurn(response.data);
+
+      if (streamResponse.ok && streamResponse.body) {
+        const reader = streamResponse.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let accumulated = "";
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() || "";
+          for (const part of parts) {
+            const eventLine = part.split("\n").find((line) => line.startsWith("event:"));
+            const dataLine = part.split("\n").find((line) => line.startsWith("data:"));
+            if (!eventLine || !dataLine) continue;
+            const eventType = eventLine.slice(6).trim();
+            const dataRaw = dataLine.slice(5).trim();
+            let data;
+            try { data = JSON.parse(dataRaw); } catch { continue; }
+            if (eventType === "delta") {
+              accumulated = data.cumulative || `${accumulated}${data.delta || ""}`;
+              setMessages((prev) => prev.map((message) => message.id === pendingAssistantId
+                ? { ...message, content: accumulated, streaming: true }
+                : message));
+            } else if (eventType === "final") {
+              finalPayload = data;
+            } else if (eventType === "error") {
+              throw new Error(data.error || "stream_failed");
+            }
+          }
+        }
+      } else {
+        throw new Error(`stream_unavailable_${streamResponse.status}`);
+      }
+
+      if (finalPayload) setLastTurn(finalPayload);
       const nextSessions = await loadSessions();
       const refreshedSession = nextSessions.find((item) => item.session_id === session.session_id) || session;
       setCurrentSession(refreshedSession);
