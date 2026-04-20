@@ -14,6 +14,9 @@ import subprocess
 from pathlib import Path
 
 
+from app.services.github_tools import GITHUB_TOOL_REGISTRY, GITHUB_TOOL_DOCS
+
+
 REPO_ROOT = Path("/app")
 MAX_OUTPUT_CHARS = 6000
 
@@ -118,6 +121,7 @@ TOOL_REGISTRY = {
     "caos_read_file": caos_read_file,
     "caos_ls": caos_ls,
     "caos_git_log": caos_git_log,
+    **GITHUB_TOOL_REGISTRY,
 }
 
 
@@ -135,10 +139,14 @@ def run_tool(tool_name: str, tool_args: dict) -> dict:
         return {"stdout": "", "stderr": "", "error": f"{tool_name} raised: {str(error)[:240]}"}
 
 
-TOOL_DOCS = """Available server-side tools (step type="tool", provide `tool_name` and `tool_args` dict):
+TOOL_DOCS = f"""Available server-side tools (step type="tool", provide `tool_name` and `tool_args` dict):
+
+Local CAOS repo tools (read /app):
 - caos_grep(pattern, path=".", file_glob=None)         → grep -rnE across the CAOS repo at /app. file_glob is an optional --include pattern like "*.py".
 - caos_read_file(path, start_line=1, end_line=None)    → read a file, optionally a line range. Paths are repo-relative.
 - caos_ls(path=".", max_depth=1)                       → list directory contents (hides node_modules/.git/__pycache__).
 - caos_git_log(limit=10)                               → last N git commits (short-hash  date  subject).
 
-These tools run in the CAOS backend itself — they CAN see the live CAOS source code at /app. Prefer tools over python for anything that touches repo files."""
+{GITHUB_TOOL_DOCS}
+
+These tools run in the CAOS backend itself. Prefer tools over python for anything that touches repo files or GitHub state."""

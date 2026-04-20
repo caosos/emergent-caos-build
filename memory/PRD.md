@@ -61,6 +61,19 @@ Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergen
 - Live-transcript ribbon (breathing purple/blue) while mic records
 - Mic pulsing red ring while recording
 
+## GitHub Adapter — Swarm Reaches Beyond /app (Apr 20, 2026 — overnight pt 3)
+- **New module** `backend/app/services/github_tools.py`: 8 read-only GitHub REST API tools the Supervisor can call as `type="tool"` steps:
+  - `gh_whoami()` — auth sanity check
+  - `gh_list_repos(visibility, limit)` — user's repos
+  - `gh_read_file(repo, path, ref)` — file contents from any branch/tag
+  - `gh_list_prs(repo, state, limit)` / `gh_read_pr(repo, number)` — PRs + changed files
+  - `gh_list_issues(repo, state, limit)` — open issues (PRs filtered out)
+  - `gh_search_code(repo, query, limit)` — GitHub code search
+  - `gh_file_history(repo, path, limit)` — commit history for a file
+- All tools require `GITHUB_TOKEN` in backend env; without it, each call returns a crisp "(GITHUB_TOKEN not configured — please set it in /app/backend/.env)" so the Critic writes useful guidance instead of crashing.
+- httpx-based, 15s timeout, 8KB output cap, read-only by design. PAT needs `repo` (private) or `public_repo` scope; optional `read:user` / `read:org`.
+- Merged into `TOOL_REGISTRY` and `TOOL_DOCS` so the Supervisor is automatically aware of both local (`caos_*`) and GitHub (`gh_*`) tools.
+
 ## Swarm Tools — Real Repo Awareness (Apr 20, 2026 — overnight pt 2)
 - **New module** `backend/app/services/swarm_tools.py`: server-side read-only tools that the Swarm Supervisor can call:
   - `caos_grep(pattern, path, file_glob)` — recursive grep across `/app` (excludes node_modules/.git/__pycache__/dist/build/.next/.venv, 15s timeout, 6KB output cap)
