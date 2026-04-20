@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
+import { useVoiceIO } from "@/components/caos/useVoiceIO";
+import { useMemoryCrud } from "@/components/caos/useMemoryCrud";
+import { useFilesCrud } from "@/components/caos/useFilesCrud";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const USER_KEY = "caos-shell-user-email";
@@ -19,7 +22,6 @@ const DEFAULT_VOICE = {
   tts_voice: "nova",
   tts_speed: 1.0,
 };
-
 
 export const useCaosShell = () => {
   const [userEmail, setUserEmailState] = useState(() => localStorage.getItem(USER_KEY) || "michael@example.com");
@@ -183,11 +185,7 @@ export const useCaosShell = () => {
     setBusy(true);
     setError("");
     try {
-      const payload = {
-        user_email: userEmail,
-        ...voiceSettings,
-        ...changes,
-      };
+      const payload = { user_email: userEmail, ...voiceSettings, ...changes };
       const response = await axios.post(`${API}/caos/voice/settings`, payload);
       setProfile((previous) => ({
         ...(previous || { user_email: userEmail, structured_memory: [] }),
@@ -203,61 +201,17 @@ export const useCaosShell = () => {
     }
   }, [userEmail, voiceSettings]);
 
-  const saveMemory = useCallback(async (content, binName = "general") => {
-    if (!content.trim()) return;
-    setBusy(true);
-    setError("");
-    try {
-      await axios.post(`${API}/caos/memory/save`, {
-        user_email: userEmail,
-        content,
-        bin_name: binName,
-      });
-      await loadProfile();
-      setStatus(`Saved ${binName === "personal_facts" ? "personal fact" : "memory"}.`);
-    } catch (issue) {
-      const message = issue?.response?.data?.detail || issue?.message || "Saving memory failed.";
-      setError(message);
-      setStatus(`Saving memory failed: ${message}`);
-    } finally {
-      setBusy(false);
-    }
-  }, [loadProfile, userEmail]);
+  const { saveMemory, updateMemory, deleteMemory } = useMemoryCrud({
+    userEmail, loadProfile, setBusy, setError, setStatus,
+  });
 
-  const updateMemory = useCallback(async (memoryId, changes) => {
-    setBusy(true);
-    setError("");
-    try {
-      await axios.patch(`${API}/caos/memory/${memoryId}`, {
-        user_email: userEmail,
-        ...changes,
-      });
-      await loadProfile();
-      setStatus("Memory updated.");
-    } catch (issue) {
-      const message = issue?.response?.data?.detail || issue?.message || "Updating memory failed.";
-      setError(message);
-      setStatus(`Updating memory failed: ${message}`);
-    } finally {
-      setBusy(false);
-    }
-  }, [loadProfile, userEmail]);
+  const { uploadFile, saveLink } = useFilesCrud({
+    userEmail, currentSession, loadFiles, setBusy, setError, setStatus,
+  });
 
-  const deleteMemory = useCallback(async (memoryId) => {
-    setBusy(true);
-    setError("");
-    try {
-      await axios.delete(`${API}/caos/memory/${memoryId}`, { params: { user_email: userEmail } });
-      await loadProfile();
-      setStatus("Memory deleted.");
-    } catch (issue) {
-      const message = issue?.response?.data?.detail || issue?.message || "Deleting memory failed.";
-      setError(message);
-      setStatus(`Deleting memory failed: ${message}`);
-    } finally {
-      setBusy(false);
-    }
-  }, [loadProfile, userEmail]);
+  const { transcribeAudio, transcribeAudioChunk, speakText } = useVoiceIO({
+    userEmail, voiceSettings,
+  });
 
   const sendMessage = useCallback(async (content) => {
     if (!content.trim()) return;
@@ -274,16 +228,14 @@ export const useCaosShell = () => {
     ]);
     try {
       let session = currentSession;
+      if (!session) session = await createSession(trimmed.slice(0, 48) || "New Thread");
       if (!session) {
-        session = await createSession(trimmed.slice(0, 48) || "New Thread");
-      }
-      if (!session) {
-        setMessages((prev) => prev.filter((message) => message.id !== pendingUserId && message.id !== pendingAssistantId));
+        setMessages((prev) => prev.filter((m) => m.id !== pendingUserId && m.id !== pendingAssistantId));
         return;
       }
 
-      // Multi-agent branch: fan out to Claude/OpenAI/Gemini in parallel. Replace the
-      // single pending assistant bubble with a multi-agent group once all agents return.
+      // Multi-agent branch: fan out to Claude/OpenAI/Gemini + Synthesizer. Replace
+      // the pending assistant bubble with a multi-agent group once all return.
       if (multiAgentMode) {
         try {
           const multiResponse = await axios.post(`${API}/caos/chat/multi`, {
@@ -301,15 +253,16 @@ export const useCaosShell = () => {
                 pending: false,
                 multi_agent: true,
                 agents: multiResponse.data.agents,
+                synthesis: multiResponse.data.synthesis,
                 content: "",
               }
             : message));
           const nextSessions = await loadSessions();
-          const refreshedSession = nextSessions.find((item) => item.session_id === session.session_id) || session;
-          setCurrentSession(refreshedSession);
+          setCurrentSession(nextSessions.find((item) => item.session_id === session.session_id) || session);
           await loadArtifacts(session.session_id);
           await loadProfile();
-          setStatus(`Multi-agent · ${multiResponse.data.ok_count}/${multiResponse.data.agents.length} succeeded`);
+          const synthOk = multiResponse.data.synthesis?.ok ? " · synthesized" : "";
+          setStatus(`Multi-agent · ${multiResponse.data.ok_count}/${multiResponse.data.agents.length} succeeded${synthOk}`);
           return;
         } catch (multiError) {
           setMessages((prev) => prev.filter((m) => m.id !== pendingAssistantId));
@@ -317,8 +270,7 @@ export const useCaosShell = () => {
         }
       }
 
-      // Single-agent branch: try SSE streaming first — progressively paint words into the placeholder.
-      // Any failure cleanly falls back to the POST /chat path.
+      // Single-agent branch: SSE streaming — progressively paint words. Falls back to POST /chat on failure.
       let finalPayload = null;
       const streamResponse = await fetch(`${API}/caos/chat/stream`, {
         method: "POST",
@@ -353,9 +305,9 @@ export const useCaosShell = () => {
             try { data = JSON.parse(dataRaw); } catch { continue; }
             if (eventType === "delta") {
               accumulated = data.cumulative || `${accumulated}${data.delta || ""}`;
-              setMessages((prev) => prev.map((message) => message.id === pendingAssistantId
-                ? { ...message, content: accumulated, streaming: true }
-                : message));
+              setMessages((prev) => prev.map((m) => m.id === pendingAssistantId
+                ? { ...m, content: accumulated, streaming: true }
+                : m));
             } else if (eventType === "final") {
               finalPayload = data;
             } else if (eventType === "error") {
@@ -369,8 +321,7 @@ export const useCaosShell = () => {
 
       if (finalPayload) setLastTurn(finalPayload);
       const nextSessions = await loadSessions();
-      const refreshedSession = nextSessions.find((item) => item.session_id === session.session_id) || session;
-      setCurrentSession(refreshedSession);
+      setCurrentSession(nextSessions.find((item) => item.session_id === session.session_id) || session);
       await loadMessages(session.session_id);
       await loadArtifacts(session.session_id);
       await loadContinuity(session.session_id);
@@ -420,142 +371,21 @@ export const useCaosShell = () => {
     return messages.filter((message) => message.content?.toLowerCase().includes(lowered));
   }, [messages, searchQuery]);
 
-  const uploadFile = useCallback(async (file) => {
-    if (!file) return;
-    const form = new FormData();
-    form.append("user_email", userEmail);
-    if (currentSession?.session_id) form.append("session_id", currentSession.session_id);
-    form.append("file", file);
-    setBusy(true);
-    setError("");
-    try {
-      await axios.post(`${API}/caos/files/upload`, form);
-      await loadFiles();
-      setStatus(`Uploaded ${file.name}.`);
-    } catch (issue) {
-      const message = issue?.response?.data?.detail || issue?.message || "Upload failed.";
-      setError(message);
-      setStatus(`Upload failed: ${message}`);
-    } finally {
-      setBusy(false);
-    }
-  }, [currentSession, loadFiles, userEmail]);
-
-  const saveLink = useCallback(async (url, label) => {
-    if (!url.trim() || !label.trim()) return;
-    setBusy(true);
-    setError("");
-    try {
-      await axios.post(`${API}/caos/files/link`, {
-        user_email: userEmail,
-        session_id: currentSession?.session_id || null,
-        url,
-        label,
-      });
-      await loadFiles();
-      setStatus(`Saved link ${label}.`);
-    } catch (issue) {
-      const message = issue?.response?.data?.detail || issue?.message || "Saving link failed.";
-      setError(message);
-      setStatus(`Saving link failed: ${message}`);
-    } finally {
-      setBusy(false);
-    }
-  }, [currentSession, loadFiles, userEmail]);
-
-  const transcribeAudio = useCallback(async (blob, filename = "caos-voice-note.webm") => {
-    const form = new FormData();
-    form.append("user_email", userEmail);
-    form.append("model", voiceSettings.stt_primary_model);
-    form.append("fallback_model", voiceSettings.stt_fallback_model);
-    form.append("language", voiceSettings.stt_language);
-    form.append("file", new File([blob], filename, { type: blob.type || "audio/webm" }));
-    const response = await axios.post(`${API}/caos/voice/transcribe`, form);
-    return response.data;
-  }, [userEmail, voiceSettings.stt_fallback_model, voiceSettings.stt_language, voiceSettings.stt_primary_model]);
-
-  const transcribeAudioChunk = useCallback(async (blob, prompt = "", filename = "caos-voice-chunk.webm") => {
-    const form = new FormData();
-    form.append("user_email", userEmail);
-    form.append("model", voiceSettings.stt_primary_model);
-    form.append("fallback_model", voiceSettings.stt_fallback_model);
-    form.append("language", voiceSettings.stt_language);
-    if (prompt.trim()) form.append("prompt", prompt.slice(-180));
-    form.append("file", new File([blob], filename, { type: blob.type || "audio/webm" }));
-    const response = await axios.post(`${API}/caos/voice/transcribe`, form);
-    return response.data;
-  }, [userEmail, voiceSettings.stt_fallback_model, voiceSettings.stt_language, voiceSettings.stt_primary_model]);
-
-  const speakText = useCallback(async (text, overrides = {}) => {
-    // Primary path: OpenAI TTS via backend (Base44 Path A parity).
-    // Fallback path: browser speechSynthesis (Base44 Path B parity).
-    // Any backend failure silently falls through so Read Aloud never blocks the user.
-    try {
-      const response = await axios.post(`${API}/caos/voice/tts`, {
-        text,
-        voice: overrides.voice || voiceSettings.tts_voice,
-        model: overrides.model || voiceSettings.tts_model,
-        speed: overrides.speed || voiceSettings.tts_speed,
-      });
-      const audio = new Audio(`data:${response.data.content_type};base64,${response.data.audio_base64}`);
-      await audio.play();
-      return audio;
-    } catch (error) {
-      if (typeof window !== "undefined" && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-        const utter = new SpeechSynthesisUtterance(text);
-        utter.rate = overrides.speed || voiceSettings.tts_speed || 1.0;
-        window.speechSynthesis.speak(utter);
-        return utter;
-      }
-      throw error;
-    }
-  }, [voiceSettings.tts_model, voiceSettings.tts_speed, voiceSettings.tts_voice]);
-
   const updateProfile = useCallback(async (changes) => {
     if (!userEmail) return null;
     const response = await axios.post(`${API}/caos/profile/upsert`, {
-      user_email: userEmail,
-      ...changes,
+      user_email: userEmail, ...changes,
     });
     await loadProfile();
     return response.data;
   }, [loadProfile, userEmail]);
 
   return {
-    artifacts,
-    busy,
-    continuity,
-    createSession,
-    currentSession,
-    error,
-    filteredMessages,
-    files,
-    lastTurn,
-    messages,
-    multiAgentMode,
-    profile,
-    runtimeSettings,
-    searchQuery,
-    selectSession,
-    sendMessage,
-    sessions,
-    setMultiAgentMode,
-    setSearchQuery,
-    commitUserEmail,
-    saveLink,
-    saveMemory,
-    speakText,
-    status,
-    transcribeAudio,
-    transcribeAudioChunk,
-    updateMemory,
-    updateProfile,
-    updateRuntimeSelection,
-    updateVoiceSettings,
-    uploadFile,
-    userEmail,
-    deleteMemory,
-    voiceSettings,
+    artifacts, busy, continuity, createSession, currentSession, error, filteredMessages,
+    files, lastTurn, messages, multiAgentMode, profile, runtimeSettings, searchQuery,
+    selectSession, sendMessage, sessions, setMultiAgentMode, setSearchQuery, commitUserEmail,
+    saveLink, saveMemory, speakText, status, transcribeAudio, transcribeAudioChunk,
+    updateMemory, updateProfile, updateRuntimeSelection, updateVoiceSettings, uploadFile,
+    userEmail, deleteMemory, voiceSettings,
   };
 };

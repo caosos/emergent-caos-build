@@ -76,6 +76,7 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
               return (
                 <MultiAgentMessageGroup
                   agents={message.agents}
+                  synthesis={message.synthesis}
                   key={message.id}
                   onSpeak={onSpeak}
                   timestamp={message.timestamp}

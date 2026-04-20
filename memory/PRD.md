@@ -61,21 +61,36 @@ Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergen
 - Live-transcript ribbon (breathing purple/blue) while mic records
 - Mic pulsing red ring while recording
 
-## File Sizes
-- `useCaosShell.js` ~487 (acceptable per owner)
+## Multi-Agent Synthesizer (Apr 20, 2026)
+- `/api/caos/chat/multi` now returns a 4th `synthesis` field alongside the 3-column fan-out.
+- Synthesizer = Claude Sonnet 4.5, reads Claude + OpenAI + Gemini replies and produces ONE cohesive answer with `[Claude]`, `[GPT]`, `[Gemini]`, or `[All]` citations.
+- `MultiAgentMessageGroup` renders synthesized reply by default; raw 3 columns tucked behind a "Show sources" toggle.
+- Skipped (silently) when fewer than 2 agents succeed.
+
+## File Sizes (GOV v1.2 compliance restored)
+- `useCaosShell.js` 391 ✅ (was 561)
+- `useVoiceIO.js` 62 (extracted)
+- `useMemoryCrud.js` 68 (extracted)
+- `useFilesCrud.js` 55 (extracted)
+- `MultiAgentMessageGroup.js` 152
+- `multi_agent.py` (backend) 139
 - `ProfileDrawer.js` 258
 - `SelectionReactionPopover.js` 197
 - `MessagePane.js` 199
 - `caos-base44-parity.css` 540 (CSS doesn't count)
 
+## Support Ticket Drafted
+- Draft letter for Emergent Support re: `/llm/audio/speech` returning HTTP 500 (tts-1 / tts-1-hd) delivered in-chat. User to submit when ready.
+
 ## Next Action Items
-- Drive app manually — confirm mic chunking, streaming cursor, TTS fallback all feel right end-to-end
-- Port bubble/* extractions (CopyBlock/LinkPreview/YouTubeEmbed) per TSB-025/027/028
-- Gemini provider adapter with native Google Search grounding (unlocks Google Workspace route)
-- responseReviewer post-inference gate (TSB-053)
-- mbcrEngine + TRH v1 thread rehydration (TSB-054, TSB-029)
-- Resend email integration for selection menu email button
-- Google Workspace (Gmail/Drive/Calendar) via Emergent Google auth
+- Phase 4: Orchestrated Swarm v1 — LangGraph Supervisor → Claude Opus JSON planner → E2B Sandbox workers → Critic (E2B key already in `.env`).
+- Drive app manually — confirm Synthesizer UI + Show-sources toggle feel right end-to-end.
+- Port bubble/* extractions (CopyBlock/LinkPreview/YouTubeEmbed) per TSB-025/027/028.
+- Gemini provider adapter with native Google Search grounding (unlocks Google Workspace route).
+- responseReviewer post-inference gate (TSB-053).
+- mbcrEngine + TRH v1 thread rehydration (TSB-054, TSB-029).
+- Resend email integration for selection menu email button.
+- Google Workspace (Gmail/Drive/Calendar) via Emergent Google auth.
 
 ## Future / Backlog
 - RSoD + errorClassifier (TSB-024)
@@ -83,4 +98,4 @@ Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergen
 - Grok provider adapter (user XAI_API_KEY)
 - Onboarding tour (§20)
 - CTC ARC Inspector panel
-- Emergent platform: open ticket for `/llm/audio/speech` 500 — browser speechSynthesis fallback unblocks users
+- Emergent platform: TTS `/llm/audio/speech` 500 ticket (draft delivered; browser speechSynthesis fallback unblocks users)
