@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-import { ChevronDown, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 
 import { InspectorMenu } from "@/components/caos/InspectorMenu";
 
@@ -12,9 +11,13 @@ const formatTokens = (value) => {
 
 /**
  * Base44-parity header: 3-column layout.
- * Left  : rail toggle + inspector menu (hamburger) + user identity chip
+ * Left  : rail toggle + inspector menu (hamburger) + user identity chip (click opens Profile)
  * Center: CAOS title + "Cognitive Adaptive Operating System" subtitle
  * Right : active thread pill + search icon + live WCW meter
+ *
+ * Single-source-of-truth menu model: ALL navigation lives in the hamburger.
+ * The identity chip is a visual shortcut only — click it to open the Profile
+ * panel directly (not another dropdown).
  */
 export const ShellHeader = ({
   activeProvider,
@@ -26,6 +29,7 @@ export const ShellHeader = ({
   onLogOut,
   onNewThread,
   onOpenProfile,
+  onOpenSwarm,
   onOpenThreads,
   onSelectProvider,
   onToggleRail,
@@ -34,18 +38,7 @@ export const ShellHeader = ({
   wcwBudget,
   wcwUsed,
 }) => {
-  const [showIdentity, setShowIdentity] = useState(false);
-  const identityRef = useRef(null);
   const percent = Math.min(100, Math.round(((wcwUsed || 0) / (wcwBudget || 1)) * 100));
-
-  useEffect(() => {
-    if (!showIdentity) return undefined;
-    const handler = (event) => {
-      if (identityRef.current && !identityRef.current.contains(event.target)) setShowIdentity(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showIdentity]);
 
   return (
     <header className="caos-header" data-testid="caos-shell-header">
@@ -59,15 +52,17 @@ export const ShellHeader = ({
           onLogOut={onLogOut}
           onNewThread={onNewThread}
           onOpenProfile={onOpenProfile}
+          onOpenSwarm={onOpenSwarm}
           onOpenThreads={onOpenThreads}
           onSelectProvider={onSelectProvider}
           providerCatalog={providerCatalog}
         />
-        <div className="caos-header-identity" data-testid="caos-header-identity" ref={identityRef}>
+        <div className="caos-header-identity" data-testid="caos-header-identity">
           <button
             className="caos-header-identity-chip"
             data-testid="caos-header-identity-chip"
-            onClick={() => setShowIdentity((value) => !value)}
+            onClick={() => onOpenProfile?.()}
+            title={authenticatedUser?.email || "Open profile"}
             type="button"
           >
             <span className="caos-header-identity-avatar" data-testid="caos-header-identity-avatar">
@@ -78,41 +73,7 @@ export const ShellHeader = ({
               )}
             </span>
             <strong data-testid="caos-header-identity-name">{(authenticatedUser?.name || displayName || "Michael").toUpperCase()}</strong>
-            <ChevronDown size={12} />
           </button>
-          {showIdentity ? (
-            <div className="caos-header-identity-menu" data-testid="caos-header-identity-menu">
-              <button
-                className="caos-header-identity-menu-item"
-                data-testid="caos-header-identity-menu-profile"
-                onClick={() => { onOpenProfile?.(); setShowIdentity(false); }}
-                type="button"
-              >
-                Profile & Settings
-              </button>
-              <button
-                className="caos-header-identity-menu-item"
-                data-testid="caos-header-identity-menu-threads"
-                onClick={() => { onOpenThreads?.(); setShowIdentity(false); }}
-                type="button"
-              >
-                Previous Threads
-              </button>
-              {authenticatedUser?.email ? (
-                <div className="caos-header-identity-menu-email" data-testid="caos-header-identity-menu-email">
-                  {authenticatedUser.email}
-                </div>
-              ) : null}
-              <button
-                className="caos-header-identity-menu-item caos-header-identity-menu-signout"
-                data-testid="caos-header-identity-menu-signout"
-                onClick={() => { onLogOut?.(); setShowIdentity(false); }}
-                type="button"
-              >
-                Sign out
-              </button>
-            </div>
-          ) : null}
         </div>
       </div>
 

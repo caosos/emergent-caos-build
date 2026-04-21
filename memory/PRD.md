@@ -61,6 +61,12 @@ Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergen
 - Live-transcript ribbon (breathing purple/blue) while mic records
 - Mic pulsing red ring while recording
 
+## Menu Cleanup — Kill the Redundancy (Apr 21, 2026)
+User flagged three competing menu systems. Fixed:
+- **Killed the identity-chip dropdown** in `ShellHeader`. The MICHAEL chip is now click-to-open-profile (one action). Removed `showIdentity` state, `ChevronDown`, useRef, outside-click listener, and the dropdown JSX (about 45 lines).
+- **Left rail now closed by default** (`useState(false)` instead of `true`). Base44 parity — the sidebar opens only when you click the rail-toggle button. Earlier it was eating 25% of the screen on load and hiding the hamburger menu when opened.
+- **Piped `onOpenSwarm` through** `ShellHeader` → `InspectorMenu` so the **Agent Swarm · E2B** item is in the hamburger menu alongside New Thread / Previous Threads / Profile / Engine / Log Out. Verified clickable via automation.
+
 ## Call-Prep Build (Apr 20, 2026 — afternoon)
 Four polish items ahead of tomorrow's Emergent partnership call.
 

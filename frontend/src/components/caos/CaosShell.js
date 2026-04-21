@@ -20,7 +20,7 @@ import "./caos-base44-parity.css";
 
 
 export const CaosShell = ({ authenticatedUser }) => {
-  const [isRailOpen, setIsRailOpen] = useState(true);
+  const [isRailOpen, setIsRailOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [showArtifacts, setShowArtifacts] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
