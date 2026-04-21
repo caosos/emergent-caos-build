@@ -22,6 +22,7 @@ from app.schemas.caos import (
     SessionCreate,
     SessionArtifactsResponse,
     SessionRecord,
+    SessionUpdate,
     SummaryRecord,
     RuntimePreferences,
     RuntimeSettingsResponse,
@@ -77,6 +78,41 @@ async def create_session(input: SessionCreate):
 async def list_sessions(user_email: str):
     docs = await collection("sessions").find({"user_email": user_email}, {"_id": 0}).sort("updated_at", -1).to_list(200)
     return [SessionRecord(**doc) for doc in docs]
+
+
+@router.patch("/sessions/{session_id}", response_model=SessionRecord)
+async def update_session(session_id: str, changes: SessionUpdate, user=Depends(require_user)):
+    session = await collection("sessions").find_one({"session_id": session_id}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if session.get("user_email") != user.get("email"):
+        raise HTTPException(status_code=403, detail="Not your session")
+    update: dict = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if changes.title is not None and changes.title.strip():
+        update["title"] = changes.title.strip()
+        update["title_source"] = "user"
+    if changes.is_flagged is not None:
+        update["is_flagged"] = bool(changes.is_flagged)
+    if changes.lane is not None and changes.lane.strip():
+        update["lane"] = changes.lane.strip()
+    await collection("sessions").update_one({"session_id": session_id}, {"$set": update})
+    session.update(update)
+    return SessionRecord(**session)
+
+
+@router.delete("/sessions/{session_id}")
+async def delete_session_route(session_id: str, user=Depends(require_user)):
+    session = await collection("sessions").find_one({"session_id": session_id}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if session.get("user_email") != user.get("email"):
+        raise HTTPException(status_code=403, detail="Not your session")
+    await collection("sessions").delete_one({"session_id": session_id})
+    await collection("messages").delete_many({"session_id": session_id})
+    await collection("receipts").delete_many({"session_id": session_id})
+    await collection("thread_summaries").delete_many({"session_id": session_id})
+    await collection("context_seeds").delete_many({"session_id": session_id})
+    return {"session_id": session_id, "deleted": True}
 
 
 @router.post("/messages", response_model=MessageRecord)

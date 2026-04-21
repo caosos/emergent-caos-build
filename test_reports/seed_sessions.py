@@ -1,8 +1,10 @@
 """Seed two sessions (admin + regular) and print tokens as JSON."""
 import asyncio, json, os, uuid
 from datetime import datetime, timezone, timedelta
+from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 
+load_dotenv("/app/backend/.env")
 MONGO_URL = os.environ["MONGO_URL"]
 DB_NAME = os.environ["DB_NAME"]
 

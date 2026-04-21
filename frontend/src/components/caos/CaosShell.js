@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 
+import { AdminDocsDrawer } from "@/components/caos/AdminDocsDrawer";
 import { ArtifactsDrawer } from "@/components/caos/ArtifactsDrawer";
 import { Composer } from "@/components/caos/Composer";
 import { EngineChip } from "@/components/caos/EngineChip";
@@ -18,11 +19,13 @@ import "./caos-redesign.css";
 import "./caos-redesign-shell.css";
 import "./caos-base44-parity.css";
 import "./caos-base44-parity-v2.css";
+import "./caos-base44-parity-v3.css";
 
 
 export const CaosShell = ({ authenticatedUser }) => {
   const [isRailOpen, setIsRailOpen] = useState(false);
   const [draft, setDraft] = useState("");
+  const [showAdminDocs, setShowAdminDocs] = useState(false);
   const [showArtifacts, setShowArtifacts] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -36,11 +39,13 @@ export const CaosShell = ({ authenticatedUser }) => {
     createSession,
     currentSession,
     deleteMemory,
+    deleteSession,
     error,
     filteredMessages,
     files,
     lastTurn,
     multiAgentMode,
+    renameSession,
     searchQuery,
     saveLink,
     saveMemory,
@@ -51,6 +56,7 @@ export const CaosShell = ({ authenticatedUser }) => {
     setSearchQuery,
     speakText,
     status,
+    toggleFlagSession,
     transcribeAudio,
     transcribeAudioChunk,
     uploadFile,
@@ -63,6 +69,16 @@ export const CaosShell = ({ authenticatedUser }) => {
     updateVoiceSettings,
     voiceSettings,
   } = useCaosShell(authenticatedUser);
+
+  const isAdmin = Boolean(profile?.is_admin || profile?.role === "admin" || authenticatedUser?.is_admin || authenticatedUser?.role === "admin");
+
+  const [localError, setLocalError] = useState("");
+  useEffect(() => {
+    if (!error) { setLocalError(""); return undefined; }
+    setLocalError(error);
+    const timer = setTimeout(() => setLocalError(""), 5000);
+    return () => clearTimeout(timer);
+  }, [error]);
   const latestReceipt = lastTurn?.receipt
     ? {
         ...(artifacts.receipts[0] || {}),
@@ -143,7 +159,15 @@ export const CaosShell = ({ authenticatedUser }) => {
     setShowProfile(false);
     setShowSearch(false);
     setShowInspector(false);
-    setShowThreadExplorer((value) => !value);
+    setShowThreadExplorer((value) => {
+      const next = !value;
+      if (next) setIsRailOpen(true);
+      return next;
+    });
+  };
+
+  const openAdminDocs = () => {
+    setShowAdminDocs(true);
   };
 
   const handleWelcomeAction = (action) => {
@@ -166,6 +190,7 @@ export const CaosShell = ({ authenticatedUser }) => {
         authenticatedUser={authenticatedUser}
         currentSession={currentSession}
         displayName={profile?.preferred_name || authenticatedUser?.name || userEmail?.split("@")[0] || "Michael"}
+        isAdmin={isAdmin}
         isRailOpen={isRailOpen}
         onLogOut={async () => {
           try {
@@ -175,6 +200,7 @@ export const CaosShell = ({ authenticatedUser }) => {
           window.location.replace("/");
         }}
         onNewThread={() => { createSession("New Thread"); }}
+        onOpenAdminDocs={openAdminDocs}
         onOpenProfile={openProfile}
         onOpenSwarm={() => setShowSwarm(true)}
         onOpenThreads={toggleThreads}
@@ -187,34 +213,61 @@ export const CaosShell = ({ authenticatedUser }) => {
       />
 
       <div className="caos-shell-grid caos-shell-grid-layout" data-testid="caos-shell-grid">
-        <ThreadRail
-          activeSurface={activeSurface}
-          currentSessionId={currentSession?.session_id}
-          isCollapsed={!isRailOpen}
-          onFocusChat={focusChat}
-          onNewSession={() => createSession()}
-          onOpenArtifacts={openArtifacts}
-          onOpenInspector={openInspector}
-          onOpenProfile={openProfile}
-          onOpenSearch={openSearch}
-          onOpenThreads={toggleThreads}
-          onSelectSession={selectSession}
-          onToggleRail={() => setIsRailOpen((value) => !value)}
-          profile={profile}
-          runtimeSettings={runtimeSettings}
-          sessions={sessions}
-          userEmail={userEmail}
-          wcwBudget={latestReceipt?.wcw_budget || lastTurn?.wcw_budget || 200000}
-          wcwUsed={latestReceipt?.active_context_tokens || lastTurn?.wcw_used_estimate || 0}
-          wcwSent={latestReceipt?.prompt_tokens || 0}
-          wcwReceived={latestReceipt?.completion_tokens || 0}
-        />
+        <div className="caos-rail-column" data-testid="caos-rail-column" style={{ position: "relative" }}>
+          <ThreadRail
+            activeSurface={activeSurface}
+            currentSessionId={currentSession?.session_id}
+            isCollapsed={!isRailOpen}
+            onFocusChat={focusChat}
+            onNewSession={() => createSession()}
+            onOpenArtifacts={openArtifacts}
+            onOpenInspector={openInspector}
+            onOpenProfile={openProfile}
+            onOpenSearch={openSearch}
+            onOpenThreads={toggleThreads}
+            onSelectSession={selectSession}
+            onToggleRail={() => setIsRailOpen((value) => !value)}
+            profile={profile}
+            runtimeSettings={runtimeSettings}
+            sessions={sessions}
+            userEmail={userEmail}
+            wcwBudget={latestReceipt?.wcw_budget || lastTurn?.wcw_budget || 200000}
+            wcwUsed={latestReceipt?.active_context_tokens || lastTurn?.wcw_used_estimate || 0}
+            wcwSent={latestReceipt?.prompt_tokens || 0}
+            wcwReceived={latestReceipt?.completion_tokens || 0}
+          />
+          {isRailOpen && showThreadExplorer ? (
+            <div className="rail-threads-embedded-overlay" data-testid="caos-rail-threads-embedded-overlay">
+              <PreviousThreadsPanel
+                currentSessionId={currentSession?.session_id}
+                isEmbedded
+                isOpen
+                onClose={() => setShowThreadExplorer(false)}
+                onDeleteSession={deleteSession}
+                onFlagSession={toggleFlagSession}
+                onRenameSession={renameSession}
+                onSelectSession={selectSession}
+                provider={runtimeSettings?.default_provider}
+                sessions={sessions}
+                wcwBudget={latestReceipt?.wcw_budget || lastTurn?.wcw_budget || 200000}
+                wcwUsed={latestReceipt?.active_context_tokens || lastTurn?.wcw_used_estimate || 0}
+              />
+            </div>
+          ) : null}
+        </div>
 
         <section className="caos-main-column" data-testid="caos-main-column">
-          {error ? (
+          {localError ? (
             <div className="shell-error-banner" data-testid="caos-error-banner">
               <AlertTriangle size={16} />
-              <span data-testid="caos-error-text">{error}</span>
+              <span data-testid="caos-error-text">{localError}</span>
+              <button
+                aria-label="Dismiss error"
+                className="shell-error-dismiss"
+                data-testid="caos-error-banner-dismiss"
+                onClick={() => setLocalError("")}
+                type="button"
+              >×</button>
             </div>
           ) : null}
 
@@ -236,10 +289,16 @@ export const CaosShell = ({ authenticatedUser }) => {
 
       <PreviousThreadsPanel
         currentSessionId={currentSession?.session_id}
-        isOpen={showThreadExplorer}
+        isOpen={showThreadExplorer && !isRailOpen}
         onClose={() => setShowThreadExplorer(false)}
+        onDeleteSession={deleteSession}
+        onFlagSession={toggleFlagSession}
+        onRenameSession={renameSession}
         onSelectSession={selectSession}
+        provider={runtimeSettings?.default_provider}
         sessions={sessions}
+        wcwBudget={latestReceipt?.wcw_budget || lastTurn?.wcw_budget || 200000}
+        wcwUsed={latestReceipt?.active_context_tokens || lastTurn?.wcw_used_estimate || 0}
       />
 
       <div className="command-footer" data-testid="caos-command-footer">
@@ -324,6 +383,10 @@ export const CaosShell = ({ authenticatedUser }) => {
       <SwarmPanel
         isOpen={showSwarm}
         onClose={() => setShowSwarm(false)}
+      />
+      <AdminDocsDrawer
+        isOpen={showAdminDocs}
+        onClose={() => setShowAdminDocs(false)}
       />
     </main>
   );

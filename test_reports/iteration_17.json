@@ -1,0 +1,46 @@
+{
+  "summary": "Iteration 17 — backend PATCH/DELETE session + /api/admin/docs endpoints are fully green (16/16 pytest). Frontend partial PASS: new single AccountMenu chip fully replaces hamburger, all menu items render (including admin-only Admin Docs), non-admin gating works. CRITICAL: clicking 'Previous Threads' does NOT mount the embedded overlay/panel (caos-rail-threads-embedded-overlay / caos-previous-threads-panel absent) and clicking 'Admin Docs' does NOT open the drawer (caos-admin-docs-drawer absent). Both menu-item handlers appear wired correctly at the file level (ShellHeader → AccountMenu → pick(onOpenThreads/onOpenAdminDocs) → CaosShell.toggleThreads/openAdminDocs), but the resulting state changes don't materialize in the UI.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "CaosShell", "issue": "Clicking 'Previous Threads' in AccountMenu closes the menu but the new embedded PreviousThreadsPanel never renders inside .caos-rail-column. caos-rail-threads-embedded-overlay and caos-previous-threads-panel are both absent in DOM. The rail opens and shows the legacy Sidebar's Recent Threads list only — NOT the new blueprint-spec embedded overlay.", "selector": "[data-testid=\"caos-rail-threads-embedded-overlay\"]", "priority": "HIGH"},
+      {"component": "CaosShell / AdminDocsDrawer", "issue": "Clicking 'Admin Docs' menu item closes the menu but AdminDocsDrawer does not mount. caos-admin-docs-drawer is absent. AdminDocsDrawer returns null when isOpen=false, so showAdminDocs never becomes true (or the drawer is mounted outside the page and not visible).", "selector": "[data-testid=\"caos-admin-docs-drawer\"]", "priority": "HIGH"}
+    ],
+    "integration_issues": [
+      {"flow": "Previous Threads from AccountMenu", "issue": "toggleThreads should set showThreadExplorer=true and isRailOpen=true, but the resulting conditional render in CaosShell.js line 239 (`isRailOpen && showThreadExplorer`) never produces the overlay. Possible root cause: state change is happening but being immediately reset, OR the rail still renders the legacy Sidebar component that masks the embedded overlay, OR the AccountMenu's pick() wrapper is not invoking onOpenThreads.", "affected_selectors": ["[data-testid=\"caos-rail-threads-embedded-overlay\"]", "[data-testid=\"caos-previous-threads-panel\"]"]}
+    ],
+    "design_issues": [
+      {"screen": "Rail (left sidebar) in admin persona", "issues": ["The rail still shows the legacy Sidebar hierarchy — 'WORKSPACE / New Chat / Search chats... / Chat / Create / Tools / Models / Projects / Threads / RECENT THREADS'. Per UX_BLUEPRINT the rail should be simpler and let the PreviousThreadsPanel embedded overlay take over when the user picks 'Previous Threads'. The overlay never arrives, so the user is stuck with the legacy list."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_session_patch_delete_admin_docs.py",
+    "/app/test_reports/pytest/pytest_iteration17.xml",
+    "/app/test_reports/seed_sessions.py"
+  ],
+  "action_items": [
+    "Debug why CaosShell state (showThreadExplorer, showAdminDocs) doesn't produce visible DOM even though AccountMenu items click correctly. Add a console.log inside toggleThreads and openAdminDocs and inside the conditional renders to confirm the state transition is reaching render.",
+    "Verify CaosShell is the component actually mounted on the live app — the rail screenshot (WORKSPACE / Chat / Create / Tools / Models / Projects / Threads) suggests a separate legacy sidebar component is still being rendered in the rail column. If so, the new embedded PreviousThreadsPanel overlay may be covered, unmounted, or the refactor missed migrating that renderer.",
+    "Confirm AdminDocsDrawer is imported and rendered unconditionally in CaosShell (line 387) — our grep shows it is. If state flips to true but drawer is invisible, check z-index or whether it's being rendered into a portal that hides behind another element.",
+    "Minor: review_request lists testid 'caos-account-menu-engine'; actual is 'caos-account-menu-engine-button' (for the button) + 'caos-account-menu-engine-row' (for the row). Align either the code or the spec.",
+    "Add a regression e2e playwright test for these two flows once fixed."
+  ],
+  "critical_code_review_comments": [
+    "CaosShell.js renders both a full-featured rail sidebar AND the embedded overlay guarded on (isRailOpen && showThreadExplorer). Suggest collapsing this: the embedded panel should REPLACE the rail's default content when active, not overlay it. The overlap risks exactly the bug observed.",
+    "AdminDocsDrawer.js returns null on !isOpen — fine for perf, but makes tests see an absence regardless of whether the state change happened. Add an aria-hidden wrapper always in the DOM for observability, or emit a console log when isOpen flips.",
+    "AccountMenu.pick(fn) is correct, but because it also setIsOpen(false) synchronously in the same event tick as fn?.(), any parent state update inside fn is still applied; so the lack of visible panel/drawer points to CaosShell-side state machine, not AccountMenu.",
+    "Backend admin_docs.py _resolve() correctly blocks '/', '\\\\' and leading '.', and confines reads to /app/memory. Good.",
+    "Backend caos.py PATCH/DELETE correctly checks session ownership by email and cascades to messages/receipts/thread_summaries/context_seeds. Test verified."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_session_patch_delete_admin_docs.py (new)",
+    "/app/test_reports/seed_sessions.py (added dotenv.load_dotenv so pytest subprocess has MONGO_URL)"
+  ],
+  "success_rate": {"backend": "100% (16/16 pytest)", "frontend": "~50% — AccountMenu + admin gating + chip replacement PASS; Previous-Threads-embedded and Admin-Docs-drawer mount FAIL"},
+  "test_credentials": "Admin: mytaxicloud@gmail.com (seeded via /app/test_reports/seed_sessions.py; is_admin=True, role='admin'). Regular: TEST_regular_*@example.com with is_admin=False. Auth via session_token cookie or Authorization: Bearer header.",
+  "seed_data_creation": "Seed helper regenerates fresh admin + regular sessions each run. Created ~3 test sessions in DB; 1 cascaded-delete-verified, remaining TEST_* sessions are safe to prune.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend is clean — pytest file at /app/backend/tests/test_session_patch_delete_admin_docs.py. For frontend retest after main agent fix, reuse the two-persona seed flow and verify: (a) [data-testid=caos-rail-threads-embedded-overlay] appears after AccountMenu → Previous Threads, (b) [data-testid=caos-admin-docs-drawer] appears after AccountMenu → Admin Docs, (c) thread-card hover exposes caos-previous-thread-rename/flag/delete-{id}, (d) rename-input commits on Enter + PATCH fires, (e) delete shows confirm/cancel and only DELETEs on confirm, (f) error banner (caos-error-banner) auto-dismisses within 6s and has visible caos-error-banner-dismiss. The legacy rail Sidebar component may be pre-empting the new embedded panel — investigate the rail-column render.",
+  "rca of the issue": "Menu items click and menu closes, but CaosShell's state-guarded renders (lines 239 and 387) do not mount the embedded PreviousThreadsPanel overlay or AdminDocsDrawer. Props are forwarded correctly (ShellHeader → AccountMenu) and handlers are defined correctly (CaosShell.toggleThreads / openAdminDocs). Hypothesis: either (1) state is being set then immediately reset by another effect, or (2) a second rail renderer (legacy Sidebar / DesktopRail) sits in .caos-rail-column and hides the embedded overlay, or (3) the new components are mounted in an unexpected DOM location (portal outside viewport). Main agent should verify which component actually populates the rail-column when isRailOpen=true and ensure the embedded overlay is layered on top (z-index, absolute positioning) or that the legacy rail is replaced."
+}

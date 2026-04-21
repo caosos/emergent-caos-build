@@ -1,6 +1,6 @@
 import { PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 
-import { InspectorMenu } from "@/components/caos/InspectorMenu";
+import { AccountMenu } from "@/components/caos/AccountMenu";
 
 const formatTokens = (value) => {
   const numeric = Number(value) || 0;
@@ -11,13 +11,11 @@ const formatTokens = (value) => {
 
 /**
  * Base44-parity header: 3-column layout.
- * Left  : rail toggle + inspector menu (hamburger) + user identity chip (click opens Profile)
- * Center: CAOS title + "Cognitive Adaptive Operating System" subtitle
+ * Left  : rail toggle + AccountMenu (the identity chip IS the menu trigger)
+ * Center: CAOS title + subtitle
  * Right : active thread pill + search icon + live WCW meter
  *
- * Single-source-of-truth menu model: ALL navigation lives in the hamburger.
- * The identity chip is a visual shortcut only — click it to open the Profile
- * panel directly (not another dropdown).
+ * Per UX_BLUEPRINT §C — single dropdown. No separate hamburger.
  */
 export const ShellHeader = ({
   activeProvider,
@@ -25,9 +23,11 @@ export const ShellHeader = ({
   authenticatedUser,
   currentSession,
   displayName,
+  isAdmin,
   isRailOpen,
   onLogOut,
   onNewThread,
+  onOpenAdminDocs,
   onOpenProfile,
   onOpenSwarm,
   onOpenThreads,
@@ -46,35 +46,21 @@ export const ShellHeader = ({
         <button className="search-icon-button" data-testid="caos-rail-toggle-button" onClick={onToggleRail}>
           {isRailOpen ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
         </button>
-        <InspectorMenu
+        <AccountMenu
           activeModel={activeModel}
           activeProvider={activeProvider}
+          authenticatedUser={authenticatedUser}
+          displayName={displayName}
+          isAdmin={isAdmin}
           onLogOut={onLogOut}
           onNewThread={onNewThread}
+          onOpenAdminDocs={onOpenAdminDocs}
           onOpenProfile={onOpenProfile}
           onOpenSwarm={onOpenSwarm}
           onOpenThreads={onOpenThreads}
           onSelectProvider={onSelectProvider}
           providerCatalog={providerCatalog}
         />
-        <div className="caos-header-identity" data-testid="caos-header-identity">
-          <button
-            className="caos-header-identity-chip"
-            data-testid="caos-header-identity-chip"
-            onClick={() => onOpenProfile?.()}
-            title={authenticatedUser?.email || "Open profile"}
-            type="button"
-          >
-            <span className="caos-header-identity-avatar" data-testid="caos-header-identity-avatar">
-              {authenticatedUser?.picture ? (
-                <img src={authenticatedUser.picture} alt="" width="22" height="22" style={{ borderRadius: "50%", display: "block" }} />
-              ) : (
-                (displayName || "M").trim().charAt(0).toUpperCase()
-              )}
-            </span>
-            <strong data-testid="caos-header-identity-name">{(authenticatedUser?.name || displayName || "Michael").toUpperCase()}</strong>
-          </button>
-        </div>
       </div>
 
       <div className="caos-header-center" data-testid="caos-header-center">

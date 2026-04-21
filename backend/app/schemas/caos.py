@@ -23,8 +23,20 @@ class SessionRecord(BaseModel):
     lane: str = "general"
     summary: str | None = None
     last_message_preview: str | None = None
+    is_flagged: bool = False
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
+
+
+class SessionUpdate(BaseModel):
+    title: str | None = None
+    is_flagged: bool | None = None
+    lane: str | None = None
+
+
+class SessionDeleteResponse(BaseModel):
+    session_id: str
+    deleted: bool = True
 
 
 class MessageCreate(BaseModel):

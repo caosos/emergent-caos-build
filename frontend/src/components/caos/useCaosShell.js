@@ -159,6 +159,63 @@ export const useCaosShell = (authenticatedUser = null) => {
     }
   }, [loadFiles, loadProfile, loadRuntimeSettings, loadSessions, userEmail]);
 
+  const renameSession = useCallback(async (sessionId, nextTitle) => {
+    if (!sessionId || !nextTitle?.trim()) return null;
+    try {
+      const response = await axios.patch(`${API}/caos/sessions/${sessionId}`, { title: nextTitle.trim() });
+      await loadSessions();
+      setCurrentSession((prev) => (prev?.session_id === sessionId ? { ...prev, ...response.data } : prev));
+      setStatus(`Renamed thread to "${response.data.title}".`);
+      return response.data;
+    } catch (issue) {
+      const message = issue?.response?.data?.detail || issue?.message || "Rename failed.";
+      setError(message);
+      return null;
+    }
+  }, [loadSessions]);
+
+  const toggleFlagSession = useCallback(async (session) => {
+    if (!session?.session_id) return null;
+    const next = !session.is_flagged;
+    try {
+      const response = await axios.patch(`${API}/caos/sessions/${session.session_id}`, { is_flagged: next });
+      await loadSessions();
+      setCurrentSession((prev) => (prev?.session_id === session.session_id ? { ...prev, ...response.data } : prev));
+      setStatus(next ? "Flagged thread for follow-up." : "Unflagged thread.");
+      return response.data;
+    } catch (issue) {
+      const message = issue?.response?.data?.detail || issue?.message || "Flag failed.";
+      setError(message);
+      return null;
+    }
+  }, [loadSessions]);
+
+  const deleteSession = useCallback(async (sessionId) => {
+    if (!sessionId) return false;
+    try {
+      await axios.delete(`${API}/caos/sessions/${sessionId}`);
+      const nextSessions = await loadSessions();
+      setCurrentSession((prev) => {
+        if (prev?.session_id !== sessionId) return prev;
+        const fallback = nextSessions?.[0] || null;
+        if (fallback) {
+          loadMessages(fallback.session_id);
+          loadArtifacts(fallback.session_id);
+          loadContinuity(fallback.session_id);
+        } else {
+          setMessages([]);
+        }
+        return fallback;
+      });
+      setStatus("Thread deleted.");
+      return true;
+    } catch (issue) {
+      const message = issue?.response?.data?.detail || issue?.message || "Delete failed.";
+      setError(message);
+      return false;
+    }
+  }, [loadArtifacts, loadContinuity, loadMessages, loadSessions]);
+
   const updateRuntimeSelection = useCallback(async (provider, model) => {
     setBusy(true);
     setError("");
@@ -392,10 +449,10 @@ export const useCaosShell = (authenticatedUser = null) => {
   }, [loadProfile, userEmail]);
 
   return {
-    artifacts, busy, continuity, createSession, currentSession, error, filteredMessages,
-    files, lastTurn, messages, multiAgentMode, profile, runtimeSettings, searchQuery,
+    artifacts, busy, continuity, createSession, currentSession, deleteSession, error, filteredMessages,
+    files, lastTurn, messages, multiAgentMode, profile, renameSession, runtimeSettings, searchQuery,
     selectSession, sendMessage, sessions, setMultiAgentMode, setSearchQuery, commitUserEmail,
-    saveLink, saveMemory, speakText, status, transcribeAudio, transcribeAudioChunk,
+    saveLink, saveMemory, speakText, status, toggleFlagSession, transcribeAudio, transcribeAudioChunk,
     updateMemory, updateProfile, updateRuntimeSelection, updateVoiceSettings, uploadFile,
     userEmail, deleteMemory, voiceSettings,
   };
