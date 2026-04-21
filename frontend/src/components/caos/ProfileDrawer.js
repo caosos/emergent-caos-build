@@ -31,7 +31,7 @@ const LOCAL_KEYS = {
   multiAgent: "caos_multi_agent_mode",
 };
 
-export const ProfileDrawer = ({ deleteMemory, isOpen, memoryCount, onClose, onSpeak, profile, runtimeSettings, saveMemory, sessionsCount, updateMemory, updateProfile, updateVoiceSettings, userEmail, voiceSettings }) => {
+export const ProfileDrawer = ({ authenticatedUser, deleteMemory, isOpen, memoryCount, onClose, onSpeak, profile, runtimeSettings, saveMemory, sessionsCount, updateMemory, updateProfile, updateVoiceSettings, userEmail, voiceSettings }) => {
   const [activeView, setActiveView] = useState("profile");
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
@@ -53,7 +53,8 @@ export const ProfileDrawer = ({ deleteMemory, isOpen, memoryCount, onClose, onSp
 
   if (!isOpen) return null;
 
-  const isAdmin = profile?.role === "admin" || profile?.is_admin === true;
+  const isAdmin = profile?.role === "admin" || profile?.is_admin === true
+    || authenticatedUser?.role === "admin" || authenticatedUser?.is_admin === true;
   const displayName = profile?.preferred_name || profile?.full_name || userEmail?.split("@")[0] || "User";
   const roleLabel = isAdmin ? "Admin" : "User";
 

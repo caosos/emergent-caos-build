@@ -297,6 +297,7 @@ export const CaosShell = ({ authenticatedUser }) => {
       />
 
       <ProfileDrawer
+        authenticatedUser={authenticatedUser}
         isOpen={showProfile}
         memoryCount={profile?.structured_memory?.length || 0}
         onClose={() => setShowProfile(false)}
