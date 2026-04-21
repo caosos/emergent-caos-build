@@ -11,7 +11,7 @@ import time
 from typing import Dict, Any
 
 # Configuration
-BASE_URL = "https://memory-hub-63.preview.emergentagent.com"
+BASE_URL = "https://swarm-command-4.preview.emergentagent.com"
 API_BASE = f"{BASE_URL}/api"
 
 class TestResults:
