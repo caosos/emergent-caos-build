@@ -1,0 +1,16 @@
+{
+  "short_name": "CAOS",
+  "name": "CAOS — Cognitive Adaptive Operating System",
+  "description": "A personal AI platform that thinks, remembers, and works alongside you — not just answers questions.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#7c3aed",
+  "background_color": "#05070e"
+}
