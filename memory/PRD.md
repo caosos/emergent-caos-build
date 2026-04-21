@@ -233,6 +233,32 @@ Blueprint locked at `/app/memory/UX_BLUEPRINT.md`. Pain-points documented at `/a
 - Resend email integration for selection menu email button.
 - Google Workspace (Gmail/Drive/Calendar) via Emergent Google auth.
 
+## Base44 Parity v3 — Single Account Chip + Threads-In-Rail + Admin Docs Viewer (Apr 21, 2026 — late)
+
+User voiced (literally — via a recorded note at 00:17) two critical asks before bed:
+1. Collapse the redundant menus on the top-left into a single "M MICHAEL ▼" dropdown chip that IS the menu trigger, matching Base44 exactly, and make Previous Threads render INSIDE the left rail with inline rename/flag/delete actions per UX_BLUEPRINT §C/D/E (the previous fork had mapped this out but never coded it).
+2. Admin-only in-app documentation viewer so the admin can read `/app/memory/*.md` blueprints/PRD/TSB logs live from inside CAOS (user couldn't see these in the Emergent code editor).
+
+### Shipped
+- **Backend**: `PATCH /api/caos/sessions/{id}` and `DELETE /api/caos/sessions/{id}` (owner-only; cascades delete to messages/receipts/summaries/seeds). `is_flagged: bool` added to `SessionRecord`. New `app/routes/admin_docs.py` with `GET /api/admin/docs` (list `.md` files in `/app/memory`) and `GET /api/admin/docs/{filename}` (read). Admin gating by `is_admin=True` or `role=="admin"` on the user session.
+- **Frontend — AccountMenu (new)**: the identity chip (`caos-account-menu-chip`) IS the dropdown trigger. One button, no hamburger. Items: New Thread · Previous Threads · Profile · Engine → sub-menu · Agent Swarm · **Admin Docs** (admin-only, yellow badge) · Log Out.
+- **ShellHeader**: rewritten to render only `rail-toggle` + `AccountMenu`. `InspectorMenu.js` kept as dead code for rollback safety but no longer imported.
+- **PreviousThreadsPanel**: rewritten to render inline inside `.caos-rail-column` when `isEmbedded`. Each card exposes hover-revealed inline actions: 🔵 pencil (rename → inline `<input>` committed on Enter/blur → `PATCH`), 🟡 flag (toggle `is_flagged` → `PATCH`), 🔴 trash (confirm → `DELETE`). Active thread has purple glow border; flagged threads have yellow border + flag icon. Mini-WCW meter per card.
+- **CaosShell**: wraps `ThreadRail` in `.caos-rail-column` with relative positioning; when `isRailOpen && showThreadExplorer`, overlays `.rail-threads-embedded-overlay` INSIDE the rail column (`position: absolute; inset: 0; z-index: 25`), preserving the main chat pane visibility. Auto-opens rail when user clicks Previous Threads. Error banner now auto-dismisses after 5s and has a visible dismiss button.
+- **AdminDocsDrawer (new)**: full-page backdrop + 1060×780 modal with a left-hand nav of all `.md` files in `/app/memory` and a right-hand pane rendering a lightweight markdown → HTML (headings/lists/code/bold/inline-code). Fetches `/api/admin/docs` on open, lazy-loads doc body on select. Click-outside + X + Escape all close.
+- **useCaosShell**: added `renameSession`, `deleteSession`, `toggleFlagSession` with optimistic UI + status toasts + proper current-session fallback when deleted.
+- **Z-index fix**: `.caos-shell-root > .caos-header { z-index: 50 }` + `.account-menu-shell { z-index: 50 }` + dropdown `z-index: 100` — prior stacking collision caused the main grid to intercept hit-tests for the dropdown items (drawer/threads wouldn't mount on click).
+
+### File sizes (GOV v1.2 compliance)
+- `AccountMenu.js` 150 · `AdminDocsDrawer.js` 146 · `PreviousThreadsPanel.js` 200 · `ShellHeader.js` 93 · `admin_docs.py` 58 · `caos-base44-parity-v3.css` 270. All under 400-line soft cap.
+
+### Verified end-to-end (Playwright with seeded admin cookie)
+- Single AccountMenu chip opens → all 7 items visible (including `Admin Docs · ADMIN` yellow badge).
+- Click `Admin Docs` → `AdminDocsDrawer` mounts, lists 7 .md files, renders UX_BLUEPRINT / PRD / TSB_LOG content live.
+- Click `Previous Threads` → rail auto-opens, `PreviousThreadsPanel` mounts embedded inside rail column with "Search all messages…" input and thread cards.
+- Hover a thread card → pencil/flag/trash inline actions appear. Click flag → yellow border + `PATCH` fires + flag icon appears. Click pencil → inline input → Enter → `PATCH` fires + title updates + status toast. Click trash → confirm/cancel → `DELETE` fires + session removed.
+- Backend pytest: 16/16 green for new PATCH/DELETE/admin-docs routes.
+
 ## Future / Backlog
 - RSoD + errorClassifier (TSB-024)
 - WCWStatusBadge (color tiers)

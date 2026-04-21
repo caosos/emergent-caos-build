@@ -1,3 +1,9 @@
+/* --- Ensure account-menu dropdown sits above the main grid for both paint + hit-testing --- */
+.caos-shell-root > .caos-header { z-index: 50; position: relative; }
+.account-menu-shell { position: relative; z-index: 50; }
+.account-menu-shell .inspector-menu { z-index: 100; }
+
+
 /* --- Rail-scoped Previous Threads overlay --- */
 .rail-threads-embedded-overlay {
   position: absolute;
