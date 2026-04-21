@@ -1,0 +1,38 @@
+{
+  "summary": "Iteration 15 retest after iteration_14 critical fixes. Two of the three fixes land cleanly (/api/auth/me now returns role+is_admin; Continue-as-Guest no longer redirects). However, the admin UI still does NOT materialize because ProfileDrawer reads profile from /api/caos/profile/{email} (user_profiles collection) not /api/auth/me — and that collection never stores role/is_admin. So for mytaxicloud@gmail.com the role chip still reads 'User' and Developer Mode / Multi-Agent Mode / System Console toggles remain hidden. The /auth/me fix alone is insufficient.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "/api/caos/profile/{user_email}", "issue": "UserProfileRecord returned from /api/caos/profile/mytaxicloud@gmail.com has role=None and no is_admin field. The admin metadata lives in the users collection (populated by auth_service.upsert_user) but user_profiles is a separate collection and nothing stamps role/is_admin on it. ProfileDrawer.js checks profile?.role==='admin' || profile?.is_admin===true so admin toggles never render. Fix: either (a) have /api/caos/profile merge role/is_admin from the users collection in the response, (b) add is_admin to the UserProfileRecord schema and stamp it on upsert for admin emails, or (c) have ProfileDrawer use authenticatedUser (which already carries role/is_admin from /auth/me) instead of the caos profile prop. Option (a) or (c) is the minimal fix.", "priority": "CRITICAL"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "ProfileDrawer", "issue": "For mytaxicloud@gmail.com the role chip (caos-profile-role-chip) still displays 'User' instead of 'Admin'; Developer Mode, Multi-Agent Mode, and System Console toggles remain hidden. Root cause is the backend /api/caos/profile endpoint above, not the component — ProfileDrawer's conditional rendering is correct but its profile prop lacks role/is_admin. Easiest frontend-only fix: switch the isAdmin check in ProfileDrawer to also consider authenticatedUser (currently only `profile` is inspected).", "selector": "[data-testid='caos-profile-toggle-dev']", "priority": "CRITICAL"}
+    ],
+    "integration_issues": [
+      {"flow": "Admin toggles materialisation", "issue": "/api/auth/me now correctly returns role=admin/is_admin=true (verified in browser console: /api/auth/me returned {role: 'admin', is_admin: true}), but this data never reaches ProfileDrawer because the component reads `profile` from /api/caos/profile/{email}, a different collection.", "affected_selectors": ["[data-testid='caos-profile-toggle-dev']","[data-testid='caos-profile-toggle-multi']","[data-testid='caos-profile-console-link']","[data-testid='caos-profile-role-chip']"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_welcome_admin.py", "/app/test_reports/pytest/pytest_iteration15.xml"],
+  "action_items": [
+    "FIX (CRITICAL): Propagate role/is_admin into ProfileDrawer. Simplest path: in ProfileDrawer.js line 56, compute isAdmin from authenticatedUser too, e.g. const isAdmin = profile?.role === 'admin' || profile?.is_admin === true || authenticatedUser?.role === 'admin' || authenticatedUser?.is_admin === true; and pass authenticatedUser down from CaosShell.js (it already has it).",
+    "OR FIX (alternative): Extend /api/caos/profile/{user_email} in /app/backend/app/routes/caos.py:158 to look up the users collection and merge role/is_admin into the UserProfileRecord response (also stamp on upsert).",
+    "Then re-verify: seed mytaxicloud@gmail.com → inject cookie → open ProfileDrawer → expect caos-profile-role-chip text='Admin' AND caos-profile-toggle-dev / caos-profile-toggle-multi / caos-profile-console-link all visible."
+  ],
+  "critical_code_review_comments": [
+    "auth.py /me + /process-session additions look correct (role defaults to 'user', is_admin coerced to bool). Good idempotent fallback.",
+    "App.js axios interceptor guest bypass is clean — inspects localStorage.caos_guest_mode, skips redirect when true. AuthGate clears on /auth/me success (line 29) and CaosShell clears on logout (line 174). Consistent lifecycle.",
+    "ProfileDrawer isAdmin check (line 56) only inspects `profile` — it should also inspect the authenticatedUser that CaosShell already receives from AuthGate. One-line frontend fix if backend merge is not desired.",
+    "UserProfileRecord schema has a `role` field but no `is_admin`. Consider aligning the two collections or always sourcing admin from the users collection (auth source of truth)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (4/4 pytest in test_welcome_admin.py pass — /auth/me now returns role+is_admin for admin + user + 401 paths)", "frontend": "Guest flow PASS; Pre-login welcome + tour PASS; Non-admin ProfileDrawer PASS; Admin ProfileDrawer FAIL (admin toggles & role chip still absent)"},
+  "test_credentials": "Seeded via _seed_session in /app/backend/tests/test_welcome_admin.py — mytaxicloud@gmail.com (admin, token test_session_d0babcb3516245b1865a8488aed7049c) and TEST_regular_<uuid>@example.com (user, token test_session_e9343075662943e9aa839c12731ea7a4). Verified /api/auth/me with Bearer+cookie transport both work.",
+  "seed_data_creation": "Created mytaxicloud@gmail.com (admin) + TEST_regular_d56fe7@example.com (user) in users/user_sessions via direct mongo upsert. Also observed that /api/caos/profile/mytaxicloud@gmail.com auto-creates an empty UserProfileRecord with role=None.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend /auth/me fix verified end-to-end. Guest flow fully functional (composer accepts input, shell stays mounted 6s+, 401s from /api/caos/* do not redirect). Remaining work is the admin UI propagation (ProfileDrawer consumes wrong profile object). Once that is fixed, final retest path: seed admin → inject cookie → navigate / → open header-identity-chip → assert role-chip='Admin' + three admin toggles visible. Tour regression (5 steps) previously passed in iteration 14; spot-checked that take-the-tour still opens the modal here.",
+  "rca of the issue": "Iteration_14 surfaced the symptom ('ProfileDrawer admin toggles never render') and traced it to /api/auth/me omitting role/is_admin — that was a real bug and it is now fixed. BUT ProfileDrawer does not actually read from /api/auth/me. Its `profile` prop is threaded from CaosShell → useCaosShell → axios.get('/api/caos/profile/{email}'), which hits /app/backend/app/routes/caos.py:158 and returns a UserProfileRecord. That Pydantic model (/app/backend/app/schemas/caos.py:168) has `role: str | None = None` by default and no is_admin at all. Since nothing writes role='admin' to the user_profiles collection (admin stamping only occurs on the users collection via auth_service.upsert_user), the ProfileDrawer conditional stays false forever. Fix is either (i) merge users.role/is_admin into /api/caos/profile response, or (ii) fall back to authenticatedUser.role/is_admin in ProfileDrawer's isAdmin computation. The CaosShell already has authenticatedUser in scope but does not pass it to ProfileDrawer — that's the one-line frontend patch: <ProfileDrawer ... authenticatedUser={authenticatedUser} /> + use it in isAdmin."
+}

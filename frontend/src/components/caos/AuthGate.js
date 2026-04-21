@@ -24,7 +24,11 @@ export const AuthGate = () => {
   useEffect(() => {
     let cancelled = false;
     axios.get(`${API}/auth/me`, { withCredentials: true })
-      .then((response) => { if (!cancelled) setUser(response.data); })
+      .then((response) => {
+        if (cancelled) return;
+        try { localStorage.removeItem("caos_guest_mode"); } catch {}
+        setUser(response.data);
+      })
       .catch(() => { if (!cancelled) setUser(false); });
     return () => { cancelled = true; };
   }, []);
@@ -44,6 +48,7 @@ export const AuthGate = () => {
   };
 
   const handleContinueAsGuest = () => {
+    try { localStorage.setItem("caos_guest_mode", "true"); } catch {}
     setUser("guest");
   };
 

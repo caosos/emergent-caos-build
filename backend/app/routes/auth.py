@@ -52,6 +52,8 @@ async def process_session(input: ProcessSessionRequest, response: Response):
         "email": user["email"],
         "name": user["name"],
         "picture": user.get("picture", ""),
+        "role": user.get("role", "user"),
+        "is_admin": bool(user.get("is_admin", False)),
     }
 
 
@@ -63,6 +65,8 @@ async def whoami(user: dict = Depends(require_user)):
         "email": user["email"],
         "name": user["name"],
         "picture": user.get("picture", ""),
+        "role": user.get("role", "user"),
+        "is_admin": bool(user.get("is_admin", False)),
     }
 
 

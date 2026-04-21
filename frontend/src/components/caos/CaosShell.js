@@ -171,6 +171,7 @@ export const CaosShell = ({ authenticatedUser }) => {
           try {
             await (await import("axios")).default.post(`${process.env.REACT_APP_BACKEND_URL}/api/auth/logout`, {}, { withCredentials: true });
           } catch {}
+          try { localStorage.removeItem("caos_guest_mode"); } catch {}
           window.location.replace("/");
         }}
         onNewThread={() => { createSession("New Thread"); }}

@@ -12,13 +12,17 @@ axios.defaults.withCredentials = true;
 // Auto-handle expired sessions — if any CAOS API call returns 401 mid-use,
 // reload the app so AuthGate re-runs. Skip /auth/me (its 401 is normal during
 // the initial probe — AuthGate will flip to LoginScreen on its own).
+// Also skip the redirect when running in guest mode (localStorage flag),
+// so guests don't get kicked back to the login screen on every protected call.
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status;
     const url = error?.config?.url || "";
     const isProtectedApi = url.includes("/api/caos/") || url.includes("/api/auth/logout");
-    if (status === 401 && isProtectedApi) {
+    let isGuest = false;
+    try { isGuest = localStorage.getItem("caos_guest_mode") === "true"; } catch {}
+    if (status === 401 && isProtectedApi && !isGuest) {
       window.location.replace("/");
     }
     return Promise.reject(error);
