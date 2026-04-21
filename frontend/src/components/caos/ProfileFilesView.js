@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { ExternalLink, FileText, Image as ImageIcon, Search } from "lucide-react";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "@/config/apiBase";
 
 const TYPE_FILTERS = {
   files: (record) => !record.mime_type?.startsWith("image/") && record.kind !== "link",

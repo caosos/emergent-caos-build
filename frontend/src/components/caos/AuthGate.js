@@ -5,8 +5,7 @@ import { Loader2 } from "lucide-react";
 import { CaosShell } from "@/components/caos/CaosShell";
 import { LoginScreen } from "@/components/caos/LoginScreen";
 import { WelcomeTour } from "@/components/caos/WelcomeTour";
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "@/config/apiBase";
 
 /**
  * Auth gate states:

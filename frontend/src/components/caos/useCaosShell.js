@@ -4,8 +4,8 @@ import axios from "axios";
 import { useVoiceIO } from "@/components/caos/useVoiceIO";
 import { useMemoryCrud } from "@/components/caos/useMemoryCrud";
 import { useFilesCrud } from "@/components/caos/useFilesCrud";
+import { API } from "@/config/apiBase";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const USER_KEY = "caos-shell-user-email";
 const DEFAULT_RUNTIME = {
   key_source: "hybrid",

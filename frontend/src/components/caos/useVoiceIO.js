@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import axios from "axios";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "@/config/apiBase";
 
 /**
  * Voice I/O hook — Whisper transcription (full + chunk) and OpenAI TTS with

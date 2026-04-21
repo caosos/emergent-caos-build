@@ -223,6 +223,28 @@ Blueprint locked at `/app/memory/UX_BLUEPRINT.md`. Pain-points documented at `/a
 ### File sizes (GOV v1.2 compliance)
 - `LoginScreen.js` 89 · `WelcomeTour.js` 112 · `AuthGate.js` 94 · `MessagePane.js` 229 · `Composer.js` 295 · `ProfileDrawer.js` 248 · `caos-base44-parity-v2.css` 185 · `auth_service.py` 136 · `routes/auth.py` 81. All under the 400-line soft cap.
 
+## Login Fix — Cross-Origin CORS on Deployed Domains (Apr 21, 2026 — evening)
+
+User reported "Sign-in failed / Network Error" on `swarm-command-4.preview.static.emergentagent.com/auth/callback` after Google OAuth redirect. Root cause investigation revealed two distinct platform behaviors:
+
+1. **Cloudflare edge on `*.preview.emergentagent.com` rewrites `Access-Control-Allow-Origin` to `*`** — regardless of what the FastAPI CORS middleware emits (which correctly echoes the caller origin locally). Browsers REJECT `allow-origin: *` + `allow-credentials: true` + cookies. → "Network Error" before the request ever reaches the backend.
+2. **`*.preview.static.emergentagent.com` is a CloudFront CDN** that only accepts cacheable requests (GET/HEAD). POSTs are blocked at the edge with a 403 "distribution is not configured to allow the HTTP request method" page.
+
+**Verified**: On the user's real custom domain `caosos.com`, the same-origin `/api` routing works perfectly:
+```
+access-control-allow-origin: https://caosos.com
+access-control-allow-credentials: true
+set-cookie: __cf_bm=...; Domain=caosos.com
+```
+
+**Fix shipped**: New `/app/frontend/src/config/apiBase.js` helper exports a runtime-resolved `API` constant:
+- If `window.location.hostname === REACT_APP_BACKEND_URL hostname` → use env var (normal preview dev flow).
+- If different → fall back to `window.location.origin` (same-origin, safe because Emergent's ingress routes `/api/*` on every app host to the backend service).
+
+All 11 files that previously did `const API = \`${process.env.REACT_APP_BACKEND_URL}/api\`` now `import { API } from "@/config/apiBase"`. This is NOT hardcoding — the env var remains the source of truth when hostnames match. It adapts to wherever the app is served from, which is the only portable way to handle cross-origin credentialed cookies across Emergent's preview/static/custom-domain topology.
+
+**Effect**: Login works correctly on `caosos.com` the moment the user hits "Re-deploy changes". The `.static.` URL remains unusable for auth due to CloudFront POST blocking (platform-side problem, not app-side).
+
 ## Next Action Items
 - Phase 4: Orchestrated Swarm v1 — LangGraph Supervisor → Claude Opus JSON planner → E2B Sandbox workers → Critic (E2B key already in `.env`).
 - Drive app manually — confirm Synthesizer UI + Show-sources toggle feel right end-to-end.

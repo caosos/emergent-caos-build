@@ -194,7 +194,7 @@ export const CaosShell = ({ authenticatedUser }) => {
         isRailOpen={isRailOpen}
         onLogOut={async () => {
           try {
-            await (await import("axios")).default.post(`${process.env.REACT_APP_BACKEND_URL}/api/auth/logout`, {}, { withCredentials: true });
+            await (await import("axios")).default.post(`${API}/auth/logout`, {}, { withCredentials: true });
           } catch {}
           try { localStorage.removeItem("caos_guest_mode"); } catch {}
           window.location.replace("/");

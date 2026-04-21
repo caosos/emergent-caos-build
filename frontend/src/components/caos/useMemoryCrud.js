@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import axios from "axios";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "@/config/apiBase";
 
 /**
  * Memory CRUD hook — save/update/delete personal facts & structured memories.

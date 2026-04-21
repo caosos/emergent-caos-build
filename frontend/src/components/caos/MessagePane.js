@@ -6,7 +6,7 @@ import { MultiAgentMessageGroup } from "@/components/caos/MultiAgentMessageGroup
 import { SelectionReactionPopover } from "@/components/caos/SelectionReactionPopover";
 
 
-const formatRole = (role) => (role === "assistant" ? "CAOS" : role === "user" ? "You" : "System");
+const formatRole = (role) => (role === "assistant" ? "CAOS" : role === "user" ? "MY" : "System");
 const formatTimestamp = (value) => new Date(value).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 const formatFullDate = (value) => {
   try {

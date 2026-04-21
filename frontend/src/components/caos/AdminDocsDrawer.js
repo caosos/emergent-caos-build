@@ -2,7 +2,7 @@ import axios from "axios";
 import { BookOpen, FileText, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "@/config/apiBase";
 
 // Ultra-lightweight markdown renderer. Safe because content comes from
 // admin-gated server endpoints reading the repo's /app/memory/*.md files.

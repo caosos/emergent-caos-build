@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Zap, Play, CheckCircle2, Loader2, Terminal } from "lucide-react";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "@/config/apiBase";
 
 /**
  * Agent Swarm panel — triggers the Supervisor → Worker(E2B) → Critic pipeline.
