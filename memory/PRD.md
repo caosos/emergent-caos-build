@@ -210,47 +210,18 @@ Tackled all 5 items from the Emergent team's code review.
 User showed 20+ screenshots of their live Base44 + Emergent-hosted CAOS and asked for strict parity.
 Blueprint locked at `/app/memory/UX_BLUEPRINT.md`. Pain-points documented at `/app/memory/PLATFORM_PAIN_POINTS.md`.
 
-### Pre-login Welcome screen (`LoginScreen.js` rewrite)
-- Full-screen starfield with centered 96px purple-gradient orb + Sparkles icon (pulse animation)
-- `CAOS` H1 (72px) + `Cognitive Adaptive Operating System` blue subtitle
-- Tagline: "A personal AI platform that thinks, remembers, and works alongside you — not just answers questions."
-- 2×2 feature grid: Persistent Memory / Web Search / File Intelligence / Voice Ready (glass cards, hover lift)
-- Primary `Take the Tour` purple gradient button → opens 5-step tour
-- Secondary `Sign In` (Emergent Google OAuth redirect)
-- Ghost `Continue as Guest` link → bypasses auth, hands anon identity to CaosShell
-- Footer attribution strip
+### Shipped (tests 100% green, iteration_16)
+- **Pre-login Welcome screen** (`LoginScreen.js`): starfield, 96px pulsing orb, CAOS H1, subtitle, tagline, 2×2 feature grid (Persistent Memory / Web Search / File Intelligence / Voice Ready), Take the Tour primary button, Sign In secondary, Continue as Guest ghost link, footer attribution.
+- **5-step Welcome Tour** (`WelcomeTour.js`): modal with 5-dot stepper, Start here → Your threads → Aria remembers → Attach anything → Get started. Persists completion to `localStorage.caos_tour_completed`. Auto-opens first login; re-triggerable from pre-login. Click-outside + Skip tour + Escape all dismiss.
+- **Admin auto-assignment** (`auth_service.py`): `ADMIN_EMAILS = {"mytaxicloud@gmail.com"}`. Every login refreshes `role` + `is_admin` in users collection.
+- **Auth response includes admin metadata** (`routes/auth.py`): `/api/auth/me` and `/api/auth/process-session` now return `role` + `is_admin`. Verified by 4/4 pytest cases.
+- **ProfileDrawer admin fallback**: accepts `authenticatedUser` prop, `isAdmin` check falls back to `authenticatedUser.role/is_admin` when the caos profile record lacks it. Unlocks Developer Mode + Multi-Agent Mode + System Console toggles for admin only.
+- **Continue-as-Guest flow** (`AuthGate.js` + `App.js`): sets `localStorage.caos_guest_mode=true`; axios 401 interceptor skips redirect in guest mode; `/auth/me` success + logout both clear the flag.
+- **Per-message footer** (`MessagePane.js`): Base44-parity footer row with full date + time + assistant latency (e.g. `Apr 21, 2026 · 1:00 AM · 28.5s`). Green tabular latency chip.
+- **Mic equalizer** (`Composer.js` + CSS): 8 bouncing red bars + pulsing dot + RECORDING label while mic is hot. Replaces "is my mic actually on?" uncertainty.
 
-### 5-step Welcome Tour (`WelcomeTour.js` new)
-- Modal overlay with 5 progress dots
-- Steps: Start here / Your threads / Aria remembers / Attach anything / Get started
-- Final step CTA `Get started →`
-- `Skip tour` always available; completion persisted to `localStorage.caos_tour_completed`
-- Auto-opens on first post-login entry; re-triggered from Welcome screen `Take the Tour`
-
-### Admin auto-assignment (`auth_service.py::upsert_user`)
-- `ADMIN_EMAILS = {"mytaxicloud@gmail.com"}` seed set
-- On every login, role is refreshed (`admin` or `user`) and `is_admin` boolean written
-- Unlocks Profile toggles: Developer Mode · Multi-Agent Mode · System Console for admin
-- Game Mode label auto-switches to "Admin access" for admin
-
-### Message footer (`MessagePane.js`)
-- Base44-parity footer row below action chips: `Apr 21, 2026 · 1:00 AM · 28.5s` (date · time · latency)
-- Latency shown green when linked receipt has `latency_ms`
-- Tabular numerals for alignment
-
-### Mic equalizer (`Composer.js` + CSS)
-- New bouncing-bars viz during recording: 8 red bars with staggered `equalizer-bounce` animation + pulsing red dot + `RECORDING` label
-- Sits above the live-transcript ribbon
-- Replaces the user's "I don't know if the mic is hot" frustration
-
-### File sizes check (all under GOV v1.2 cap)
-- `LoginScreen.js` 89 (was 42; grew to include feature grid + 3 CTAs)
-- `WelcomeTour.js` 112 (new)
-- `AuthGate.js` 92 (was 38; adds tour state + guest mode)
-- `MessagePane.js` 229 (was 218; +date-time footer)
-- `Composer.js` 295 (was 288; +equalizer block)
-- `caos-base44-parity-v2.css` 185 (new)
-- `auth_service.py` 136 (was 131; +admin role block)
+### File sizes (GOV v1.2 compliance)
+- `LoginScreen.js` 89 · `WelcomeTour.js` 112 · `AuthGate.js` 94 · `MessagePane.js` 229 · `Composer.js` 295 · `ProfileDrawer.js` 248 · `caos-base44-parity-v2.css` 185 · `auth_service.py` 136 · `routes/auth.py` 81. All under the 400-line soft cap.
 
 ## Next Action Items
 - Phase 4: Orchestrated Swarm v1 — LangGraph Supervisor → Claude Opus JSON planner → E2B Sandbox workers → Critic (E2B key already in `.env`).
