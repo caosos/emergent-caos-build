@@ -8,6 +8,12 @@ import { SelectionReactionPopover } from "@/components/caos/SelectionReactionPop
 
 const formatRole = (role) => (role === "assistant" ? "CAOS" : role === "user" ? "You" : "System");
 const formatTimestamp = (value) => new Date(value).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+const formatFullDate = (value) => {
+  try {
+    const d = new Date(value);
+    return `${d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })} · ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+  } catch { return ""; }
+};
 
 
 export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts }) => {
@@ -159,6 +165,17 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
                     </button>
                   ) : null}
                 </div>
+                )}
+
+                {isPending ? null : (
+                  <div className="message-footer" data-testid={`caos-message-footer-${message.id}`}>
+                    <span data-testid={`caos-message-fulldate-${message.id}`}>{formatFullDate(message.timestamp)}</span>
+                    {message.role === "assistant" && linkedReceipt?.latency_ms ? (
+                      <span className="message-footer-latency" data-testid={`caos-message-latency-${message.id}`}>
+                        · {(linkedReceipt.latency_ms / 1000).toFixed(1)}s
+                      </span>
+                    ) : null}
+                  </div>
                 )}
 
                 {meta.reactions.length ? (

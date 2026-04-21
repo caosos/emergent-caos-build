@@ -1,0 +1,40 @@
+{
+  "summary": "Iteration 14 — welcome/tour/admin/composer parity. Pre-login welcome screen, 5-step WelcomeTour, equalizer CSS, and admin auto-assignment in DB all verified. Two CRITICAL bugs blocking feature delivery: (1) /api/auth/me and /api/auth/process-session do NOT serialize role/is_admin, so the admin-only ProfileDrawer toggles will never render even though auth_service.upsert_user correctly stores role='admin' in DB. (2) Continue as Guest click renders CaosShell for ~100ms then the axios 401 interceptor in App.js redirects back to / because /api/caos/* endpoints 401 for unauthenticated guests — guest mode is effectively non-functional.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "/api/auth/me", "issue": "Response body omits role and is_admin fields. auth_service.upsert_user correctly writes {role:'admin', is_admin:true} for mytaxicloud@gmail.com to mongo, but whoami in /app/backend/app/routes/auth.py:58-66 only returns user_id/email/name/picture. ProfileDrawer.js checks profile.role==='admin' and profile.is_admin===true, so admin UI will never activate. Fix: add role/is_admin to the return dict in both /auth/me and /auth/process-session.", "priority": "CRITICAL"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AuthGate / App.js axios interceptor", "issue": "Continue as Guest path is broken. Clicking the guest button sets user='guest' and mounts CaosShell, but the useCaosShell hook immediately fires /api/caos/* requests which return 401. The global axios 401 interceptor in /app/frontend/src/App.js lines 15-26 then calls window.location.replace('/') kicking the user right back to the welcome screen. Result: clicking Continue as Guest appears to do nothing (page briefly shows 'Verifying session...' then welcome screen re-renders). Fix options: (a) gate the interceptor on user!=='guest'; (b) skip protected API calls in useCaosShell when authenticatedUser.role==='guest'; or (c) add a public/guest-mode backend contract.", "selector": "[data-testid='caos-welcome-pre-guest']", "priority": "CRITICAL"}
+    ],
+    "integration_issues": [
+      {"flow": "Admin toggles in ProfileDrawer", "issue": "Even after seeding mytaxicloud@gmail.com with role='admin' in mongo, the frontend cannot show Developer Mode / Multi-Agent Mode / System Console toggles because /api/auth/me doesn't return role or is_admin. Blocked until backend bug above is fixed.", "affected_selectors": ["[data-testid='caos-profile-developer-mode-toggle']","[data-testid='caos-profile-multi-agent-toggle']","[data-testid='caos-profile-system-console-toggle']"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_welcome_admin.py", "/app/test_reports/pytest/pytest_iteration14.xml"],
+  "action_items": [
+    "FIX (backend HIGH): Add role and is_admin to return dict of /api/auth/me (routes/auth.py line 61-66) and /api/auth/process-session response (line 50-55).",
+    "FIX (frontend CRITICAL): Repair Continue-as-Guest flow. Either skip the axios 401 interceptor redirect when the in-memory user is 'guest', or gate useCaosShell network calls on user.role !== 'guest'. Current behaviour: click does nothing from user's perspective.",
+    "VERIFY after fixes: (a) seed admin user, hit /auth/me, expect role='admin' & is_admin=true in JSON; (b) click Continue as Guest, expect caos-shell-root + caos-composer-shell to remain mounted indefinitely; (c) confirm per-message footer shows fulldate + latency on a real assistant reply (could not exercise because guest flow was broken)."
+  ],
+  "critical_code_review_comments": [
+    "auth_service.upsert_user correctly stamps role/is_admin on every login (idempotent). Good.",
+    "WelcomeTour.js click-outside handler invokes handleSkip on overlay click which sets the completed flag — matches spec.",
+    "Composer.js joinDraft correctly appends transcription to existing draft separated by space (line 166 for streaming and 179/182 for final). STT append-at-cursor semantics look correct by code review (runtime test blocked by lack of microphone in headless browser).",
+    "MessagePane.formatFullDate implementation matches spec (e.g. 'Apr 21, 2026 · 1:00 AM'). Latency rendered as '· 28.5s' green span when linkedReceipt.latency_ms is present. data-testids caos-message-fulldate-<id> / caos-message-latency-<id> are wired correctly.",
+    "App.js axios 401 interceptor is too aggressive — it breaks any non-authenticated flow that touches /api/caos/*. Needs a guest/public bypass.",
+    "LoginScreen buttons carry correct data-testids and copy — spec-matched."
+  ],
+  "updated_files": ["/app/backend/tests/test_welcome_admin.py"],
+  "success_rate": {"backend": "50% (2/4 pytest cases pass — 2 admin cases fail because API omits role/is_admin)", "frontend": "90% pre-login welcome + tour PASS; Guest flow FAIL"},
+  "test_credentials": "Seeded test sessions via _seed_session helper in backend_test file. Used mytaxicloud@gmail.com to verify admin path and a TEST_regular_* email for the non-admin path.",
+  "seed_data_creation": "Created ephemeral users: mytaxicloud@gmail.com (admin) and TEST_regular_<uuid>@example.com (user), each with a 24h user_sessions row.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Pre-login welcome, 5-step tour, skip/click-outside/complete paths all verified PASS with localStorage persistence. Admin DB assignment is correct in mongo but the two /api/auth/* endpoints must be fixed to return role+is_admin before the admin UI can be validated end-to-end. Continue-as-Guest must be repaired before any guest-mode UI (composer, equalizer, message footer, fulldate/latency) can be exercised in the browser — recommend routing through a real seeded session cookie to test those remaining items after the guest fix lands.",
+  "rca of the issue": "Guest bug RCA: AuthGate.handleContinueAsGuest sets user='guest' and renders CaosShell. CaosShell -> useCaosShell useEffect immediately fires protected /api/caos/* requests. Backend returns 401 (expected). Global axios interceptor in App.js matches url.includes('/api/caos/') and unconditionally executes window.location.replace('/'). The page fully reloads, AuthGate starts from scratch with user=null and /api/auth/me 401, ending on LoginScreen. Net effect: user sees a brief 'Verifying session...' flash then is back on welcome. Fix: have the interceptor inspect an in-memory flag (e.g. window.__CAOS_GUEST__) or simply check document.cookie for 'session_token' — if there's no cookie, do not redirect. Admin role RCA: upsert_user writes role+is_admin correctly to DB (verified by direct mongo inspection) but routes/auth.py:61-66 whoami handler hand-picks only 4 fields to return, dropping role/is_admin. One-line fix."
+}

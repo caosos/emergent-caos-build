@@ -17,6 +17,7 @@ import { useCaosShell } from "@/components/caos/useCaosShell";
 import "./caos-redesign.css";
 import "./caos-redesign-shell.css";
 import "./caos-base44-parity.css";
+import "./caos-base44-parity-v2.css";
 
 
 export const CaosShell = ({ authenticatedUser }) => {

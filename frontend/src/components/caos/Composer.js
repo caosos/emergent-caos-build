@@ -281,6 +281,13 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
           <SendHorizontal size={16} />
         </button>
       </div>
+      {recording ? (
+        <div className="composer-equalizer" data-testid="caos-composer-equalizer" aria-hidden="true">
+          <span /><span /><span /><span /><span /><span /><span /><span />
+          <span className="composer-equalizer-dot" />
+          <span className="composer-equalizer-label">Recording</span>
+        </div>
+      ) : null}
       {recording && liveStatus ? <div className="composer-live-status" data-testid="caos-composer-live-status">{liveStatus}</div> : null}
       {recording && liveTranscript ? <div className="composer-live-transcript" data-testid="caos-composer-live-transcript">{liveTranscript}</div> : null}
       {showStatus ? <div className="composer-status" data-testid="caos-composer-status">{transientStatus}</div> : null}

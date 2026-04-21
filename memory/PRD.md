@@ -205,6 +205,53 @@ Tackled all 5 items from the Emergent team's code review.
 ## Support Ticket Drafted
 - Draft letter for Emergent Support re: `/llm/audio/speech` returning HTTP 500 (tts-1 / tts-1-hd) delivered in-chat. User to submit when ready.
 
+## Base44 Parity v2 — Pre-login Welcome + Tour + Equalizer + Admin Auto-Role (Apr 21, 2026)
+
+User showed 20+ screenshots of their live Base44 + Emergent-hosted CAOS and asked for strict parity.
+Blueprint locked at `/app/memory/UX_BLUEPRINT.md`. Pain-points documented at `/app/memory/PLATFORM_PAIN_POINTS.md`.
+
+### Pre-login Welcome screen (`LoginScreen.js` rewrite)
+- Full-screen starfield with centered 96px purple-gradient orb + Sparkles icon (pulse animation)
+- `CAOS` H1 (72px) + `Cognitive Adaptive Operating System` blue subtitle
+- Tagline: "A personal AI platform that thinks, remembers, and works alongside you — not just answers questions."
+- 2×2 feature grid: Persistent Memory / Web Search / File Intelligence / Voice Ready (glass cards, hover lift)
+- Primary `Take the Tour` purple gradient button → opens 5-step tour
+- Secondary `Sign In` (Emergent Google OAuth redirect)
+- Ghost `Continue as Guest` link → bypasses auth, hands anon identity to CaosShell
+- Footer attribution strip
+
+### 5-step Welcome Tour (`WelcomeTour.js` new)
+- Modal overlay with 5 progress dots
+- Steps: Start here / Your threads / Aria remembers / Attach anything / Get started
+- Final step CTA `Get started →`
+- `Skip tour` always available; completion persisted to `localStorage.caos_tour_completed`
+- Auto-opens on first post-login entry; re-triggered from Welcome screen `Take the Tour`
+
+### Admin auto-assignment (`auth_service.py::upsert_user`)
+- `ADMIN_EMAILS = {"mytaxicloud@gmail.com"}` seed set
+- On every login, role is refreshed (`admin` or `user`) and `is_admin` boolean written
+- Unlocks Profile toggles: Developer Mode · Multi-Agent Mode · System Console for admin
+- Game Mode label auto-switches to "Admin access" for admin
+
+### Message footer (`MessagePane.js`)
+- Base44-parity footer row below action chips: `Apr 21, 2026 · 1:00 AM · 28.5s` (date · time · latency)
+- Latency shown green when linked receipt has `latency_ms`
+- Tabular numerals for alignment
+
+### Mic equalizer (`Composer.js` + CSS)
+- New bouncing-bars viz during recording: 8 red bars with staggered `equalizer-bounce` animation + pulsing red dot + `RECORDING` label
+- Sits above the live-transcript ribbon
+- Replaces the user's "I don't know if the mic is hot" frustration
+
+### File sizes check (all under GOV v1.2 cap)
+- `LoginScreen.js` 89 (was 42; grew to include feature grid + 3 CTAs)
+- `WelcomeTour.js` 112 (new)
+- `AuthGate.js` 92 (was 38; adds tour state + guest mode)
+- `MessagePane.js` 229 (was 218; +date-time footer)
+- `Composer.js` 295 (was 288; +equalizer block)
+- `caos-base44-parity-v2.css` 185 (new)
+- `auth_service.py` 136 (was 131; +admin role block)
+
 ## Next Action Items
 - Phase 4: Orchestrated Swarm v1 — LangGraph Supervisor → Claude Opus JSON planner → E2B Sandbox workers → Critic (E2B key already in `.env`).
 - Drive app manually — confirm Synthesizer UI + Show-sources toggle feel right end-to-end.

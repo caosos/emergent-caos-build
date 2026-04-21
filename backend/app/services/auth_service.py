@@ -41,22 +41,41 @@ async def exchange_session_id(session_id: str) -> dict:
     return data
 
 
+ADMIN_EMAILS = {
+    "mytaxicloud@gmail.com",
+}
+
+
 async def upsert_user(email: str, name: str, picture: str) -> dict:
-    """Create or update the users row. Returns the stored user dict (no _id)."""
+    """Create or update the users row. Returns the stored user dict (no _id).
+
+    Auto-assigns admin role for known admin emails on first login and every
+    subsequent login (in case the role was ever stripped).
+    """
     email = email.lower().strip()
+    is_admin = email in ADMIN_EMAILS
+    role = "admin" if is_admin else "user"
     existing = await db.users.find_one({"email": email}, {"_id": 0})
     if existing:
         await db.users.update_one(
             {"email": email},
-            {"$set": {"name": name, "picture": picture, "last_login": datetime.now(timezone.utc).isoformat()}},
+            {"$set": {
+                "name": name,
+                "picture": picture,
+                "role": role,
+                "is_admin": is_admin,
+                "last_login": datetime.now(timezone.utc).isoformat(),
+            }},
         )
-        return {**existing, "name": name, "picture": picture}
+        return {**existing, "name": name, "picture": picture, "role": role, "is_admin": is_admin}
     user_id = f"user_{uuid.uuid4().hex[:12]}"
     doc = {
         "user_id": user_id,
         "email": email,
         "name": name,
         "picture": picture,
+        "role": role,
+        "is_admin": is_admin,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "last_login": datetime.now(timezone.utc).isoformat(),
     }

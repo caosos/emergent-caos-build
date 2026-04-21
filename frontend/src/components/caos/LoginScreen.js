@@ -1,41 +1,86 @@
 /**
- * Login screen — single "Sign in with Google" button that hands off to
- * Emergent's managed OAuth. Redirect URL is derived from `window.location.origin`
- * per the integration playbook.
+ * Pre-login Welcome screen — matches Base44 parity.
+ * Centered starfield + orb + feature grid + Take the Tour / Sign In / Continue as Guest.
  *
  * REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
  */
-export const LoginScreen = () => {
-  const handleLogin = () => {
+import { Brain, FileText, Mic, Search, Sparkles, LogIn } from "lucide-react";
+
+export const LoginScreen = ({ onContinueAsGuest, onTakeTour }) => {
+  const handleSignIn = () => {
     const redirectUrl = window.location.origin + "/auth/callback";
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
   return (
-    <div className="login-shell" data-testid="caos-login-screen">
-      <div className="login-card">
-        <div className="login-brand">
-          <h1 className="login-title">CAOS</h1>
-          <p className="login-subtitle">Cognitive Adaptive Operating System</p>
+    <div className="welcome-pre-shell" data-testid="caos-welcome-pre-shell">
+      <div className="welcome-pre-inner" data-testid="caos-welcome-pre-inner">
+        <div className="welcome-pre-orb" data-testid="caos-welcome-pre-orb" aria-hidden="true">
+          <Sparkles size={36} strokeWidth={1.5} />
         </div>
-        <p className="login-blurb">
-          Memory-centric AI workspace. Your own agent, your own context, your own voice.
+        <h1 className="welcome-pre-title" data-testid="caos-welcome-pre-title">CAOS</h1>
+        <p className="welcome-pre-subtitle" data-testid="caos-welcome-pre-subtitle">
+          Cognitive Adaptive Operating System
         </p>
+        <p className="welcome-pre-tagline" data-testid="caos-welcome-pre-tagline">
+          A personal AI platform that thinks, remembers, and works alongside you — not just answers questions.
+        </p>
+
+        <div className="welcome-pre-grid" data-testid="caos-welcome-pre-grid">
+          <div className="welcome-pre-card" data-testid="caos-welcome-pre-card-memory">
+            <Brain size={18} className="welcome-pre-card-icon" />
+            <strong>Persistent Memory</strong>
+            <span>Aria remembers what matters across every session.</span>
+          </div>
+          <div className="welcome-pre-card" data-testid="caos-welcome-pre-card-search">
+            <Search size={18} className="welcome-pre-card-icon" />
+            <strong>Web Search</strong>
+            <span>Real-time knowledge from the internet, built in.</span>
+          </div>
+          <div className="welcome-pre-card" data-testid="caos-welcome-pre-card-files">
+            <FileText size={18} className="welcome-pre-card-icon" />
+            <strong>File Intelligence</strong>
+            <span>Upload files, images, docs — Aria reads them all.</span>
+          </div>
+          <div className="welcome-pre-card" data-testid="caos-welcome-pre-card-voice">
+            <Mic size={18} className="welcome-pre-card-icon" />
+            <strong>Voice Ready</strong>
+            <span>Speak to Aria or have her read responses aloud.</span>
+          </div>
+        </div>
+
         <button
-          className="login-google-btn"
-          data-testid="caos-login-google-btn"
-          onClick={handleLogin}
+          className="welcome-pre-primary-btn"
+          data-testid="caos-welcome-pre-take-tour"
+          onClick={onTakeTour}
           type="button"
         >
-          <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true">
-            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-          </svg>
-          <span>Continue with Google</span>
+          <Sparkles size={16} />
+          <span>Take the Tour</span>
         </button>
-        <p className="login-footer">Powered by Emergent · Your data stays private to your account.</p>
+
+        <button
+          className="welcome-pre-secondary-btn"
+          data-testid="caos-welcome-pre-signin"
+          onClick={handleSignIn}
+          type="button"
+        >
+          <LogIn size={16} />
+          <span>Sign In</span>
+        </button>
+
+        <button
+          className="welcome-pre-ghost-btn"
+          data-testid="caos-welcome-pre-guest"
+          onClick={onContinueAsGuest}
+          type="button"
+        >
+          Continue as Guest
+        </button>
+
+        <p className="welcome-pre-footer" data-testid="caos-welcome-pre-footer">
+          CAOS · AI assistant platform · Aria AI persona · Memory system · Multi-provider inference (OpenAI, Claude, Gemini) · Web search · File intelligence · Voice I/O
+        </p>
       </div>
     </div>
   );

@@ -3,7 +3,23 @@ _Built from 20+ screenshots of user's deployed Base44 (`caos-chat-9c5683d8.base4
 
 ---
 
-## A. Auth / Login screen (`/login`)
+## A0. Pre-login Welcome screen (first surface unauth'd users see)
+Full-screen dark starfield. Centered column:
+- Big purple orb avatar (sparkle icon inside a gradient circle)
+- `CAOS` (massive H1, white)
+- `Cognitive Adaptive Operating System` (blue subtitle)
+- Tagline: `A personal AI platform that thinks, remembers, and works alongside you — not just answers questions.`
+- **Feature grid (2×2 cards, subtle glass panels):**
+  - 🧠 **Persistent Memory** — Aria remembers what matters across every session.
+  - 🔍 **Web Search** — Real-time knowledge from the internet, built in.
+  - 📄 **File Intelligence** — Upload files, images, docs — Aria reads them all.
+  - 🎤 **Voice Ready** — Speak to Aria or have her read responses aloud.
+- **[✨ Take the Tour]** primary purple gradient button
+- **[→] Sign In]** secondary bordered button
+- `Continue as Guest` text link below
+- Footer attribution (tiny): `CAOS · AI assistant platform · Aria AI persona · Memory system · Multi-provider inference (OpenAI, Gemini) · Web search · File intelligence · Voice I/O · Base44 platform`
+
+## A. Auth / Sign-In screen (`/login`)
 Clean white card, centered, light background. Contains:
 - Avatar orb (CAOS icon)
 - `Welcome to CAOS-A.I.`

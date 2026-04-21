@@ -4,17 +4,22 @@ import { Loader2 } from "lucide-react";
 
 import { CaosShell } from "@/components/caos/CaosShell";
 import { LoginScreen } from "@/components/caos/LoginScreen";
+import { WelcomeTour } from "@/components/caos/WelcomeTour";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 /**
- * Three-state auth gate: null → checking, user → authenticated, false → not.
+ * Auth gate states:
+ *   null       → probing /auth/me
+ *   user obj   → authenticated → render CaosShell
+ *   false      → unauthenticated → render LoginScreen (pre-login Welcome)
+ *   "guest"    → continue-as-guest path → render CaosShell with anon identity
  *
- * If the URL fragment contains `session_id=` we skip the /auth/me probe and
- * let AuthCallback handle the exchange (avoids a 401 race condition).
+ * Also manages the 5-step WelcomeTour on first run (persisted via localStorage).
  */
 export const AuthGate = () => {
   const [user, setUser] = useState(null);
+  const [showTour, setShowTour] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -24,15 +29,64 @@ export const AuthGate = () => {
     return () => { cancelled = true; };
   }, []);
 
+  // First-run detection: if authenticated and tour never completed, auto-open.
+  useEffect(() => {
+    if (!user || user === "guest") return;
+    try {
+      const done = localStorage.getItem("caos_tour_completed") === "true";
+      if (!done) setShowTour(true);
+    } catch {}
+  }, [user]);
+
+  const handleTakeTour = () => {
+    // Guest tour path — show tour over the pre-login screen itself.
+    setShowTour(true);
+  };
+
+  const handleContinueAsGuest = () => {
+    setUser("guest");
+  };
+
   if (user === null) {
     return (
-      <div style={{ display: "flex", height: "100vh", alignItems: "center", justifyContent: "center", color: "#a78bfa" }}
-           data-testid="caos-auth-loading">
+      <div
+        style={{ display: "flex", height: "100vh", alignItems: "center", justifyContent: "center", color: "#a78bfa" }}
+        data-testid="caos-auth-loading"
+      >
         <Loader2 className="spin" size={20} style={{ marginRight: 10 }} />
         <span>Verifying session…</span>
       </div>
     );
   }
-  if (!user) return <LoginScreen />;
-  return <CaosShell authenticatedUser={user} />;
+
+  if (!user) {
+    return (
+      <>
+        <LoginScreen
+          onContinueAsGuest={handleContinueAsGuest}
+          onTakeTour={handleTakeTour}
+        />
+        <WelcomeTour
+          isOpen={showTour}
+          onClose={() => setShowTour(false)}
+          onComplete={() => setShowTour(false)}
+        />
+      </>
+    );
+  }
+
+  const shellUser = user === "guest"
+    ? { email: "guest@caos.local", name: "Guest", picture: "", role: "guest", is_admin: false }
+    : user;
+
+  return (
+    <>
+      <CaosShell authenticatedUser={shellUser} />
+      <WelcomeTour
+        isOpen={showTour}
+        onClose={() => setShowTour(false)}
+        onComplete={() => setShowTour(false)}
+      />
+    </>
+  );
 };
