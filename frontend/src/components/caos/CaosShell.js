@@ -206,8 +206,10 @@ export const CaosShell = ({ authenticatedUser }) => {
         onOpenThreads={toggleThreads}
         onSelectProvider={updateRuntimeSelection}
         onToggleRail={() => setIsRailOpen((value) => !value)}
-        onToggleSearch={openSearch}
         providerCatalog={runtimeSettings.provider_catalog}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        matchCount={(searchQuery || "").trim() ? filteredMessages.reduce((count, m) => count + (String(m.content || "").toLowerCase().split(searchQuery.toLowerCase()).length - 1), 0) : 0}
         wcwBudget={latestReceipt?.wcw_budget || lastTurn?.wcw_budget || 200000}
         wcwUsed={latestReceipt?.active_context_tokens || lastTurn?.wcw_used_estimate || 0}
       />
@@ -347,12 +349,15 @@ export const CaosShell = ({ authenticatedUser }) => {
       />
 
       <SearchDrawer
-        currentSession={currentSession}
-        isOpen={showSearch}
-        onClose={() => setShowSearch(false)}
-        results={filteredMessages.slice(0, 8)}
+        isOpen={(searchQuery || "").trim().length > 0}
+        onJumpTo={(messageId) => {
+          try {
+            const el = document.querySelector(`[data-testid="caos-message-bubble-${messageId}"]`);
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+          } catch {}
+        }}
+        results={filteredMessages}
         searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
       />
 
       <ProfileDrawer
