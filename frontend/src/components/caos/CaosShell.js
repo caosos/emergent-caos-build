@@ -4,6 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import { AdminDocsDrawer } from "@/components/caos/AdminDocsDrawer";
 import { ArtifactsDrawer } from "@/components/caos/ArtifactsDrawer";
 import { Composer } from "@/components/caos/Composer";
+import { ConstellationLayer } from "@/components/caos/ConstellationLayer";
 import { EngineChip } from "@/components/caos/EngineChip";
 import { InspectorPanel } from "@/components/caos/InspectorPanel";
 import { MessagePane } from "@/components/caos/MessagePane";
@@ -181,6 +182,7 @@ export const CaosShell = ({ authenticatedUser }) => {
 
   return (
     <main className="caos-shell-root caos-shell-no-rail" data-testid="caos-shell-root">
+      <ConstellationLayer />
       <ShellHeader
         activeModel={runtimeSettings.default_model}
         activeProvider={runtimeSettings.default_provider}
