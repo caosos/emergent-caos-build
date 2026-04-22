@@ -32,9 +32,14 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
     if (!container) return { mode: "window", node: document.scrollingElement || document.documentElement };
     const style = window.getComputedStyle(container);
     const usesInternalScroll = ["auto", "scroll", "overlay"].includes(style.overflowY) && container.scrollHeight > container.clientHeight + 4;
+    const body = document.body;
+    const root = document.scrollingElement || document.documentElement;
+    const bodyScrollHeight = body?.scrollHeight || 0;
+    const rootScrollHeight = root?.scrollHeight || 0;
+    const pageNode = bodyScrollHeight > rootScrollHeight ? body : root;
     return usesInternalScroll
       ? { mode: "container", node: container }
-      : { mode: "window", node: document.scrollingElement || document.documentElement };
+      : { mode: "window", node: pageNode };
   };
 
   const getScrollMetrics = () => {

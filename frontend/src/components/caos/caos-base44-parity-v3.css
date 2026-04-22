@@ -391,11 +391,21 @@ html { scrollbar-gutter: stable; }
 .caos-shell-grid-no-rail {
   display: block !important;
   grid-template-columns: none !important;
+  height: auto !important;
+  min-height: auto !important;
   --rail-width: 0px;
 }
 .caos-shell-no-rail .caos-rail-column,
 .caos-shell-no-rail .thread-rail { display: none !important; }
-.caos-shell-no-rail .caos-main-column { margin: 0 auto; max-width: 1100px; padding: 0 24px; }
+.caos-shell-no-rail .caos-main-column {
+  margin: 0;
+  max-width: none;
+  width: 100%;
+  min-height: auto;
+  height: auto;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
 
 /* Force the composer to float centered at the bottom — no full-width black bar */
 .caos-shell-no-rail ~ .command-footer,
@@ -430,6 +440,13 @@ body .command-footer,
 
 /* Make space at the page bottom so the last message isn't tucked under the floating composer */
 .caos-shell-no-rail .caos-main-column { padding-bottom: 140px; }
+
+.caos-shell-no-rail .message-pane,
+.caos-shell-no-rail .message-scroll {
+  height: auto !important;
+  min-height: auto !important;
+  overflow: visible !important;
+}
 
 /* === Previous Threads rendered as LEFT SLIDE-OUT (matching Base44) === */
 .previous-threads-panel:not(.previous-threads-panel-embedded) {
@@ -786,10 +803,11 @@ body .command-footer,
 .caos-shell-root > .caos-header {
   z-index: 50;
   position: fixed;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(1100px, calc(100vw - 48px));
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  transform: none;
 }
 .account-menu-shell { position: relative; z-index: 50; }
 .account-menu-shell .inspector-menu { z-index: 100; }
@@ -1102,6 +1120,7 @@ body .command-footer,
     position: static;
     top: auto;
     left: auto;
+    right: auto;
     transform: none;
     width: auto;
   }

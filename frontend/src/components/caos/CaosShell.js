@@ -124,7 +124,9 @@ export const CaosShell = ({ authenticatedUser }) => {
       if (target instanceof HTMLElement && target.closest("textarea,input,select,[contenteditable='true'],.drawer-shell,.previous-threads-panel,.inspector-panel,.search-drawer")) {
         return;
       }
-      const page = document.scrollingElement || document.documentElement;
+      const root = document.scrollingElement || document.documentElement;
+      const body = document.body;
+      const page = (body?.scrollHeight || 0) > (root?.scrollHeight || 0) ? body : root;
       const before = page.scrollTop;
       const delta = event.deltaY;
       if (!delta || page.scrollHeight <= window.innerHeight + 4) return;

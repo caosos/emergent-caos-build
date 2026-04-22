@@ -1,5 +1,26 @@
-.App {
+.App,
+html,
+body,
+#root {
+    width: 100%;
+}
+
+html {
+    min-height: 100%;
+    height: 100%;
+    overflow: hidden;
+    scrollbar-gutter: stable;
+}
+
+body {
     min-height: 100vh;
+    height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.App {
+    min-height: 100%;
     height: auto;
     overflow: visible;
     background:
@@ -11,11 +32,11 @@
 
 .caos-shell-root {
     --rail-width: 256px;
-    min-height: 100vh;
+    min-height: 100%;
     height: auto;
     box-sizing: border-box;
     padding: 18px;
-    padding-top: 92px;
+    padding-top: 96px;
     padding-bottom: 220px;
     overflow: visible;
     display: block;
@@ -51,16 +72,20 @@
     align-items: center;
     justify-content: space-between;
     gap: 18px;
-    padding: 8px 12px;
-    margin-bottom: 10px;
+    padding: 10px 24px 12px;
+    margin-bottom: 0;
     overflow: visible;
-    background: rgba(8, 15, 31, 0.58);
-    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.18);
+    background: linear-gradient(180deg, rgba(7, 15, 31, 0.92) 0%, rgba(7, 15, 31, 0.72) 58%, rgba(7, 15, 31, 0) 100%);
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    backdrop-filter: blur(10px);
     position: fixed;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(1100px, calc(100vw - 48px));
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    transform: none;
     z-index: 22;
 }
 
@@ -232,8 +257,8 @@
     grid-template-columns: 290px minmax(0, 1fr) 320px;
     gap: 14px;
     align-items: stretch;
-    height: 100%;
-    min-height: 0;
+    height: auto;
+    min-height: auto;
 }
 
 .caos-shell-grid-layout {
@@ -244,7 +269,7 @@
 .caos-main-column,
 .context-column {
     min-height: 0;
-    height: 100%;
+    height: auto;
 }
 
 .thread-rail,
@@ -561,10 +586,10 @@
 .caos-main-column {
     display: grid;
     gap: 10px;
-    min-height: 0;
-    max-width: 1180px;
+    min-height: auto;
+    max-width: none;
     width: 100%;
-    margin: 0 auto;
+    margin: 0;
 }
 
 .rail-header,
@@ -1466,6 +1491,7 @@
         position: static;
         width: auto;
         transform: none;
+        padding-inline: 8px;
     }
 
     .chat-surface-actions,
