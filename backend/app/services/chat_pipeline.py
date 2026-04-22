@@ -157,6 +157,26 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     _llm_start = time.perf_counter()
     llm_response = await chat._execute_completion(pending_messages)
     reply = await chat._extract_response_text(llm_response)
+    # Agent loop: let Aria call read-only inspection tools up to 3 times.
+    # She emits `[TOOL: read_file path=...]` / `[TOOL: list_dir path=...]` /
+    # `[TOOL: grep_code pattern=... path=... glob=...]`. The pipeline runs the
+    # tool, feeds the result back as a user-role message, and re-runs the LLM.
+    from app.services.aria_tools import extract_and_run_next_tool
+    tool_iterations = 0
+    while tool_iterations < 3:
+        marker, result = extract_and_run_next_tool(reply)
+        if not marker or result is None:
+            break
+        tool_iterations += 1
+        # Persist Aria's partial (tool-requesting) reply into the chat history
+        # so the next turn has context of what she asked for.
+        await chat._add_assistant_message(pending_messages, reply)
+        await chat._add_user_message(
+            pending_messages,
+            UserMessage(text=f"[TOOL_RESULT for {marker}]\n{result[:60000]}"),
+        )
+        llm_response = await chat._execute_completion(pending_messages)
+        reply = await chat._extract_response_text(llm_response)
     latency_ms = int((time.perf_counter() - _llm_start) * 1000)
     # Parse Aria's FILE_TICKET marker and create a ticket, stripping it from the
     # user-facing reply. Format: [FILE_TICKET: category=..., title=..., description=...]
