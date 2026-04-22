@@ -721,6 +721,32 @@
   opacity: 0.92;
   animation: pendingBubbleIn 0.2s ease;
 }
+.message-bubble-failed {
+  border-color: rgba(248, 113, 113, 0.55) !important;
+  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.18);
+}
+.message-failed-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(127, 29, 29, 0.35);
+  color: #fecaca;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.message-error-note {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(127, 29, 29, 0.2);
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  color: #fecaca;
+  font-size: 12px;
+  line-height: 1.5;
+}
 @keyframes pendingBubbleIn {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 0.92; transform: translateY(0); }

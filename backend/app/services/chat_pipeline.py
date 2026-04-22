@@ -26,7 +26,7 @@ from app.services.context_engine import (
 from app.services.global_info_service import select_global_info_entries, upsert_global_info_entry
 from app.services.memory_worker_service import derive_lane, list_lane_workers, rebuild_lane_workers
 from app.services.prompt_builder import build_prompt_sections, build_system_prompt_from_sections
-from app.services.runtime_service import resolve_chat_runtime
+from app.services.runtime_service import resolve_chat_runtime, supports_temperature_param
 from app.services.token_meter import build_token_receipt
 from app.services.thread_title_service import build_auto_thread_title, is_generic_session_title
 
@@ -154,7 +154,9 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         api_key=runtime["api_key"],
         session_id=f"{payload.session_id}-{uuid.uuid4()}",
         system_message=system_prompt,
-    ).with_model(runtime["provider"], runtime["model"]).with_params(temperature=_temp)
+    ).with_model(runtime["provider"], runtime["model"])
+    if supports_temperature_param(runtime["provider"], runtime["model"]):
+        chat = chat.with_params(temperature=_temp)
     pending_messages = await chat.get_messages()
     await chat._add_user_message(
         pending_messages,

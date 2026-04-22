@@ -293,13 +293,15 @@ export const useCaosShell = (authenticatedUser = null) => {
     const now = new Date().toISOString();
     const pendingUserId = `pending-user-${Date.now()}`;
     const pendingAssistantId = `pending-assistant-${Date.now() + 1}`;
+    let session = currentSession;
+    let effectiveProvider = runtimeSettings.default_provider;
+    let effectiveModel = runtimeSettings.default_model;
     setMessages((prev) => [
       ...prev,
       { id: pendingUserId, role: "user", content: trimmed, timestamp: now, pending: true },
       { id: pendingAssistantId, role: "assistant", content: "", timestamp: now, pending: true, streaming: true },
     ]);
     try {
-      let session = currentSession;
       if (!session) session = await createSession(trimmed.slice(0, 48) || "New Thread");
       if (!session) {
         setMessages((prev) => prev.filter((m) => m.id !== pendingUserId && m.id !== pendingAssistantId));
@@ -309,8 +311,6 @@ export const useCaosShell = (authenticatedUser = null) => {
       // Auto-route to Gemini when images are attached on Claude/GPT (Gemini is the
       // only provider whose binary attachments are supported by emergentintegrations).
       const sessionImages = files.filter((f) => f.session_id === session.session_id && (f.mime_type || "").startsWith("image/"));
-      let effectiveProvider = runtimeSettings.default_provider;
-      let effectiveModel = runtimeSettings.default_model;
       if (sessionImages.length > 0 && effectiveProvider !== "gemini") {
         effectiveProvider = "gemini";
         effectiveModel = "gemini-3-flash-preview";
@@ -413,10 +413,56 @@ export const useCaosShell = (authenticatedUser = null) => {
       await loadFiles();
       setStatus("CAOS replied with session-scoped context.");
     } catch (issue) {
-      const message = issue?.response?.data?.detail || issue?.message || "Sending message failed.";
+      const rawMessage = issue?.response?.data?.detail || issue?.message || "Sending message failed.";
+      const message = rawMessage.startsWith("stream_unavailable_")
+        ? "This engine did not answer in time. Your draft is preserved below so you can retry or switch engines."
+        : rawMessage;
       setError(message);
-      setStatus(`Sending message failed: ${message}`);
-      setMessages((prev) => prev.filter((m) => m.id !== pendingAssistantId));
+      let syncedMessages = null;
+      if (session?.session_id) {
+        try {
+          syncedMessages = await loadMessages(session.session_id);
+          await loadArtifacts(session.session_id);
+          await loadContinuity(session.session_id);
+          await loadSessionLinks(session.session_id);
+          await loadFiles();
+        } catch {
+          syncedMessages = null;
+        }
+      }
+      const providerLabel = `${effectiveProvider || runtimeSettings.default_provider} · ${effectiveModel || runtimeSettings.default_model}`;
+      setStatus(`Reply failed on ${providerLabel}: ${message}`);
+      setMessages((prev) => {
+        const failedDraft = {
+          id: pendingUserId,
+          role: "user",
+          content: trimmed,
+          timestamp: now,
+          pending: false,
+          failed: true,
+          error: message,
+        };
+        const alreadyPersisted = syncedMessages?.some((entry) => entry.role === "user" && entry.content?.trim() === trimmed) || false;
+        const failureNotice = {
+          id: `system-failure-${Date.now()}`,
+          role: "system",
+          content: alreadyPersisted
+            ? `Your message was received, but ${providerLabel} failed before Aria could reply.`
+            : `The request failed before ${providerLabel} could reply. Your draft is preserved below so you can retry or switch engines.`,
+          error: message,
+          failed: true,
+          timestamp: new Date().toISOString(),
+        };
+        if (syncedMessages?.length) {
+          return alreadyPersisted ? [...syncedMessages, failureNotice] : [...syncedMessages, failedDraft, failureNotice];
+        }
+        return [
+          ...prev
+            .filter((m) => m.id !== pendingAssistantId)
+            .map((m) => (m.id === pendingUserId ? failedDraft : m)),
+          failureNotice,
+        ];
+      });
     } finally {
       setBusy(false);
     }

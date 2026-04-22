@@ -35,7 +35,10 @@ def _format_continuity(continuity_packet: dict) -> str:
     anchors = continuity_packet.get("continuity_lines", [])
     if not bins and not anchors:
         return "No prior continuity anchors were selected for reinjection this turn."
-    lines = [f"- Active bins: {', '.join(bins) if bins else 'none'}"]
+    lines = [
+        f"- Active bins: {', '.join(bins) if bins else 'none'}",
+        "- Temporal rule: when a continuity line includes a timestamp, treat that timestamp as the event/update date for any relative date math.",
+    ]
     lines.extend(f"- {anchor}" for anchor in anchors)
     return "\n".join(lines)
 

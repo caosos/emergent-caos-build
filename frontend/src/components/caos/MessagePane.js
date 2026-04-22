@@ -1,4 +1,4 @@
-import { ArrowDown, Clock, Copy, CornerDownLeft, FileSearch, Paperclip, ThumbsUp, Volume2, X } from "lucide-react";
+import { ArrowDown, Clock, Copy, CornerDownLeft, FileSearch, Mail, Paperclip, ThumbsUp, Volume2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { LatencyIndicator } from "@/components/caos/LatencyIndicator";
@@ -111,6 +111,17 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
     }
   };
 
+  const handleEmail = (message) => {
+    try {
+      const subject = currentSession?.title?.trim() || "Draft from CAOS";
+      const body = message.content?.trim() || "";
+      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      setActionStatus("Opening your email app.");
+    } catch {
+      setActionStatus("Email compose could not be opened.");
+    }
+  };
+
   return (
     <section className="message-pane" data-testid="caos-message-pane">
       <div className="message-scroll" data-testid="caos-message-scroll" ref={scrollRef}>
@@ -148,17 +159,19 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
             const meta = messageMeta[message.id] || { reactions: [], replies: [], replyDraft: "", showReceipt: false, showReply: false };
             const linkedReceipt = receipts.find((receipt) => receipt.assistant_message_id === message.id);
             const isPending = message.pending === true;
+            const isFailed = message.failed === true;
             const isStreamingPlaceholder = message.role === "assistant" && isPending && !message.content;
 
             return (
               <article
-                className={`message-bubble message-bubble-${message.role} ${isPending ? "message-bubble-pending" : ""}`}
+                className={`message-bubble message-bubble-${message.role} ${isPending ? "message-bubble-pending" : ""} ${isFailed ? "message-bubble-failed" : ""}`}
                 data-testid={`caos-message-bubble-${message.id}`}
                 key={message.id}
               >
                 <div className="message-bubble-topline">
                   <strong data-testid={`caos-message-role-${message.id}`}>{formatRole(message.role)}</strong>
                   <span data-testid={`caos-message-time-${message.id}`}>{formatTimestamp(message.timestamp)}</span>
+                  {isFailed ? <span className="message-failed-chip" data-testid={`caos-message-failed-chip-${message.id}`}>Issue</span> : null}
                   {message.role === "assistant" && linkedReceipt ? (
                     <LatencyIndicator receipt={linkedReceipt} />
                   ) : null}
@@ -175,6 +188,7 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
                     ) : null}
                   </p>
                 )}
+                {message.error ? <div className="message-error-note" data-testid={`caos-message-error-${message.id}`}>{message.error}</div> : null}
                 {message.role === "user" && (userMessageAttachments[message.id]?.length || 0) > 0 ? (
                   <div className="message-attachments" data-testid={`caos-message-attachments-${message.id}`}>
                     {userMessageAttachments[message.id].map((file) => {
@@ -217,6 +231,12 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
                     <button className="message-action-button" data-testid={`caos-message-read-${message.id}`} onClick={() => handleReadAloud(message)}>
                       <Volume2 size={14} />
                       <span>{speakingId === message.id ? "Stop" : "Read"}</span>
+                    </button>
+                  ) : null}
+                  {message.role === "assistant" && message.content ? (
+                    <button className="message-action-button" data-testid={`caos-message-email-${message.id}`} onClick={() => handleEmail(message)}>
+                      <Mail size={14} />
+                      <span>Mail</span>
                     </button>
                   ) : null}
                   <button

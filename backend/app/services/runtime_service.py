@@ -64,3 +64,13 @@ def resolve_chat_runtime(profile: UserProfileRecord, requested_provider: str | N
     raise ValueError(
         "Grok/xAI is registered as a bring-your-own provider placeholder. Attach xAI credentials before selecting it for live inference"
     )
+
+
+def supports_temperature_param(provider: str | None, model: str | None) -> bool:
+    active_provider = canonical_provider(provider)
+    active_model = (model or "").strip().lower()
+    if active_provider != "openai":
+        return True
+    if active_model.startswith("gpt-5") and "chat" not in active_model:
+        return False
+    return True

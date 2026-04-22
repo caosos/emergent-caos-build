@@ -3,6 +3,14 @@ from app.services.context_engine import tokenize
 from app.services.memory_worker_service import normalize_lane
 
 
+def _stamp(label: str, created_at) -> str:
+    try:
+        when = created_at.strftime("%Y-%m-%d %H:%M UTC")
+    except Exception:
+        when = str(created_at)
+    return f"[{label} @ {when}]"
+
+
 def derive_subject_bins(
     query: str,
     recent_messages: list[MessageRecord],
@@ -72,7 +80,16 @@ def build_continuity_packet(
             score += 5
         scored_workers.append((score, worker))
     selected_workers = [item[1] for item in sorted(scored_workers, key=lambda row: row[0], reverse=True) if item[0] > 0][:1]
-    continuity_lines = [summary.summary[:240] for summary in selected_summaries] + [seed.seed_text[:240] for seed in selected_seeds] + [worker.summary_text[:240] for worker in selected_workers]
+    continuity_lines = [
+        f"{_stamp('summary', summary.created_at)} {summary.summary[:220]}"
+        for summary in selected_summaries
+    ] + [
+        f"{_stamp('seed', seed.created_at)} {seed.seed_text[:220]}"
+        for seed in selected_seeds
+    ] + [
+        worker.summary_text[:240]
+        for worker in selected_workers
+    ]
     return {
         "lane": active_lane,
         "subject_bins": subject_bins,
