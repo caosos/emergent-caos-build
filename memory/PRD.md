@@ -334,3 +334,28 @@ User reported **messages tripling themselves while dictating** and screenshots s
 - P1: Resend email notifications for support tickets once the Resend API key is provided.
 - P2: GitHub token unlock for Swarm repo tools, TTS speed slider, engine-used badge.
 
+## OpenAI Recovery + Mail Action + Time-Aware Continuity (Apr 22, 2026 — late)
+
+### Shipped
+- **OpenAI engine recovery**: fixed GPT-5 temperature-param breakage by skipping `temperature` for OpenAI GPT-5 reasoning models that reject non-default sampling controls. Verified live with `POST /api/caos/chat` on `openai:gpt-5.2` returning `OK`.
+- **Visible send-failure UX**: when a reply fails, CAOS now preserves the user draft, shows a visible failure state inline, and adds human-readable retry/switch-engine guidance instead of leaving the user hanging.
+- **Mail button on assistant replies**: added a `Mail` action on assistant messages that opens the user’s default mail app via `mailto:` with the current thread title as subject and the assistant response as body.
+- **Time-aware continuity reinforcement**: continuity anchors now carry summary/seed timestamps into the reinjection packet, and the prompt explicitly instructs Aria to use those timestamps for relative date math after rehydration.
+
+### Verification
+- Live backend verification: `POST /api/caos/chat` on `openai:gpt-5.2` succeeded without the old temperature error.
+- Frontend verification: mail action visible on assistant reply; forced `/chat/stream` failure preserved the draft and surfaced friendly error copy.
+- Backend verification agent passed; frontend verification agent passed.
+
+## Google Workspace Phased Plan (Budget-Friendly)
+- **Phase A — Gmail first (smallest useful MVP)**: read inbox summaries + open compose/send flow. Best first connector for immediate user value.
+- **Phase B — Drive**: list/search files and pull document metadata/content into CAOS on demand.
+- **Phase C — Calendar**: read events, upcoming obligations, and date-aware reminders.
+- **Auth / credentials**: use Emergent-managed Google Auth path; no extra Google API key should be needed, but Workspace scopes must be approved when implemented.
+
+## Revised Next Action Items
+- P0: User verify the OpenAI fix, Mail action, and failure-state UX on `caosos.com` after the latest redeploy.
+- P1: Implement **Google Workspace Phase A (Gmail)** using the integration playbook, then test mailbox read + compose/send flow.
+- P1: Resend email notifications for support tickets once the Resend API key is provided.
+- P2: Drive connector, Calendar connector, GitHub token unlock for Swarm repo tools, TTS speed slider, engine-used badge.
+
