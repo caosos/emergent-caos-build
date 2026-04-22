@@ -505,3 +505,17 @@ User reported **messages tripling themselves while dictating** and screenshots s
 - Scroll button icon-only, fixed in place, and hover title reads `Last message`.
 - Page scrolling still works normally.
 
+## Five-Credit Header/Button Behavior Pass (Apr 22, 2026 — constrained polish)
+
+### Shipped
+- Re-pinned the header to the top so messages can slide underneath it again while scrolling.
+- Kept the header transparent while preserving the restored subtitle, thread/search placement, and WCW meter.
+- Changed the scroll button behavior so it only appears when the user is meaningfully away from the bottom, instead of staying on-screen all the time.
+- Kept the scroll button as a simple icon-only circle with hover title `Last message` and removed click/focus weirdness.
+
+### Verified
+- Header remains pinned at the top during scrolling.
+- Messages pass underneath the header correctly.
+- Scroll button stays hidden when already at the bottom / when not needed.
+- In code and runtime logic, the button now appears only when far enough from the bottom and disappears again near the bottom.
+
