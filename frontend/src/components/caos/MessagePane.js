@@ -63,8 +63,7 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
   useEffect(() => {
     const handler = () => {
       const { remaining } = getScrollMetrics();
-      // Show the button when the user is > 240px away from the bottom.
-      setShowScrollBottom(remaining > 240);
+      setShowScrollBottom((prev) => (prev ? remaining > 120 : remaining > 260));
     };
     const target = resolveScrollTarget();
     const listenerNode = target.mode === "container" ? target.node : window;
@@ -201,7 +200,10 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
       aria-label="Last message"
       className="scroll-to-bottom-button"
       data-testid="caos-scroll-to-bottom-button"
-      onClick={scrollToBottom}
+      onClick={(event) => {
+        scrollToBottom();
+        event.currentTarget.blur();
+      }}
       title="Last message"
       type="button"
     >
@@ -421,7 +423,7 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
         )}
       </div>
       {actionStatus ? <div className="message-action-status" data-testid="caos-message-action-status">{actionStatus}</div> : null}
-      {portalReady ? createPortal(scrollButton, document.body) : scrollButton}
+      {showScrollBottom ? (portalReady ? createPortal(scrollButton, document.body) : scrollButton) : null}
       {lightboxImage ? (
         <div
           className="image-lightbox-backdrop"

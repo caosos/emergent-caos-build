@@ -578,6 +578,13 @@ body .command-footer,
   justify-content: center;
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
   transition: transform 140ms ease, background-color 140ms ease, color 140ms ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.scroll-to-bottom-button:focus,
+.scroll-to-bottom-button:focus-visible {
+  outline: none;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
 }
 .scroll-to-bottom-button:hover {
   background: rgba(99, 102, 241, 0.35);
@@ -811,8 +818,10 @@ body .command-footer,
 /* --- Ensure account-menu dropdown sits above the main grid for both paint + hit-testing --- */
 .caos-shell-root > .caos-header {
   z-index: 50;
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   width: 100%;
   transform: none;
   background: transparent !important;
