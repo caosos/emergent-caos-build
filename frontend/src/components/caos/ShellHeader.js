@@ -95,41 +95,44 @@ export const ShellHeader = ({
         <span className="caos-thread-pill" data-testid="caos-header-thread-pill" title={currentSession?.title || "No active thread"}>
           {(currentSession?.title || "Start a new chat").split(/\s+/).slice(0, 3).join(" ")}
         </span>
-        <div className={`caos-header-search-inline-wrap ${searchOpen || hasQuery ? "caos-header-search-inline-open" : ""}`} data-testid="caos-header-search-wrap">
+        <div className="caos-header-search-dropdown-wrap" data-testid="caos-header-search-wrap">
           <button
             aria-label="Search this thread"
-            className="caos-header-search-inline-btn"
+            className={`caos-header-search-icon-btn ${hasQuery || searchOpen ? "caos-header-search-icon-btn-active" : ""}`}
             data-testid="caos-title-search-trigger"
             onClick={() => setSearchOpen((v) => !v)}
             title="Search this thread"
             type="button"
           >
-            <Search size={12} />
+            <Search size={13} />
           </button>
-          {(searchOpen || hasQuery) ? (
-            <input
-              aria-label="Search this thread"
-              autoFocus={searchOpen && !hasQuery}
-              className="caos-header-search-inline-input"
-              data-testid="caos-header-search-input"
-              onChange={(event) => setSearchQuery?.(event.target.value)}
-              placeholder="Search…"
-              type="text"
-              value={searchQuery || ""}
-            />
-          ) : null}
-          {hasQuery ? (
-            <>
-              <span className="caos-header-search-inline-count" data-testid="caos-header-search-count" title={`${matchCount || 0} match${matchCount === 1 ? "" : "es"}`}>{matchCount || 0}</span>
-              <button
-                aria-label="Clear search"
-                className="caos-header-search-inline-clear"
-                data-testid="caos-header-search-clear-button"
-                onClick={() => { setSearchQuery?.(""); setSearchOpen(false); }}
-                title="Clear search"
-                type="button"
-              ><X size={10} /></button>
-            </>
+          {searchOpen ? (
+            <div className="caos-header-search-dropdown" data-testid="caos-title-search-popover">
+              <Search size={12} />
+              <input
+                aria-label="Search this thread"
+                autoFocus
+                className="caos-header-search-dropdown-input"
+                data-testid="caos-header-search-input"
+                onChange={(event) => setSearchQuery?.(event.target.value)}
+                placeholder="Search this thread…"
+                type="text"
+                value={searchQuery || ""}
+              />
+              {hasQuery ? (
+                <>
+                  <span className="caos-header-search-dropdown-count" data-testid="caos-header-search-count" title={`${matchCount || 0} match${matchCount === 1 ? "" : "es"}`}>{matchCount || 0}</span>
+                  <button
+                    aria-label="Clear search"
+                    className="caos-header-search-dropdown-clear"
+                    data-testid="caos-header-search-clear-button"
+                    onClick={() => { setSearchQuery?.(""); setSearchOpen(false); }}
+                    title="Clear search"
+                    type="button"
+                  ><X size={11} /></button>
+                </>
+              ) : null}
+            </div>
           ) : null}
         </div>
         <div className="caos-header-wcw" data-testid="caos-header-wcw" title="Working Context Window (live)">
