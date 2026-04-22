@@ -253,24 +253,6 @@ export const CaosShell = ({ authenticatedUser }) => {
 
       <div className="command-footer" data-testid="caos-command-footer">
         <div className="command-footer-inner" data-testid="caos-command-footer-inner">
-          <div className="composer-top-strip" data-testid="caos-composer-top-strip">
-            <EngineChip
-              activeModel={runtimeSettings.default_model}
-              activeProvider={runtimeSettings.default_provider}
-              onSelect={updateRuntimeSelection}
-              providerCatalog={runtimeSettings.provider_catalog}
-            />
-            <button
-              className={`multi-agent-toggle-chip ${multiAgentMode ? "multi-agent-toggle-chip-active" : ""}`}
-              data-testid="caos-multi-agent-toggle-chip"
-              onClick={() => setMultiAgentMode(!multiAgentMode)}
-              title={multiAgentMode ? "Multi-Agent ON — fan out to Claude + OpenAI + Gemini" : "Click to enable Multi-Agent fan-out"}
-              type="button"
-            >
-              <span>Multi-Agent</span>
-              <strong data-testid="caos-multi-agent-toggle-state">{multiAgentMode ? "ON" : "OFF"}</strong>
-            </button>
-          </div>
           <Composer
             busy={busy}
             draft={draft}
@@ -284,6 +266,24 @@ export const CaosShell = ({ authenticatedUser }) => {
             status={status}
             voiceSettings={voiceSettings}
           />
+          <div className="composer-bottom-strip" data-testid="caos-composer-bottom-strip">
+            <EngineChip
+              activeModel={runtimeSettings.default_model}
+              activeProvider={runtimeSettings.default_provider}
+              onSelect={updateRuntimeSelection}
+              providerCatalog={runtimeSettings.provider_catalog}
+            />
+            <button
+              className={`multi-agent-toggle-chip ${multiAgentMode ? "multi-agent-toggle-chip-active" : ""}`}
+              data-testid="caos-multi-agent-toggle-chip"
+              onClick={() => setMultiAgentMode(!multiAgentMode)}
+              title={multiAgentMode ? "Multi-Agent ON" : "Click to enable Multi-Agent fan-out"}
+              type="button"
+            >
+              <span>Multi-Agent</span>
+              <strong data-testid="caos-multi-agent-toggle-state">{multiAgentMode ? "ON" : "OFF"}</strong>
+            </button>
+          </div>
         </div>
       </div>
       <InspectorPanel

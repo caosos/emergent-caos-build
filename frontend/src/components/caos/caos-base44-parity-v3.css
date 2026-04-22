@@ -1,3 +1,68 @@
+/* === Header compacted for mobile + progressive-disclosure search === */
+.caos-header h1 { font-size: 16px !important; letter-spacing: 0.28em !important; }
+.caos-header p { font-size: 10.5px !important; letter-spacing: 0.14em !important; opacity: 0.72; }
+
+/* Thread pill — truncate to first ~22 chars */
+.caos-thread-pill {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Search: collapsed = looking-glass icon only (32px); grows on focus/content */
+.caos-header-search-inline {
+  min-width: 32px !important;
+  width: 32px;
+  padding: 4px !important;
+  justify-content: center;
+  cursor: text;
+  transition: width 200ms ease, min-width 200ms ease, padding 200ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+.caos-header-search-inline:focus-within,
+.caos-header-search-inline-active {
+  width: 240px;
+  min-width: 140px !important;
+  padding: 4px 8px !important;
+  justify-content: flex-start;
+}
+.caos-header-search-inline input {
+  width: 0;
+  opacity: 0;
+  padding: 0;
+  transition: width 200ms ease, opacity 180ms ease 40ms, padding 180ms ease;
+}
+.caos-header-search-inline:focus-within input,
+.caos-header-search-inline-active input {
+  width: 100%;
+  opacity: 1;
+  padding: 2px 0;
+}
+
+/* === Composer BOTTOM strip (Engine + Multi-Agent under the input, per user) === */
+.composer-bottom-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 4px 0;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.composer-top-strip { display: none !important; }
+
+/* Composer shell should be compact and rounded when floating free (no black void) */
+.composer-shell {
+  background: rgba(12, 12, 20, 0.96) !important;
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(99, 102, 241, 0.08) inset !important;
+  backdrop-filter: blur(12px);
+}
+
+/* Push the page scrollbar so it stays visible beside the floating composer */
+html { scrollbar-gutter: stable; }
+
+
 /* === Base44-parity green latency chip (the "computer-green" stopwatch) === */
 .message-footer { display: inline-flex; align-items: center; gap: 6px; }
 .message-footer-latency-chip {
@@ -86,27 +151,39 @@
 .caos-shell-no-rail .thread-rail { display: none !important; }
 .caos-shell-no-rail .caos-main-column { margin: 0 auto; max-width: 1100px; padding: 0 24px; }
 
-/* Force the composer to stay truly pinned at the bottom of the viewport,
-   overriding older App.css and caos-redesign-shell rules */
+/* Force the composer to float centered at the bottom — no full-width black bar */
 .caos-shell-no-rail ~ .command-footer,
 body .command-footer,
 .caos-shell-root + .command-footer,
 .caos-shell-root .command-footer {
   position: fixed !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: 18px !important;
+  transform: translateX(-50%) !important;
   top: auto !important;
   z-index: 12 !important;
-  padding: 10px 16px 14px !important;
-  background: rgba(9, 9, 14, 0.98) !important;
-  border-top: 1px solid rgba(148, 163, 184, 0.12) !important;
-  backdrop-filter: blur(10px);
+  padding: 0 !important;
+  background: transparent !important;
+  border-top: none !important;
+  backdrop-filter: none !important;
   display: flex !important;
   justify-content: center !important;
   gap: 0 !important;
+  width: min(1060px, calc(100vw - 48px)) !important;
+  pointer-events: none !important;
 }
-.command-footer-inner { width: min(100%, 1100px) !important; margin: 0 auto !important; }
+.command-footer-inner {
+  width: 100% !important;
+  margin: 0 auto !important;
+  pointer-events: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+/* Make space at the page bottom so the last message isn't tucked under the floating composer */
+.caos-shell-no-rail .caos-main-column { padding-bottom: 260px; }
 
 /* === Previous Threads rendered as CENTERED MODAL (since no rail) === */
 .previous-threads-panel:not(.previous-threads-panel-embedded) {
