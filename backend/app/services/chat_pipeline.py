@@ -105,6 +105,11 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         attachments=attachment_docs,
         provider=runtime["provider"],
     )
+    try:
+        from app.services.system_awareness import build_awareness_block
+        prompt_sections["awareness_block"] = await build_awareness_block(payload.user_email)
+    except Exception as awareness_error:
+        prompt_sections["awareness_block"] = f"awareness unavailable ({str(awareness_error)[:80]})"
     system_prompt = build_system_prompt_from_sections(prompt_sections)
 
     # Build file_contents for UserMessage — only attach actual files (skip links),
@@ -135,8 +140,10 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     # Env var still wins if explicitly set (ops override).
     _env_temp = os.environ.get("CAOS_CHAT_TEMPERATURE")
     if _env_temp:
-        try: _temp = float(_env_temp)
-        except ValueError: pass
+        try:
+            _temp = float(_env_temp)
+        except ValueError:
+            pass
     chat = LlmChat(
         api_key=runtime["api_key"],
         session_id=f"{payload.session_id}-{uuid.uuid4()}",
@@ -151,6 +158,38 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     llm_response = await chat._execute_completion(pending_messages)
     reply = await chat._extract_response_text(llm_response)
     latency_ms = int((time.perf_counter() - _llm_start) * 1000)
+    # Parse Aria's FILE_TICKET marker and create a ticket, stripping it from the
+    # user-facing reply. Format: [FILE_TICKET: category=..., title=..., description=...]
+    try:
+        import re as _re
+        marker_pattern = _re.compile(r"\[FILE_TICKET:\s*(.*?)\]", _re.DOTALL)
+        match = marker_pattern.search(reply)
+        if match:
+            body = match.group(1)
+            fields: dict = {}
+            for part in _re.split(r",\s*(?=category=|title=|description=)", body):
+                if "=" in part:
+                    k, v = part.split("=", 1)
+                    fields[k.strip().lower()] = v.strip()
+            cat = (fields.get("category") or "other").lower()
+            if cat not in {"bug", "feature", "ux", "other"}:
+                cat = "other"
+            from app.routes.support import _insert_ticket
+            ticket_record = await _insert_ticket(
+                user_email=payload.user_email,
+                session_id=payload.session_id,
+                category=cat,
+                title=fields.get("title") or "Issue filed by Aria",
+                description=fields.get("description") or payload.content[:500],
+                source="aria_filed",
+            )
+            ticket_info = {"id": ticket_record.id, "category": ticket_record.category, "title": ticket_record.title}  # noqa: F841
+            _ = ticket_info  # reserved for future response enrichment
+            reply = marker_pattern.sub("", reply).strip()
+            # Append a small confirmation line so the user sees the ticket was filed.
+            reply = f"{reply}\n\n✅ Support ticket filed: **{ticket_record.title}** (ID `{ticket_record.id[:8]}` · {ticket_record.category})."
+    except Exception as ticket_error:
+        print(f"CAOS ticket marker parse failed: {ticket_error}")
     await chat._add_assistant_message(pending_messages, reply)
 
     assistant_message = MessageRecord(

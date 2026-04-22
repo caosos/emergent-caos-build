@@ -12,6 +12,7 @@ import { ProfileDrawer } from "@/components/caos/ProfileDrawer";
 import { SwarmPanel } from "@/components/caos/SwarmPanel";
 import { SearchDrawer } from "@/components/caos/SearchDrawer";
 import { ShellHeader } from "@/components/caos/ShellHeader";
+import { SupportTicketsDrawer } from "@/components/caos/SupportTicketsDrawer";
 import { WelcomeHero } from "@/components/caos/WelcomeHero";
 import { useCaosShell } from "@/components/caos/useCaosShell";
 import "./caos-redesign.css";
@@ -24,6 +25,7 @@ import "./caos-base44-parity-v3.css";
 export const CaosShell = ({ authenticatedUser }) => {
   const [draft, setDraft] = useState("");
   const [showAdminDocs, setShowAdminDocs] = useState(false);
+  const [showSupport, setShowSupport] = useState(false);
   const [showArtifacts, setShowArtifacts] = useState(false);
   const [artifactsFilter, setArtifactsFilter] = useState("files");
   const [showInspector, setShowInspector] = useState(false);
@@ -197,6 +199,7 @@ export const CaosShell = ({ authenticatedUser }) => {
         onOpenAdminDocs={openAdminDocs}
         onOpenFiles={(filter) => { setArtifactsFilter(filter || "files"); setShowArtifacts(true); }}
         onOpenProfile={openProfile}
+        onOpenSupport={() => setShowSupport(true)}
         onOpenSwarm={() => setShowSwarm(true)}
         onOpenThreads={toggleThreads}
         onSelectProvider={updateRuntimeSelection}
@@ -341,6 +344,11 @@ export const CaosShell = ({ authenticatedUser }) => {
       <AdminDocsDrawer
         isOpen={showAdminDocs}
         onClose={() => setShowAdminDocs(false)}
+      />
+      <SupportTicketsDrawer
+        isAdmin={isAdmin}
+        isOpen={showSupport}
+        onClose={() => setShowSupport(false)}
       />
     </main>
   );

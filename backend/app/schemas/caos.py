@@ -414,4 +414,32 @@ class TTSResponse(BaseModel):
 class TranscriptionResponse(BaseModel):
     text: str
     model_used: str = "whisper-1"
+
+
+class SupportTicketCreateRequest(BaseModel):
+    category: Literal["bug", "feature", "ux", "other"] = "other"
+    title: str
+    description: str
+    session_id: str | None = None
+    source: Literal["aria_filed", "manual"] = "manual"
+
+
+class SupportTicketUpdateRequest(BaseModel):
+    status: Literal["open", "in_progress", "resolved", "closed"] | None = None
+    admin_notes: str | None = None
+
+
+class SupportTicketRecord(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_email: str
+    session_id: str | None = None
+    category: Literal["bug", "feature", "ux", "other"] = "other"
+    title: str
+    description: str
+    status: Literal["open", "in_progress", "resolved", "closed"] = "open"
+    source: Literal["aria_filed", "manual"] = "manual"
+    admin_notes: str | None = None
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+
     fallback_used: bool = False

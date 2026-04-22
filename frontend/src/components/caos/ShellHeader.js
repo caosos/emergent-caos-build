@@ -29,6 +29,7 @@ export const ShellHeader = ({
   onOpenAdminDocs,
   onOpenFiles,
   onOpenProfile,
+  onOpenSupport,
   onOpenSwarm,
   onOpenThreads,
   onSelectProvider,
@@ -79,6 +80,7 @@ export const ShellHeader = ({
           onOpenAdminDocs={onOpenAdminDocs}
           onOpenFiles={onOpenFiles}
           onOpenProfile={onOpenProfile}
+          onOpenSupport={onOpenSupport}
           onOpenSwarm={onOpenSwarm}
           onOpenThreads={onOpenThreads}
           onSelectProvider={onSelectProvider}

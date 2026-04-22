@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, BookOpen, ChevronDown, ChevronRight, FileText, History, Image as ImageIcon, Link2, LogOut, Monitor, PlusCircle, Sparkles, UserCircle, Zap } from "lucide-react";
+import { Bot, BookOpen, ChevronDown, ChevronRight, FileText, History, Image as ImageIcon, LifeBuoy, Link2, LogOut, Monitor, PlusCircle, Sparkles, UserCircle, Zap } from "lucide-react";
 
 const LABELS = { openai: "OpenAI", anthropic: "Claude", gemini: "Gemini", xai: "Grok" };
 
@@ -28,6 +28,7 @@ export const AccountMenu = ({
   onOpenAdminDocs,
   onOpenFiles,
   onOpenProfile,
+  onOpenSupport,
   onOpenSwarm,
   onOpenThreads,
   onSelectProvider,
@@ -184,6 +185,9 @@ export const AccountMenu = ({
               <em style={{ marginLeft: "auto", fontSize: 10, color: "rgba(250, 204, 21, 0.8)" }}>ADMIN</em>
             </button>
           ) : null}
+          <button className="inspector-menu-item" data-testid="caos-account-menu-support" onClick={pick(onOpenSupport)} type="button">
+            <LifeBuoy size={14} /><span>Support Tickets</span>
+          </button>
           <div className="inspector-menu-divider" />
           <button className="inspector-menu-item inspector-menu-item-danger" data-testid="caos-account-menu-logout" onClick={pick(onLogOut)} type="button">
             <LogOut size={14} /><span>Log Out</span>
