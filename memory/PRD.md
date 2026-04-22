@@ -359,3 +359,20 @@ User reported **messages tripling themselves while dictating** and screenshots s
 - P1: Resend email notifications for support tickets once the Resend API key is provided.
 - P2: Drive connector, Calendar connector, GitHub token unlock for Swarm repo tools, TTS speed slider, engine-used badge.
 
+## Returning-User Onboarding + Latest-Message Landing (Apr 22, 2026 — evening follow-up)
+
+### Shipped
+- **Returning-user onboarding fix**: `AuthGate` now checks the server profile (`assistant_name`) before showing the first-run naming modal, so an already-known signed-in user is not prompted again just because local storage is missing in a fresh tab/context.
+- **Open to latest message**: `MessagePane` now auto-scrolls to the bottom when a thread loads or the active session changes, so CAOS lands at the newest message instead of the first one.
+- **Mail button visibility widened**: regular assistant replies still show `Mail`, and multi-agent synthesis/source cards now also include `Mail` actions so reply export is visible across more response types.
+
+### Verified
+- Fresh-tab browser test with `caos_assistant_named` removed: no `Name your AI` modal appeared for the signed-in seeded user.
+- Browser test landed at the bottom of the thread (`distance from bottom = 0`).
+- Browser test found visible assistant mail buttons; backend sanity check confirmed `assistant_name: "Aria"` exists in the profile payload.
+
+## Updated Immediate Next Actions
+- User to click **Re-deploy changes** again before validating on `caosos.com`, since these returning-user / latest-message fixes landed after the prior deploy.
+- P1: Gmail Phase A planning/implementation.
+- P1: Resend support-ticket emails once the API key is provided.
+
