@@ -44,8 +44,10 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         doc["updated_at"] = doc["updated_at"].isoformat()
         doc["structured_memory"] = []
         await collection("user_profiles").insert_one(doc)
+        is_admin_user = False
     else:
         profile = UserProfileRecord(**profile_doc)
+        is_admin_user = bool(profile_doc.get("is_admin") is True or profile_doc.get("role") == "admin")
 
     user_message = MessageRecord(session_id=payload.session_id, role="user", content=payload.content)
     user_doc = user_message.model_dump()
@@ -105,6 +107,10 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         attachments=attachment_docs,
         provider=runtime["provider"],
     )
+    # Admin-only: tool-inspection rules are only taught to admin users. Regular
+    # users never see the [TOOL: ...] marker syntax in their system prompt, so
+    # even if they try to copy it from somewhere, the LLM won't know what to do.
+    prompt_sections["admin_tools_allowed"] = is_admin_user
     try:
         from app.services.system_awareness import build_awareness_block
         prompt_sections["awareness_block"] = await build_awareness_block(payload.user_email)
@@ -158,12 +164,12 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     llm_response = await chat._execute_completion(pending_messages)
     reply = await chat._extract_response_text(llm_response)
     # Agent loop: let Aria call read-only inspection tools up to 3 times.
-    # She emits `[TOOL: read_file path=...]` / `[TOOL: list_dir path=...]` /
-    # `[TOOL: grep_code pattern=... path=... glob=...]`. The pipeline runs the
-    # tool, feeds the result back as a user-role message, and re-runs the LLM.
+    # ADMIN ONLY — non-admin users never get tool access (their prompt doesn't
+    # even teach them the syntax, and even if they found it, we short-circuit
+    # here as defense-in-depth).
     from app.services.aria_tools import extract_and_run_next_tool
     tool_iterations = 0
-    while tool_iterations < 3:
+    while is_admin_user and tool_iterations < 3:
         marker, result = extract_and_run_next_tool(reply)
         if not marker or result is None:
             break

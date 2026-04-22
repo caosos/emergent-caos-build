@@ -66,6 +66,7 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
     onSend(compound);
     onDraftChange("");
     setThoughtStash([]);
+    setPendingAttachments([]);  // clear attachment chips after send (bug fix Apr 22)
   };
 
   const stashCurrentThought = () => {

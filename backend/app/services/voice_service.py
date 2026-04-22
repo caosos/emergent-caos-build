@@ -26,6 +26,50 @@ from emergentintegrations.llm.openai import OpenAISpeechToText, OpenAITextToSpee
 OPENAI_TTS_MODELS = ["gpt-4o-mini-tts", "tts-1", "tts-1-hd"]
 OPENAI_STT_MODELS = ["gpt-4o-mini-transcribe", "whisper-1"]
 
+# Whisper/GPT-4o-transcribe hallucinate these exact phrases when given silence
+# or near-silent audio. Observed in the wild: repeated "Bye-bye." / "Thank you."
+# / "Subtitles by the Amara.org community" loops. Drop them entirely.
+# Entries are normalized (lowercase, no trailing punctuation/space).
+_SILENCE_HALLUCINATIONS = {
+    "bye-bye", "bye bye", "bye", "buh-bye",
+    "thank you", "thanks", "thanks for watching", "thank you for watching",
+    "thank you so much", "thank you very much",
+    "subtitles by the amara.org community",
+    "subtitles by steamteam",
+    "see you next time", "see you",
+    "you",
+}
+
+
+def _collapse_repetition(text: str) -> str:
+    """Collapse immediate phrase-level repetition like 'X. X. X. X.' -> 'X.'.
+
+    Whisper emits this on silence because its language model overconfidently
+    predicts the same phrase it just saw. Run twice to catch nested cases.
+    """
+    import re
+    pattern = re.compile(r"(.{3,120}?)(?:\s*\1){2,}", re.DOTALL)
+    previous = None
+    current = text
+    for _ in range(4):
+        if previous == current:
+            break
+        previous = current
+        current = pattern.sub(r"\1", current)
+    return current
+
+
+def sanitize_whisper_text(text: str) -> str:
+    """Strip known silence hallucinations and collapse immediate repetition."""
+    if not text:
+        return ""
+    # Collapse FIRST so silence check sees the unique phrase, not the N-repeat.
+    collapsed = _collapse_repetition(text.strip())
+    normalized = collapsed.lower().strip().rstrip(".,!? ")
+    if normalized in _SILENCE_HALLUCINATIONS or len(normalized) < 2:
+        return ""
+    return collapsed
+
 
 def _direct_openai_available() -> bool:
     return bool(os.environ.get("OPENAI_API_KEY"))
@@ -82,7 +126,7 @@ async def _direct_stt(file_path: str, language: str | None, prompt: str | None, 
                 result = await client.audio.transcriptions.create(**kwargs)
             text = getattr(result, "text", "") or ""
             return {
-                "text": text.strip(),
+                "text": sanitize_whisper_text(text),
                 "model_used": model,
                 "fallback_used": model != preferred_model,
                 "route": "direct_openai",
@@ -144,7 +188,7 @@ async def transcribe_upload(
                     temperature=0.0,
                 )
             text = getattr(result, "text", None) or (result.get("text", "") if isinstance(result, dict) else "")
-            return {"text": (text or "").strip(), "model_used": "whisper-1", "fallback_used": False, "route": "emergent_proxy"}
+            return {"text": sanitize_whisper_text(text or ""), "model_used": "whisper-1", "fallback_used": False, "route": "emergent_proxy"}
         except Exception as error:
             return {
                 "text": "", "model_used": "whisper-1", "fallback_used": False,
