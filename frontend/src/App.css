@@ -33,6 +33,7 @@ body {
 
 .caos-shell-root {
     --rail-width: 256px;
+    --caos-header-height: 84px;
     min-height: 100vh;
     height: auto;
     box-sizing: border-box;
@@ -265,6 +266,7 @@ body {
     align-items: stretch;
     height: auto;
     min-height: auto;
+    padding-top: calc(var(--caos-header-height) + 10px);
 }
 
 .caos-shell-grid-layout {
@@ -596,6 +598,8 @@ body {
     max-width: none;
     width: 100%;
     margin: 0;
+    position: relative;
+    z-index: 1;
 }
 
 .rail-header,

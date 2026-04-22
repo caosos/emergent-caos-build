@@ -816,6 +816,21 @@ body .command-footer,
 
 
 /* --- Ensure account-menu dropdown sits above the main grid for both paint + hit-testing --- */
+.caos-shell-root::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--caos-header-height, 84px) + 10px);
+  background:
+    radial-gradient(circle at top, rgba(59, 130, 246, 0.06), transparent 28%),
+    radial-gradient(circle at 80% 20%, rgba(14, 165, 233, 0.08), transparent 24%),
+    linear-gradient(180deg, #071120 0%, #09172a 42%, #030813 100%);
+  pointer-events: none;
+  z-index: 49;
+}
+
 .caos-shell-root > .caos-header {
   z-index: 50;
   position: fixed;
@@ -828,6 +843,7 @@ body .command-footer,
   box-shadow: none !important;
   backdrop-filter: none !important;
   border: none !important;
+  min-height: var(--caos-header-height, 84px);
 }
 .account-menu-shell { position: relative; z-index: 50; }
 .account-menu-shell .inspector-menu { z-index: 100; }
@@ -1136,6 +1152,10 @@ body .command-footer,
 .admin-docs-error { padding: 12px 14px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px; color: #fecaca; font-size: 12.5px; margin-bottom: 12px; }
 
 @media (max-width: 768px) {
+  .caos-shell-root::before {
+    display: none;
+  }
+
   .caos-shell-root > .caos-header {
     position: static;
     top: auto;
@@ -1143,6 +1163,11 @@ body .command-footer,
     right: auto;
     transform: none;
     width: auto;
+    min-height: 0;
+  }
+
+  .caos-shell-grid {
+    padding-top: 0;
   }
 
   .admin-docs-body { grid-template-columns: 1fr; }

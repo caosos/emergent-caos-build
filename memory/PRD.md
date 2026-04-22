@@ -25,6 +25,11 @@ Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergen
 
 ## Implemented on Emergent (cumulative, through Apr 20, 2026)
 
+## Header Clip Polish (Apr 22, 2026 — evening)
+- Tightened the fixed-header layout so the main conversation column now starts below the header and messages visually stop at the header's lower edge instead of bleeding into the top of the page.
+- Replaced the gray/foggy overlap effect with a clean fixed background curtain matched to the shell backdrop, preserving the transparent-header feel without showing message text underneath.
+- Verified in preview with a seeded authenticated session and a long message thread using Playwright screenshots.
+
 ### Backend
 - `/api/caos/sessions`, `/messages`, `/artifacts`, `/continuity`
 - `POST /api/caos/chat` — non-streaming full pipeline
