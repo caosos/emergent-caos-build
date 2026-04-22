@@ -198,6 +198,36 @@ export const ProfileDrawer = ({ authenticatedUser, deleteMemory, isOpen, memoryC
           </>
         ) : null}
 
+        <div className="profile-chat-mode-row" data-testid="caos-profile-chat-mode-row">
+          <Activity size={14} className="profile-info-icon profile-info-icon-cyan" />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span>Aria Mode</span>
+            <strong>{(profile?.chat_mode || "balanced").replace(/^./, (c) => c.toUpperCase())} · {({ fact: "temp 0.1", balanced: "temp 0.3", creative: "temp 0.7" })[profile?.chat_mode || "balanced"]}</strong>
+          </div>
+          <div className="profile-chat-mode-buttons" data-testid="caos-profile-chat-mode-buttons">
+            {["fact", "balanced", "creative"].map((mode) => {
+              const active = (profile?.chat_mode || "balanced") === mode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  data-testid={`caos-profile-chat-mode-${mode}`}
+                  className={`profile-chat-mode-btn ${active ? "profile-chat-mode-btn-active" : ""}`}
+                  onClick={async () => {
+                    if (active) return;
+                    try {
+                      await updateProfile?.({ chat_mode: mode });
+                      toast.success(`Aria set to ${mode} mode`);
+                    } catch (error) {
+                      toast.error(`Save failed: ${(error?.message || "unknown").slice(0, 60)}`);
+                    }
+                  }}
+                >{mode[0].toUpperCase()}</button>
+              );
+            })}
+          </div>
+        </div>
+
         <button className="profile-voice-row" data-testid="caos-profile-voice-link" onClick={() => setVoiceOpen(true)} type="button">
           <Volume2 size={14} className="profile-info-icon profile-info-icon-purple" />
           <div><span>Voice & Speech</span><strong>{voiceSettings?.tts_voice || "nova"} · {(voiceSettings?.tts_speed || 1.0).toFixed(2)}×</strong></div>

@@ -130,7 +130,13 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
             except Exception as attach_error:
                 print(f"CAOS attachment skipped {doc.get('name')}: {attach_error}")
 
-    _temp = float(os.environ.get("CAOS_CHAT_TEMPERATURE", "0.3"))
+    _mode_temp = {"fact": 0.1, "balanced": 0.3, "creative": 0.7}
+    _temp = _mode_temp.get(getattr(profile, "chat_mode", "balanced"), 0.3)
+    # Env var still wins if explicitly set (ops override).
+    _env_temp = os.environ.get("CAOS_CHAT_TEMPERATURE")
+    if _env_temp:
+        try: _temp = float(_env_temp)
+        except ValueError: pass
     chat = LlmChat(
         api_key=runtime["api_key"],
         session_id=f"{payload.session_id}-{uuid.uuid4()}",

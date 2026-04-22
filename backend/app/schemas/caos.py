@@ -118,6 +118,7 @@ class UserProfileUpsertRequest(BaseModel):
     date_of_birth: str | None = None
     full_name: str | None = None
     role: str | None = None
+    chat_mode: Literal["fact", "balanced", "creative"] | None = None
 
 
 class RuntimePreferences(BaseModel):
@@ -190,6 +191,7 @@ class UserProfileRecord(BaseModel):
     structured_memory: list[MemoryEntry] = Field(default_factory=list)
     runtime_preferences: RuntimePreferences = Field(default_factory=RuntimePreferences)
     voice_preferences: VoicePreferences = Field(default_factory=VoicePreferences)
+    chat_mode: Literal["fact", "balanced", "creative"] = "balanced"
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
 
