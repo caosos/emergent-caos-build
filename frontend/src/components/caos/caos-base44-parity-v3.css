@@ -560,6 +560,31 @@ body .command-footer,
 .image-lightbox-close:hover { background: rgba(255, 255, 255, 0.28); }
 
 /* === Scroll-to-bottom floating button === */
+.message-pane {
+  position: relative;
+  isolation: isolate;
+}
+
+.message-pane-header-curtain {
+  position: sticky;
+  top: 0;
+  z-index: 18;
+  display: block;
+  width: 100%;
+  height: calc(var(--caos-header-height, 84px) + 14px);
+  margin-bottom: calc(-1 * (var(--caos-header-height, 84px) + 14px));
+  pointer-events: none;
+  background:
+    radial-gradient(circle at top, rgba(59, 130, 246, 0.06), transparent 28%),
+    radial-gradient(circle at 80% 20%, rgba(14, 165, 233, 0.08), transparent 24%),
+    linear-gradient(180deg, #071120 0%, #09172a 42%, #030813 100%);
+}
+
+.message-scroll {
+  position: relative;
+  z-index: 1;
+}
+
 .scroll-to-bottom-button {
   position: fixed;
   right: 28px;
@@ -1153,6 +1178,10 @@ body .command-footer,
 
 @media (max-width: 768px) {
   .caos-shell-root::before {
+    display: none;
+  }
+
+  .message-pane-header-curtain {
     display: none;
   }
 

@@ -213,6 +213,11 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
 
   return (
     <section className="message-pane" data-testid="caos-message-pane">
+      <div
+        aria-hidden="true"
+        className="message-pane-header-curtain"
+        data-testid="caos-message-header-curtain"
+      />
       <div className="message-scroll" data-testid="caos-message-scroll" ref={scrollRef}>
         <SelectionReactionPopover
           containerRef={scrollRef}
