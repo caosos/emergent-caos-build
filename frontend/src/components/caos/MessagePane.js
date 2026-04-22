@@ -402,17 +402,17 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
         )}
       </div>
       {actionStatus ? <div className="message-action-status" data-testid="caos-message-action-status">{actionStatus}</div> : null}
-      {showScrollBottom ? (
-        <button
-          aria-label="Scroll to bottom"
-          className="scroll-to-bottom-button"
-          data-testid="caos-scroll-to-bottom-button"
-          onClick={scrollToBottom}
-          type="button"
-        >
-          <ArrowDown size={16} />
-        </button>
-      ) : null}
+      <button
+        aria-label="Jump to latest message"
+        className={`scroll-to-bottom-button ${showScrollBottom ? "scroll-to-bottom-button-active" : "scroll-to-bottom-button-idle"}`}
+        data-testid="caos-scroll-to-bottom-button"
+        onClick={scrollToBottom}
+        title="Jump to latest message"
+        type="button"
+      >
+        <ArrowDown size={16} />
+        <span data-testid="caos-scroll-to-bottom-label">Latest</span>
+      </button>
       {lightboxImage ? (
         <div
           className="image-lightbox-backdrop"

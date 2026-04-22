@@ -3,13 +3,6 @@ import { useEffect, useRef, useState } from "react";
 
 import { AccountMenu } from "@/components/caos/AccountMenu";
 
-const formatTokens = (value) => {
-  const numeric = Number(value) || 0;
-  if (numeric >= 1000000) return `${(numeric / 1000000).toFixed(1)}M`;
-  if (numeric >= 1000) return `${(numeric / 1000).toFixed(1)}K`;
-  return `${numeric}`;
-};
-
 /**
  * Base44-parity header:
  * Left  : AccountMenu chip (single dropdown, no rail toggle)
@@ -36,10 +29,7 @@ export const ShellHeader = ({
   providerCatalog,
   searchQuery,
   setSearchQuery,
-  wcwBudget,
-  wcwUsed,
 }) => {
-  const percent = Math.min(100, Math.round(((wcwUsed || 0) / (wcwBudget || 1)) * 100));
   const hasQuery = (searchQuery || "").trim().length > 0;
   const [searchOpen, setSearchOpen] = useState(false);
   const searchPopoverRef = useRef(null);
@@ -94,9 +84,6 @@ export const ShellHeader = ({
       </div>
 
       <div className="caos-header-actions" data-testid="caos-header-actions" ref={searchPopoverRef}>
-        <span className="caos-thread-pill" data-testid="caos-header-thread-pill" title={currentSession?.title || "No active thread"}>
-          {(currentSession?.title || "Start a new chat").split(/\s+/).slice(0, 3).join(" ")}
-        </span>
         <div className="caos-header-search-dropdown-wrap" data-testid="caos-header-search-wrap">
           <button
             aria-label="Search this thread"
@@ -107,6 +94,7 @@ export const ShellHeader = ({
             type="button"
           >
             <Search size={13} />
+            <span data-testid="caos-title-search-trigger-label">Search this thread</span>
           </button>
           {searchOpen ? (
             <div className="caos-header-search-dropdown" data-testid="caos-title-search-popover">
@@ -137,14 +125,9 @@ export const ShellHeader = ({
             </div>
           ) : null}
         </div>
-        <div className="caos-header-wcw" data-testid="caos-header-wcw" title="Working Context Window (live)">
-          <span data-testid="caos-header-wcw-used">{formatTokens(wcwUsed)}</span>
-          <span className="caos-header-wcw-divider">/</span>
-          <span data-testid="caos-header-wcw-budget">{formatTokens(wcwBudget)}</span>
-          <div className="caos-header-wcw-bar" data-testid="caos-header-wcw-bar">
-            <div className="caos-header-wcw-fill" style={{ width: `${percent}%` }} />
-          </div>
-        </div>
+        <span className="caos-thread-pill" data-testid="caos-header-thread-pill" title={currentSession?.title || "No active thread"}>
+          {currentSession?.title || "Start a new chat"}
+        </span>
       </div>
     </header>
   );

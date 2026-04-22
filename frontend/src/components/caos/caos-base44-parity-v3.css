@@ -1,26 +1,25 @@
 /* === Title-search popover (under CAOS title) — replaces right-side inline === */
 .caos-header-center { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .caos-header-center p[data-testid="caos-header-subtitle"] {
-  margin: 0;
-  font-size: 10px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: rgba(148, 163, 184, 0.72);
-  font-weight: 500;
+  display: none;
 }
 
 /* Click-to-open search dropdown that drops DOWN beneath the magnifying glass */
 .caos-header-search-dropdown-wrap { position: relative; display: inline-flex; align-items: center; }
 .caos-header-search-icon-btn {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; padding: 0;
+  gap: 8px;
+  min-width: 146px;
+  height: 38px;
+  padding: 0 14px;
   border-radius: 999px;
-  background: rgba(15, 16, 24, 0.6);
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  color: rgba(148, 163, 184, 0.85);
+  background: rgba(8, 12, 22, 0.42);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: rgba(226, 232, 240, 0.82);
   cursor: pointer;
   transition: border-color 160ms ease, color 140ms ease, background-color 140ms ease;
 }
+.caos-header-search-icon-btn span { font-size: 12px; letter-spacing: 0.01em; white-space: nowrap; }
 .caos-header-search-icon-btn:hover { color: #c4b5fd; border-color: rgba(167, 139, 250, 0.5); }
 .caos-header-search-icon-btn-active { color: #fde68a; border-color: rgba(250, 204, 21, 0.55); background: rgba(250, 204, 21, 0.12); }
 .caos-header-search-dropdown {
@@ -218,6 +217,11 @@
 .caos-thread-pill {
   cursor: default !important;
   pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 380px;
+  color: rgba(226, 232, 240, 0.84);
 }
 
 /* Kill the old inline right-side search box styles */
@@ -556,8 +560,9 @@ body .command-footer,
   right: 28px;
   bottom: 180px;
   z-index: 60;
-  width: 44px;
+  min-width: 108px;
   height: 44px;
+  padding: 0 14px;
   border-radius: 999px;
   border: 1px solid rgba(167, 139, 250, 0.55);
   background: rgba(24, 24, 36, 0.96);
@@ -566,14 +571,18 @@ body .command-footer,
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
-  transition: transform 140ms ease, background-color 140ms ease, color 140ms ease;
+  transition: transform 140ms ease, background-color 140ms ease, color 140ms ease, opacity 140ms ease;
   animation: scrollBtnFadeIn 200ms ease forwards;
 }
+.scroll-to-bottom-button span { font-size: 12px; font-weight: 600; letter-spacing: 0.02em; }
 .scroll-to-bottom-button:hover {
   background: rgba(99, 102, 241, 0.35);
   transform: translateY(-2px) scale(1.05);
 }
+.scroll-to-bottom-button-idle { opacity: 0.72; }
+.scroll-to-bottom-button-active { opacity: 1; }
 @keyframes scrollBtnFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Composer top-strip: Engine + Multi-Agent chips INSIDE the composer, not a floating shadow bar */
@@ -808,6 +817,10 @@ body .command-footer,
   right: 0;
   width: 100%;
   transform: none;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  border: none !important;
 }
 .account-menu-shell { position: relative; z-index: 50; }
 .account-menu-shell .inspector-menu { z-index: 100; }
