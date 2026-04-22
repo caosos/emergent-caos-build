@@ -376,3 +376,25 @@ User reported **messages tripling themselves while dictating** and screenshots s
 - P1: Gmail Phase A planning/implementation.
 - P1: Resend support-ticket emails once the API key is provided.
 
+## Fresh-Load Scroll Regression Fix (Apr 22, 2026 — final pass)
+
+### Root cause
+- The thread was not using page scroll on load; it was using the internal `caos-message-scroll` container.
+- Earlier fixes were targeting the wrong surface, so fresh loads could still land at the first message even though the app looked authenticated and healthy.
+
+### Shipped
+- Added a shell-level post-load scroll routine that directly snaps the internal message container to its full `scrollHeight` after thread hydration and again across a few delayed passes, covering late layout changes.
+
+### Verified
+- Long-thread browser regression test passed on preview:
+  - `scrollTop: 7598`
+  - `scrollHeight: 8426`
+  - `clientHeight: 828`
+  - `distanceFromBottom: 0`
+- Mail button remained visible on assistant replies after the fix.
+
+## Latest Next Actions
+- User to click **Re-deploy changes** again before checking `caosos.com`, since this final scroll fix landed after the prior pass.
+- P1: Gmail Phase A planning/implementation.
+- P1: Resend support-ticket emails once the API key is provided.
+
