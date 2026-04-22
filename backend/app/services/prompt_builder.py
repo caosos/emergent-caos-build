@@ -4,7 +4,18 @@ from app.schemas.caos import MemoryEntry, MessageRecord, UserProfileRecord
 def _format_memories(memories: list[MemoryEntry]) -> str:
     if not memories:
         return "No structured memory was retrieved for this turn."
-    return "\n".join(f"- {memory.content}" for memory in memories)
+    lines = []
+    for memory in memories:
+        created = getattr(memory, "created_at", None)
+        updated = getattr(memory, "updated_at", None)
+        try:
+            created_label = created.strftime("%Y-%m-%d %H:%M UTC") if created else "unknown"
+            updated_label = updated.strftime("%Y-%m-%d %H:%M UTC") if updated else created_label
+        except Exception:
+            created_label = str(created or "unknown")
+            updated_label = str(updated or created or "unknown")
+        lines.append(f"- [memory recorded {created_label}; last updated {updated_label}] {memory.content}")
+    return "\n".join(lines)
 
 
 def _split_memories(memories: list[MemoryEntry]) -> tuple[list[MemoryEntry], list[MemoryEntry]]:
@@ -38,6 +49,7 @@ def _format_continuity(continuity_packet: dict) -> str:
     lines = [
         f"- Active bins: {', '.join(bins) if bins else 'none'}",
         "- Temporal rule: when a continuity line includes a timestamp, treat that timestamp as the event/update date for any relative date math.",
+        "- Rehydration rule: a fact being injected right now does NOT mean it happened right now. Use the anchor date attached to that fact, summary, or seed.",
     ]
     lines.extend(f"- {anchor}" for anchor in anchors)
     return "\n".join(lines)
@@ -117,6 +129,7 @@ def build_system_prompt_from_sections(sections: dict) -> str:
         f"\n- Today is {_now.strftime('%A, %B %-d, %Y')}"
         f"\n- Current UTC timestamp: {_now.strftime('%Y-%m-%dT%H:%M:%SZ')}"
         f"\n- When you see phrases like 'in 7 days' or 'next week' in history, calculate relative to the date/time stamp on THAT message, not today. When the user asks 'what day is it?' or similar, answer with the date above."
+        f"\n- If memory or continuity is rehydrated into the prompt, NEVER treat the injection moment as the fact date. Use the attached source-window / recorded timestamp instead."
     )
     return f"""
 You are {sections.get('assistant_name', 'Aria')} inside {sections['environment_name']}, a continuous AI workspace.{_time_block}

@@ -27,37 +27,45 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
   const scrollRef = useRef(null);
   const sessionScrollRef = useRef("");
 
+  const resolveScrollTarget = () => {
+    const container = scrollRef.current;
+    if (!container) return { mode: "window", node: document.scrollingElement || document.documentElement };
+    const style = window.getComputedStyle(container);
+    const usesInternalScroll = ["auto", "scroll", "overlay"].includes(style.overflowY) && container.scrollHeight > container.clientHeight + 4;
+    return usesInternalScroll
+      ? { mode: "container", node: container }
+      : { mode: "window", node: document.scrollingElement || document.documentElement };
+  };
+
   // Track window scroll position to decide whether to show the jump-to-bottom FAB.
   useEffect(() => {
     const handler = () => {
-      const container = scrollRef.current;
-      if (!container) {
-        setShowScrollBottom(false);
-        return;
-      }
-      const scrolled = container.scrollTop;
-      const height = container.scrollHeight - container.clientHeight;
+      const target = resolveScrollTarget();
+      const scrolled = target.mode === "container"
+        ? target.node.scrollTop
+        : (window.scrollY || document.documentElement.scrollTop || target.node.scrollTop || 0);
+      const height = target.mode === "container"
+        ? target.node.scrollHeight - target.node.clientHeight
+        : target.node.scrollHeight - window.innerHeight;
       // Show the button when the user is > 240px away from the bottom.
       setShowScrollBottom(height - scrolled > 240);
     };
-    const container = scrollRef.current;
-    container?.addEventListener("scroll", handler, { passive: true });
+    const target = resolveScrollTarget();
+    const listenerNode = target.mode === "container" ? target.node : window;
+    listenerNode?.addEventListener("scroll", handler, { passive: true });
     handler();
-    return () => container?.removeEventListener("scroll", handler);
+    return () => listenerNode?.removeEventListener("scroll", handler);
   }, [messages.length]);
 
   const scrollToBottom = (behavior = "smooth") => {
     try {
-      const container = scrollRef.current;
-      if (container) {
-        if (behavior === "auto") {
-          container.scrollTop = container.scrollHeight;
-        } else {
-          container.scrollTo({ top: container.scrollHeight, behavior });
-        }
+      const target = resolveScrollTarget();
+      if (target.mode === "container") {
+        if (behavior === "auto") target.node.scrollTop = target.node.scrollHeight;
+        else target.node.scrollTo({ top: target.node.scrollHeight, behavior });
         return;
       }
-      window.scrollTo({ top: document.documentElement.scrollHeight, behavior });
+      window.scrollTo({ top: target.node.scrollHeight, behavior });
     } catch { /* no-op */ }
   };
 
@@ -68,17 +76,21 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
     const sessionChanged = sessionScrollRef.current !== sessionId;
     sessionScrollRef.current = sessionId;
     if (!messages.length) return undefined;
-    const container = scrollRef.current;
-    if (!container) return undefined;
-    const scrolled = container.scrollTop;
-    const remaining = container.scrollHeight - container.clientHeight - scrolled;
+    const target = resolveScrollTarget();
+    const scrolled = target.mode === "container"
+      ? target.node.scrollTop
+      : (window.scrollY || document.documentElement.scrollTop || target.node.scrollTop || 0);
+    const remaining = target.mode === "container"
+      ? target.node.scrollHeight - target.node.clientHeight - scrolled
+      : target.node.scrollHeight - window.innerHeight - scrolled;
     if (!sessionChanged && remaining > 260) return undefined;
     snapToBottom();
     const timers = [80, 220, 520, 1100, 2200].map((delay) => window.setTimeout(() => snapToBottom(), delay));
-    const resizeObserver = typeof ResizeObserver !== "undefined"
+    const observerNode = scrollRef.current;
+    const resizeObserver = typeof ResizeObserver !== "undefined" && observerNode
       ? new ResizeObserver(() => snapToBottom())
       : null;
-    resizeObserver?.observe(container);
+    resizeObserver?.observe(observerNode);
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer));
       resizeObserver?.disconnect();

@@ -1,6 +1,7 @@
 .App {
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
+    height: auto;
+    overflow: visible;
     background:
         radial-gradient(circle at top, rgba(59, 130, 246, 0.28), transparent 34%),
         radial-gradient(circle at 80% 20%, rgba(14, 165, 233, 0.22), transparent 28%),
@@ -10,13 +11,13 @@
 
 .caos-shell-root {
     --rail-width: 256px;
-    height: 100vh;
+    min-height: 100vh;
+    height: auto;
     box-sizing: border-box;
     padding: 18px;
     padding-bottom: 220px;
-    overflow: hidden;
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
+    overflow: visible;
+    display: block;
 }
 
 .caos-shell-rail-closed {
@@ -610,7 +611,6 @@
     gap: 10px;
 }
 
-.message-scroll,
 .context-list {
     min-height: 0;
     overflow: auto;
@@ -684,9 +684,8 @@
 .message-pane {
     padding: 10px 6px 8px;
     min-height: 0;
-    height: 100%;
-    display: grid;
-    grid-template-rows: minmax(0, 1fr) auto;
+    height: auto;
+    display: block;
     background: transparent;
     box-shadow: none;
     border-color: transparent;
@@ -744,10 +743,11 @@
 .message-scroll {
     margin-top: 0;
     width: min(100%, 960px);
-    height: 100%;
+    height: auto;
     margin-inline: auto;
     padding-bottom: 240px;
     justify-items: stretch;
+    overflow: visible;
 }
 
 .message-pane-busy-chip {

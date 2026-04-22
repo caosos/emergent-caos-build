@@ -11,6 +11,17 @@ def _stamp(label: str, created_at) -> str:
     return f"[{label} @ {when}]"
 
 
+def _temporal_anchor(item) -> str:
+    source_started_at = getattr(item, "source_started_at", None)
+    source_ended_at = getattr(item, "source_ended_at", None)
+    created_at = getattr(item, "created_at", None)
+    if source_started_at and source_ended_at:
+        return f"[{source_started_at.strftime('%Y-%m-%d %H:%M UTC')} → {source_ended_at.strftime('%Y-%m-%d %H:%M UTC')} source-window | stored {created_at.strftime('%Y-%m-%d %H:%M UTC') if created_at else 'unknown'}]"
+    if source_started_at:
+        return f"[{source_started_at.strftime('%Y-%m-%d %H:%M UTC')} source-window | stored {created_at.strftime('%Y-%m-%d %H:%M UTC') if created_at else 'unknown'}]"
+    return _stamp(label=getattr(item, "__class__", type("x", (), {})).__name__.replace("Record", "").lower() or "memory", created_at=created_at)
+
+
 def derive_subject_bins(
     query: str,
     recent_messages: list[MessageRecord],
@@ -81,10 +92,10 @@ def build_continuity_packet(
         scored_workers.append((score, worker))
     selected_workers = [item[1] for item in sorted(scored_workers, key=lambda row: row[0], reverse=True) if item[0] > 0][:1]
     continuity_lines = [
-        f"{_stamp('summary', summary.created_at)} {summary.summary[:220]}"
+        f"[summary temporal-anchor {(_temporal_anchor(summary)).strip('[]')}] {summary.summary[:220]}"
         for summary in selected_summaries
     ] + [
-        f"{_stamp('seed', seed.created_at)} {seed.seed_text[:220]}"
+        f"[seed temporal-anchor {(_temporal_anchor(seed)).strip('[]')}] {seed.seed_text[:220]}"
         for seed in selected_seeds
     ] + [
         worker.summary_text[:240]

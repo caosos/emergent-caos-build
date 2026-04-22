@@ -325,6 +325,8 @@ class SummaryRecord(BaseModel):
     summary: str
     subject_bins: list[str] = Field(default_factory=list)
     source_message_ids: list[str] = Field(default_factory=list)
+    source_started_at: datetime | None = None
+    source_ended_at: datetime | None = None
     previous_summary_id: str | None = None
     lineage_depth: int = 0
     created_at: datetime
@@ -339,6 +341,8 @@ class SeedRecord(BaseModel):
     subject_bins: list[str] = Field(default_factory=list)
     selected_memory_ids: list[str] = Field(default_factory=list)
     source_message_ids: list[str] = Field(default_factory=list)
+    source_started_at: datetime | None = None
+    source_ended_at: datetime | None = None
     previous_seed_id: str | None = None
     previous_summary_id: str | None = None
     lineage_depth: int = 0

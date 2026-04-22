@@ -292,6 +292,8 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
             session_lane,
             subject_bins,
             source_message_ids,
+            source_started_at=user_message.timestamp.isoformat(),
+            source_ended_at=assistant_message.timestamp.isoformat(),
             previous_summary_id=previous_summary["id"] if previous_summary else None,
             lineage_depth=lineage_depth,
         )
@@ -305,6 +307,8 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
             session_lane,
             subject_bins,
             source_message_ids,
+            source_started_at=user_message.timestamp.isoformat(),
+            source_ended_at=assistant_message.timestamp.isoformat(),
             previous_seed_id=previous_seed["id"] if previous_seed else None,
             previous_summary_id=previous_summary["id"] if previous_summary else None,
             lineage_depth=lineage_depth,

@@ -124,7 +124,16 @@ export const CaosShell = ({ authenticatedUser }) => {
     const run = () => {
       try {
         const container = document.querySelector('[data-testid="caos-message-scroll"]');
-        if (container) container.scrollTop = container.scrollHeight;
+        if (container) {
+          const style = window.getComputedStyle(container);
+          const usesInternalScroll = ["auto", "scroll", "overlay"].includes(style.overflowY) && container.scrollHeight > container.clientHeight + 4;
+          if (usesInternalScroll) {
+            container.scrollTop = container.scrollHeight;
+            return;
+          }
+        }
+        const page = document.scrollingElement || document.documentElement;
+        page.scrollTop = page.scrollHeight;
       } catch { /* noop */ }
     };
     run();
