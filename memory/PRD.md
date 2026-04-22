@@ -473,3 +473,19 @@ User reported **messages tripling themselves while dictating** and screenshots s
 - Scrolling up from the latest-message position works.
 - Composer remains visible and starry background remains present.
 
+## Header Transparency + Search/Thread Placement Polish (Apr 22, 2026 — final UI pass)
+
+### Shipped
+- Removed the foggy/translucent header treatment entirely: header is now transparent with no blur, no shadow, and no visual bar behind it.
+- Kept only the account dropdown at top-left and the centered `CAOS` wordmark in the star field.
+- Moved the active thread title to sit beside the thread search control on the right.
+- Enlarged the `Search this thread` trigger into a real labeled click target instead of a tiny icon-only hit area.
+- Updated the right-side scroll button to always stay put, always show what it does (`Latest`), and remain above other side surfaces when opened.
+
+### Verified
+- Header transparent, star field visible behind it.
+- Account dropdown still top-left.
+- Search trigger widened and labeled.
+- Thread title placed next to search trigger.
+- `Latest` button fixed in place during scroll (0px Y drift during test) and normal page scrolling still works.
+
