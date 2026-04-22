@@ -288,3 +288,30 @@ User voiced (literally — via a recorded note at 00:17) two critical asks befor
 - Onboarding tour (§20)
 - CTC ARC Inspector panel
 - Emergent platform: TTS `/llm/audio/speech` 500 ticket (draft delivered; browser speechSynthesis fallback unblocks users)
+
+## STT Triplication Fix + Header Parity v4 (Apr 22, 2026 — dawn)
+
+User reported **messages tripling themselves while dictating** and screenshots showed user bubbles with the same sentence repeated 3× inside one message. Also complained header was missing the "Cognitive Adaptive Operating System" subtitle, that the centered search popover obscured the message area, and that the latency chip was missing from assistant replies.
+
+### Root cause (STT)
+`Composer.mergeLiveChunk` sent a CUMULATIVE audio blob (t=0 → now) every 1.4s and then tried to dedupe with `endsWith` / `startsWith` string checks. When Whisper drifted even one character (punctuation, casing, or rare word choice) between chunks, NEITHER branch matched and the merge logic appended the entire new transcript onto the previous one — giving 2×, 3×, 4× duplication. When the user finally hit Send, that bloated transcript was persisted as a single message, making it look like "my messages are tripling but Aria's aren't".
+
+### Shipped
+- **`Composer.mergeLiveChunk` rewritten**: because we already send the cumulative blob, the server-returned text IS the authoritative full transcript for the whole recording. Trust it — never append. One-liner: `return (incoming || "").trim() || liveTranscriptRef.current`. Kills the triplication at the root.
+- **`ShellHeader` rebuilt**: subtitle `COGNITIVE ADAPTIVE OPERATING SYSTEM` restored under the CAOS word-mark. Search was converted from a centered dropdown popover (which the user said "blocks the header/messages") into a compact always-inline input (~96px / "1-inch" wide) glued to the right next to the WCW meter. Collapsed state shows only the magnifying glass; click-to-expand. Click-outside AND Escape now CLEAR the query and close the search (per user's explicit ask).
+- **Latency chip plumbing**: `chat_pipeline.run_chat_turn` now wraps `_execute_completion` in `time.perf_counter()` and sets `latency_ms` on both the assistant `MessageRecord` AND the `ReceiptRecord`. Verified via curl: receipts now carry e.g. `latency_ms: 1713` and the `MessagePane` footer green tabular chip (`⏱ 1.7s`) renders on every NEW assistant reply.
+- CSS cleanup in `caos-base44-parity-v3.css`: killed the legacy centered popover styles, added `.caos-header-search-inline-*` rules for the new 1-inch input.
+
+### Files touched (all under 400-line soft cap)
+- `Composer.js` 294 · `ShellHeader.js` 123 · `caos-base44-parity-v3.css` 266 (was 270, net -4)
+- `chat_pipeline.py` 262 (+1) · `artifact_builder.py` 141 (+1) · `schemas/caos.py` 415 (+1)
+
+### Verified
+- Screenshots: header collapsed, expanded, and with active query all render correctly; subtitle visible.
+- Backend curl: `POST /caos/chat` returns receipt with `latency_ms`, messages endpoint returns assistant with `latency_ms`.
+
+## Next Action Items
+- User to verify on `caosos.com` after clicking "Re-deploy changes".
+- Phase 4: Complaint Flagging (P1) — awaits user's Resend API key.
+- Phase 7: Google Workspace connectors (Gmail / Drive / Calendar).
+

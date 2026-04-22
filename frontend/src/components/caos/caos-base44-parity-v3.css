@@ -1,74 +1,69 @@
 /* === Title-search popover (under CAOS title) — replaces right-side inline === */
-.caos-header-center { position: relative; }
-.caos-title-search-trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin: 4px auto 0;
-  width: 24px;
-  height: 24px;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  background: rgba(15, 16, 24, 0.6);
-  color: rgba(148, 163, 184, 0.85);
-  cursor: pointer;
-  transition: border-color 160ms ease, color 140ms ease, background-color 140ms ease, transform 140ms ease;
+.caos-header-center { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.caos-header-center p[data-testid="caos-header-subtitle"] {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.72);
+  font-weight: 500;
 }
-.caos-title-search-trigger:hover { color: #c4b5fd; border-color: rgba(167, 139, 250, 0.5); transform: scale(1.08); }
-.caos-title-search-trigger-active { color: #fde68a; border-color: rgba(250, 204, 21, 0.55); background: rgba(250, 204, 21, 0.12); }
 
-.caos-title-search-popover {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
+/* Inline ~1-inch search next to WCW meter (Base44 parity) */
+.caos-header-search-inline-wrap {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  min-width: 180px;
-  width: 220px;
-  max-width: 90vw;
-  border-radius: 12px;
-  background: rgba(12, 12, 20, 0.98);
-  border: 1px solid rgba(167, 139, 250, 0.45);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
-  z-index: 70;
-  animation: titleSearchIn 160ms ease forwards;
+  gap: 4px;
+  padding: 3px 6px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(15, 16, 24, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  transition: border-color 160ms ease, background-color 160ms ease, width 180ms ease;
 }
-@keyframes titleSearchIn { from { opacity: 0; transform: translate(-50%, -6px); } to { opacity: 1; transform: translate(-50%, 0); } }
-.caos-title-search-popover svg { color: rgba(148, 163, 184, 0.85); flex: none; }
-.caos-title-search-popover input {
-  flex: 1 1 auto;
-  min-width: 0;
+.caos-header-search-inline-wrap.caos-header-search-inline-open {
+  border-color: rgba(167, 139, 250, 0.55);
+  background: rgba(22, 20, 40, 0.85);
+}
+.caos-header-search-inline-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; padding: 0;
+  background: transparent; border: none; color: rgba(148, 163, 184, 0.85);
+  cursor: pointer; flex: none;
+}
+.caos-header-search-inline-btn:hover { color: #c4b5fd; }
+.caos-header-search-inline-input {
+  width: 96px;   /* ~1 inch at 96dpi */
+  max-width: 96px;
   background: transparent;
   border: none;
   outline: none;
   color: rgba(226, 232, 240, 0.98);
   font: inherit;
-  font-size: 12.5px;
-  padding: 2px 0;
+  font-size: 12px;
+  padding: 0;
 }
-.caos-title-search-count {
+.caos-header-search-inline-count {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 20px; height: 18px;
-  padding: 0 6px;
+  min-width: 18px; height: 16px; padding: 0 5px;
   border-radius: 999px;
   background: rgba(250, 204, 21, 0.28);
   color: #fde68a;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 10px; font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-.caos-title-search-clear {
-  width: 20px; height: 20px;
+.caos-header-search-inline-clear {
+  width: 16px; height: 16px;
   display: inline-flex; align-items: center; justify-content: center;
   border: none; border-radius: 999px;
   background: rgba(239, 68, 68, 0.28);
-  color: #fca5a5;
-  cursor: pointer;
+  color: #fca5a5; cursor: pointer; padding: 0;
 }
-.caos-title-search-clear:hover { background: rgba(239, 68, 68, 0.55); color: #fff; }
+.caos-header-search-inline-clear:hover { background: rgba(239, 68, 68, 0.55); color: #fff; }
+
+/* Kill legacy centered popover styles (no longer used — search is inline on the right) */
+.caos-title-search-trigger,
+.caos-title-search-popover { display: none !important; }
 
 /* Thread pill: now a non-interactive label (no longer opens anything) */
 .caos-thread-pill {

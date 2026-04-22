@@ -1,3 +1,4 @@
+import time
 import uuid
 from datetime import datetime, timezone
 
@@ -138,8 +139,10 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         pending_messages,
         UserMessage(text=payload.content, file_contents=file_contents or None),
     )
+    _llm_start = time.perf_counter()
     llm_response = await chat._execute_completion(pending_messages)
     reply = await chat._extract_response_text(llm_response)
+    latency_ms = int((time.perf_counter() - _llm_start) * 1000)
     await chat._add_assistant_message(pending_messages, reply)
 
     assistant_message = MessageRecord(
@@ -147,6 +150,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         role="assistant",
         content=reply,
         inference_provider=f"{runtime['provider']}:{runtime['model']}",
+        latency_ms=latency_ms,
         metadata_tags=["SESSION_MEMORY", "SANITIZED_CONTEXT"],
     )
     assistant_doc = assistant_message.model_dump()
@@ -178,6 +182,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     )
     receipt.update(token_receipt)
     receipt["wcw_budget"] = wcw_budget
+    receipt["latency_ms"] = latency_ms
     wcw_used_estimate = token_receipt["active_context_tokens"]
     previous_receipt = await collection("receipts").find_one({"session_id": payload.session_id}, {"_id": 0}, sort=[("created_at", -1)])
     previous_summary = await collection("thread_summaries").find_one({"session_id": payload.session_id}, {"_id": 0}, sort=[("created_at", -1)])

@@ -311,6 +311,7 @@ class ReceiptRecord(BaseModel):
     wcw_budget: int = 0
     continuity_chars: int = 0
     estimated_context_chars: int = 0
+    latency_ms: int | None = None
     created_at: datetime
 
 

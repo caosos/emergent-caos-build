@@ -82,6 +82,7 @@ def build_receipt_record(
         "wcw_budget": wcw_budget,
         "continuity_chars": receipt.get("continuity_chars", 0),
         "estimated_context_chars": receipt.get("estimated_context_chars", 0),
+        "latency_ms": receipt.get("latency_ms"),
         "created_at": utc_now_iso(),
     }
 

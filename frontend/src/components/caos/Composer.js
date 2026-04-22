@@ -111,14 +111,13 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
     }
   };
 
+  // We send a CUMULATIVE audio blob (t=0 → now) on each chunk, so the server
+  // returns the FULL transcript every time. Trust it — never append. Earlier
+  // naive endsWith/startsWith merging caused duplication/triplication when
+  // Whisper drifted punctuation or capitalization between chunks.
   const mergeLiveChunk = (incoming) => {
-    const nextText = incoming.trim();
-    if (!nextText) return liveTranscriptRef.current;
-    const previous = liveTranscriptRef.current.trim();
-    if (!previous) return nextText;
-    if (previous.endsWith(nextText)) return previous;
-    if (nextText.startsWith(previous)) return nextText;
-    return `${previous} ${nextText}`.replace(/\s+/g, " ").trim();
+    const nextText = (incoming || "").trim();
+    return nextText || liveTranscriptRef.current;
   };
 
   const showStatus = transientStatus
