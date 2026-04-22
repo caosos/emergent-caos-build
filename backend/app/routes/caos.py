@@ -373,8 +373,10 @@ class SwarmRunRequest(BaseModel):
 
 
 @router.post("/swarm/run")
-async def swarm_run(input: SwarmRunRequest):
-    """Non-streaming Swarm v1 — returns plan, per-step outputs, final answer."""
+async def swarm_run(input: SwarmRunRequest, user=Depends(require_user)):
+    """Non-streaming Swarm v1 — returns plan, per-step outputs, final answer. Admin only."""
+    if not (user.get("is_admin") or user.get("role") == "admin"):
+        raise HTTPException(status_code=403, detail="Swarm is admin-only")
     if not input.task.strip():
         raise HTTPException(status_code=400, detail="task is required")
     try:
@@ -385,9 +387,11 @@ async def swarm_run(input: SwarmRunRequest):
 
 
 @router.post("/swarm/stream")
-async def swarm_stream(input: SwarmRunRequest):
+async def swarm_stream(input: SwarmRunRequest, user=Depends(require_user)):
     """SSE-streaming Swarm — emits `phase`, `plan`, `step`, `final`, `error` events
-    so the UI can show live progress as Supervisor → Workers → Critic execute."""
+    so the UI can show live progress as Supervisor → Workers → Critic execute. Admin only."""
+    if not (user.get("is_admin") or user.get("role") == "admin"):
+        raise HTTPException(status_code=403, detail="Swarm is admin-only")
     import json as _json
 
     async def event_stream():

@@ -68,6 +68,7 @@ def build_prompt_sections(
     attachment_items = attachments or []
     provider_supports_vision = provider == "gemini"
     return {
+        "assistant_name": profile.assistant_name or "Aria",
         "preferred_name": profile.preferred_name or "the user",
         "environment_name": profile.environment_name,
         "personal_facts_block": _format_memories(personal_facts),
@@ -96,7 +97,7 @@ def build_system_prompt_from_sections(sections: dict) -> str:
             "\n  After each tool result comes back, produce your next step: either another tool call (if you need more data) or the final user-facing reply (no more markers). Cite exact file paths and line numbers when you explain what you found. Secrets (`.env`, `*.key`, `*.pem`, `credentials*`, `secrets*`) are blocked at the tool layer — don't try to read them."
         )
     return f"""
-You are Aria inside CAOS, a continuous AI workspace.
+You are {sections.get('assistant_name', 'Aria')} inside {sections['environment_name']}, a continuous AI workspace.
 
 Operating rules:
 - Treat `session_id` as the active isolation boundary.

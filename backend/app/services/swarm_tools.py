@@ -20,12 +20,29 @@ from app.services.github_tools import GITHUB_TOOL_REGISTRY, GITHUB_TOOL_DOCS
 REPO_ROOT = Path("/app")
 MAX_OUTPUT_CHARS = 6000
 
+# Defense-in-depth secret denylist — even if an attacker bypasses upstream
+# admin gating, these filenames will never be read by a swarm tool.
+import re as _re_dl
+_SECRET_DENYLIST = [
+    _re_dl.compile(r"^\.env($|\..*)", _re_dl.IGNORECASE),
+    _re_dl.compile(r".*\.(pem|key|pfx|crt|p12)$", _re_dl.IGNORECASE),
+    _re_dl.compile(r"^(credentials|secrets?|token|session_token).*", _re_dl.IGNORECASE),
+    _re_dl.compile(r"^id_rsa.*", _re_dl.IGNORECASE),
+]
+
+
+def _is_denied(path: Path) -> bool:
+    name = path.name
+    return any(pattern.match(name) for pattern in _SECRET_DENYLIST)
+
 
 def _safe_path(relative: str) -> Path:
-    """Resolve `relative` inside REPO_ROOT and reject escapes."""
+    """Resolve `relative` inside REPO_ROOT and reject escapes + secrets."""
     target = (REPO_ROOT / relative.lstrip("/")).resolve()
     if not str(target).startswith(str(REPO_ROOT)):
         raise ValueError(f"path '{relative}' escapes repo root")
+    if _is_denied(target):
+        raise ValueError(f"path '{relative}' matches secrets denylist")
     return target
 
 
@@ -46,6 +63,9 @@ def caos_grep(pattern: str, path: str = ".", file_glob: str | None = None) -> st
     # Sensible excludes so we don't return megabytes of lockfiles / build artifacts.
     for skip in ("node_modules", ".git", "__pycache__", "dist", "build", ".next", ".venv"):
         cmd.extend(["--exclude-dir", skip])
+    # Never grep secret files, regardless of file_glob.
+    for deny_glob in (".env*", "*.pem", "*.key", "*.pfx", "*.crt", "*.p12", "credentials*", "secrets*", "id_rsa*"):
+        cmd.extend(["--exclude", deny_glob])
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
         out = result.stdout or "(no matches)"
@@ -92,7 +112,6 @@ def caos_ls(path: str = ".", max_depth: int = 1) -> str:
         for entry in entries:
             if entry.name.startswith(".") or entry.name in noise:
                 continue
-            rel = entry.relative_to(REPO_ROOT)
             suffix = "/" if entry.is_dir() else ""
             lines.append(f"{'  ' * (depth - 1)}{entry.name}{suffix}")
             if entry.is_dir():

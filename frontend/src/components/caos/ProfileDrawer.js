@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, AlertTriangle, Brain, Cake, Calendar, FileText, Gamepad2, Image as ImageIcon, Lock, Mail, Shield, Terminal, Trash2, Unlock, Volume2, X } from "lucide-react";
+import { Activity, AlertTriangle, Bot, Brain, Cake, Calendar, FileText, Gamepad2, Image as ImageIcon, Lock, Mail, Shield, Terminal, Trash2, Unlock, Volume2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Switch } from "@/components/ui/switch";
@@ -37,6 +37,8 @@ export const ProfileDrawer = ({ authenticatedUser, deleteMemory, isOpen, memoryC
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [isEditingBirthday, setIsEditingBirthday] = useState(false);
   const [birthday, setBirthday] = useState(profile?.date_of_birth || "");
+  const [assistantNameDraft, setAssistantNameDraft] = useState(profile?.assistant_name || "Aria");
+  const [isEditingAssistant, setIsEditingAssistant] = useState(false);
   const [toggles, setToggles] = useState({ remember: true, gameMode: false, devMode: false, multiAgent: false });
 
   useEffect(() => {
@@ -48,8 +50,10 @@ export const ProfileDrawer = ({ authenticatedUser, deleteMemory, isOpen, memoryC
       multiAgent: localStorage.getItem(LOCAL_KEYS.multiAgent) === "true",
     });
     setBirthday(profile?.date_of_birth || "");
+    setAssistantNameDraft(profile?.assistant_name || "Aria");
+    setIsEditingAssistant(false);
     setActiveView("profile");
-  }, [isOpen, profile?.date_of_birth]);
+  }, [isOpen, profile?.date_of_birth, profile?.assistant_name]);
 
   if (!isOpen) return null;
 
@@ -128,6 +132,58 @@ export const ProfileDrawer = ({ authenticatedUser, deleteMemory, isOpen, memoryC
         <div className="profile-info-row" data-testid="caos-profile-role-row">
           <Shield size={14} className="profile-info-icon profile-info-icon-blue" />
           <div><span>Role</span><strong data-testid="caos-profile-role-value">{roleLabel}</strong></div>
+        </div>
+        <div className="profile-info-row profile-info-row-birthday" data-testid="caos-profile-assistant-row">
+          <Bot size={14} className="profile-info-icon profile-info-icon-blue" />
+          <div>
+            <span>Your assistant&apos;s name</span>
+            {!isEditingAssistant ? (
+              <div className="profile-birthday-readonly">
+                <strong data-testid="caos-profile-assistant-value">{profile?.assistant_name || "Aria"}</strong>
+                <button
+                  className="profile-birthday-edit"
+                  data-testid="caos-profile-assistant-edit"
+                  onClick={() => { setAssistantNameDraft(profile?.assistant_name || "Aria"); setIsEditingAssistant(true); }}
+                  type="button"
+                >Rename</button>
+              </div>
+            ) : (
+              <div className="profile-birthday-editor">
+                <input
+                  className="profile-birthday-input"
+                  data-testid="caos-profile-assistant-input"
+                  maxLength={30}
+                  onChange={(event) => setAssistantNameDraft(event.target.value)}
+                  onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); } }}
+                  placeholder="e.g. Nova, Axis, Luna"
+                  type="text"
+                  value={assistantNameDraft}
+                />
+                <button
+                  className="profile-birthday-save"
+                  data-testid="caos-profile-assistant-save"
+                  onClick={async () => {
+                    const trimmed = (assistantNameDraft || "").trim();
+                    if (!trimmed) { setIsEditingAssistant(false); return; }
+                    try {
+                      await updateProfile?.({ assistant_name: trimmed });
+                      toast.success(`Say hi to ${trimmed} 👋`);
+                      setIsEditingAssistant(false);
+                    } catch (error) {
+                      toast.error(`Save failed: ${(error?.message || "unknown").slice(0, 60)}`);
+                    }
+                  }}
+                  type="button"
+                >Save</button>
+                <button
+                  className="profile-birthday-cancel"
+                  data-testid="caos-profile-assistant-cancel"
+                  onClick={() => { setAssistantNameDraft(profile?.assistant_name || "Aria"); setIsEditingAssistant(false); }}
+                  type="button"
+                >Cancel</button>
+              </div>
+            )}
+          </div>
         </div>
         <div className="profile-info-row profile-info-row-birthday" data-testid="caos-profile-birthday-row">
           <Cake size={14} className="profile-info-icon profile-info-icon-blue" />
