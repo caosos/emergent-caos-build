@@ -37,18 +37,23 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
       : { mode: "window", node: document.scrollingElement || document.documentElement };
   };
 
+  const getScrollMetrics = () => {
+    const target = resolveScrollTarget();
+    const scrolled = target.mode === "container"
+      ? target.node.scrollTop
+      : (window.scrollY || document.documentElement.scrollTop || target.node.scrollTop || 0);
+    const viewport = target.mode === "container" ? target.node.clientHeight : window.innerHeight;
+    const height = target.node.scrollHeight - viewport;
+    const remaining = height - scrolled;
+    return { remaining, scrolled, target };
+  };
+
   // Track window scroll position to decide whether to show the jump-to-bottom FAB.
   useEffect(() => {
     const handler = () => {
-      const target = resolveScrollTarget();
-      const scrolled = target.mode === "container"
-        ? target.node.scrollTop
-        : (window.scrollY || document.documentElement.scrollTop || target.node.scrollTop || 0);
-      const height = target.mode === "container"
-        ? target.node.scrollHeight - target.node.clientHeight
-        : target.node.scrollHeight - window.innerHeight;
+      const { remaining } = getScrollMetrics();
       // Show the button when the user is > 240px away from the bottom.
-      setShowScrollBottom(height - scrolled > 240);
+      setShowScrollBottom(remaining > 240);
     };
     const target = resolveScrollTarget();
     const listenerNode = target.mode === "container" ? target.node : window;
@@ -76,26 +81,32 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
     const sessionChanged = sessionScrollRef.current !== sessionId;
     sessionScrollRef.current = sessionId;
     if (!messages.length) return undefined;
-    const target = resolveScrollTarget();
-    const scrolled = target.mode === "container"
-      ? target.node.scrollTop
-      : (window.scrollY || document.documentElement.scrollTop || target.node.scrollTop || 0);
-    const remaining = target.mode === "container"
-      ? target.node.scrollHeight - target.node.clientHeight - scrolled
-      : target.node.scrollHeight - window.innerHeight - scrolled;
-    if (!sessionChanged && remaining > 260) return undefined;
-    snapToBottom();
-    const timers = [80, 220, 520, 1100, 2200].map((delay) => window.setTimeout(() => snapToBottom(), delay));
+    const { remaining } = getScrollMetrics();
+    const shouldAutoScroll = sessionChanged || busy || remaining < 180;
+    if (!shouldAutoScroll) return undefined;
+    let cancelled = false;
+    const cancel = () => { cancelled = true; };
+    const run = () => {
+      if (cancelled) return;
+      snapToBottom();
+    };
+    run();
+    const timers = [80, 220, 520].map((delay) => window.setTimeout(run, delay));
     const observerNode = scrollRef.current;
     const resizeObserver = typeof ResizeObserver !== "undefined" && observerNode
-      ? new ResizeObserver(() => snapToBottom())
+      ? new ResizeObserver(() => run())
       : null;
     resizeObserver?.observe(observerNode);
+    const cleanupNode = resolveScrollTarget().mode === "container" ? resolveScrollTarget().node : window;
+    cleanupNode?.addEventListener("wheel", cancel, { passive: true });
+    cleanupNode?.addEventListener("touchmove", cancel, { passive: true });
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer));
       resizeObserver?.disconnect();
+      cleanupNode?.removeEventListener("wheel", cancel);
+      cleanupNode?.removeEventListener("touchmove", cancel);
     };
-  }, [currentSession?.session_id, messages.length, receipts.length, files.length]);
+  }, [busy, currentSession?.session_id, messages.length, receipts.length, files.length]);
 
   // Close lightbox on Escape
   useEffect(() => {

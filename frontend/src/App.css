@@ -55,6 +55,9 @@
     overflow: visible;
     background: rgba(8, 15, 31, 0.58);
     box-shadow: 0 16px 44px rgba(0, 0, 0, 0.18);
+    position: sticky;
+    top: 10px;
+    z-index: 22;
 }
 
 .caos-header-left,

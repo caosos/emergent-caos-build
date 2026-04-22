@@ -118,28 +118,25 @@ export const CaosShell = ({ authenticatedUser }) => {
   const showWelcome = !filteredMessages.length && !draft.trim() && !busy;
 
   useEffect(() => {
-    if (busy || !currentSession?.session_id || !filteredMessages.length || showArtifacts || showInspector || showProfile || showSearch || showThreadExplorer) {
-      return undefined;
-    }
-    const run = () => {
-      try {
-        const container = document.querySelector('[data-testid="caos-message-scroll"]');
-        if (container) {
-          const style = window.getComputedStyle(container);
-          const usesInternalScroll = ["auto", "scroll", "overlay"].includes(style.overflowY) && container.scrollHeight > container.clientHeight + 4;
-          if (usesInternalScroll) {
-            container.scrollTop = container.scrollHeight;
-            return;
-          }
-        }
-        const page = document.scrollingElement || document.documentElement;
-        page.scrollTop = page.scrollHeight;
-      } catch { /* noop */ }
+    const handleWheelFallback = (event) => {
+      if (showArtifacts || showInspector || showProfile || showSearch || showThreadExplorer) return;
+      const target = event.target;
+      if (target instanceof HTMLElement && target.closest("textarea,input,select,[contenteditable='true'],.drawer-shell,.previous-threads-panel,.inspector-panel,.search-drawer")) {
+        return;
+      }
+      const page = document.scrollingElement || document.documentElement;
+      const before = page.scrollTop;
+      const delta = event.deltaY;
+      if (!delta || page.scrollHeight <= window.innerHeight + 4) return;
+      window.requestAnimationFrame(() => {
+        const after = page.scrollTop;
+        if (Math.abs(after - before) > 1) return;
+        page.scrollTop = Math.max(0, Math.min(page.scrollHeight, before + delta));
+      });
     };
-    run();
-    const timers = [80, 220, 520, 1100, 2200].map((delay) => window.setTimeout(run, delay));
-    return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [busy, currentSession?.session_id, filteredMessages.length, showArtifacts, showInspector, showProfile, showSearch, showThreadExplorer]);
+    window.addEventListener("wheel", handleWheelFallback, { passive: true, capture: true });
+    return () => window.removeEventListener("wheel", handleWheelFallback, { capture: true });
+  }, [showArtifacts, showInspector, showProfile, showSearch, showThreadExplorer]);
 
   const focusChat = () => {
     setShowArtifacts(false);
