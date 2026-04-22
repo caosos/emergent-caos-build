@@ -17,13 +17,15 @@ export const useFilesCrud = ({ userEmail, currentSession, loadFiles, setBusy, se
     setBusy(true);
     setError("");
     try {
-      await axios.post(`${API}/caos/files/upload`, form);
+      const response = await axios.post(`${API}/caos/files/upload`, form);
       await loadFiles();
       setStatus(`Uploaded ${file.name}.`);
+      return response.data;
     } catch (issue) {
       const message = issue?.response?.data?.detail || issue?.message || "Upload failed.";
       setError(message);
       setStatus(`Upload failed: ${message}`);
+      throw issue;
     } finally {
       setBusy(false);
     }

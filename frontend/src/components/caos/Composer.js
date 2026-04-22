@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 const joinDraft = (base, addition) => [base, addition].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
 const MIN_ROWS = 1;
-const MAX_ROWS = 6;
+const MAX_ROWS = 4;
 const LINE_HEIGHT = 22;
 
 
@@ -14,6 +14,7 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
   const [liveStatus, setLiveStatus] = useState("");
   const [liveTranscript, setLiveTranscript] = useState("");
   const [transientStatus, setTransientStatus] = useState("");
+  const [pendingAttachments, setPendingAttachments] = useState([]);  // visible chips so user SEES attachments before send
   const [thoughtStash, setThoughtStash] = useState(() => {
     try { return JSON.parse(localStorage.getItem("caos_thought_stash") || "[]"); }
     catch { return []; }
@@ -83,13 +84,25 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
     let okCount = 0;
     for (const file of capped) {
       try {
-        await onUploadFile(file);
+        const uploaded = await onUploadFile(file);
         okCount += 1;
+        // Show an immediate visible chip so the user SEES the file is attached
+        const previewUrl = uploaded?.url || (file.type?.startsWith("image/") ? URL.createObjectURL(file) : null);
+        setPendingAttachments((prev) => [...prev, {
+          id: uploaded?.id || `local-${Date.now()}-${file.name}`,
+          name: file.name,
+          isImage: (file.type || "").startsWith("image/"),
+          url: previewUrl,
+        }]);
       } catch (error) {
         toast.error(`Failed to upload ${file.name}: ${(error?.message || "unknown").slice(0, 60)}`);
       }
     }
     if (okCount > 0) toast.success(`Attached ${okCount} file${okCount === 1 ? "" : "s"} — the AI can now see them`);
+  };
+
+  const removePendingAttachment = (id) => {
+    setPendingAttachments((prev) => prev.filter((a) => a.id !== id));
   };
 
   const stopRecording = () => {
@@ -225,6 +238,27 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
                 data-testid={`caos-composer-thought-remove-${index}`}
                 onClick={() => removeThought(thought.id)}
                 aria-label="remove thought"
+              >×</button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {pendingAttachments.length > 0 ? (
+        <div className="composer-pending-attachments" data-testid="caos-composer-pending-attachments">
+          {pendingAttachments.map((att) => (
+            <div className="composer-pending-attachment-chip" data-testid={`caos-composer-pending-attachment-${att.id}`} key={att.id}>
+              {att.isImage && att.url ? (
+                <img alt={att.name} className="composer-pending-attachment-thumb" src={att.url} />
+              ) : (
+                <span className="composer-pending-attachment-icon"><Paperclip size={12} /></span>
+              )}
+              <span className="composer-pending-attachment-name" title={att.name}>{att.name}</span>
+              <button
+                aria-label="Remove attachment"
+                className="composer-pending-attachment-remove"
+                data-testid={`caos-composer-pending-attachment-remove-${att.id}`}
+                onClick={() => removePendingAttachment(att.id)}
+                type="button"
               >×</button>
             </div>
           ))}

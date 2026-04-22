@@ -1,4 +1,4 @@
-import { ArrowDown, Copy, CornerDownLeft, FileSearch, Paperclip, ThumbsUp, Volume2, X } from "lucide-react";
+import { ArrowDown, Clock, Copy, CornerDownLeft, FileSearch, Paperclip, ThumbsUp, Volume2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { LatencyIndicator } from "@/components/caos/LatencyIndicator";
@@ -251,9 +251,10 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
                 {isPending ? null : (
                   <div className="message-footer" data-testid={`caos-message-footer-${message.id}`}>
                     <span data-testid={`caos-message-fulldate-${message.id}`}>{formatFullDate(message.timestamp)}</span>
-                    {message.role === "assistant" && linkedReceipt?.latency_ms ? (
-                      <span className="message-footer-latency" data-testid={`caos-message-latency-${message.id}`}>
-                        · {(linkedReceipt.latency_ms / 1000).toFixed(1)}s
+                    {message.role === "assistant" && (linkedReceipt?.latency_ms || message.latency_ms) ? (
+                      <span className="message-footer-latency-chip" data-testid={`caos-message-latency-${message.id}`} title="Response latency">
+                        <Clock size={11} />
+                        <strong>{(((linkedReceipt?.latency_ms || message.latency_ms) || 0) / 1000).toFixed(1)}s</strong>
                       </span>
                     ) : null}
                   </div>

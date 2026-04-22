@@ -1,3 +1,80 @@
+/* === Base44-parity green latency chip (the "computer-green" stopwatch) === */
+.message-footer { display: inline-flex; align-items: center; gap: 6px; }
+.message-footer-latency-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(74, 222, 128, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  color: #4ade80;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 6px rgba(74, 222, 128, 0.35);
+}
+.message-footer-latency-chip svg { color: #4ade80; }
+.message-footer-latency-chip strong { font-weight: 700; }
+
+/* === Composer pending-attachment chips (so user SEES what's attached) === */
+.composer-pending-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 8px 6px;
+}
+.composer-pending-attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 3px 3px 5px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.18);
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  color: rgba(226, 232, 240, 0.95);
+  font-size: 11.5px;
+  max-width: 260px;
+}
+.composer-pending-attachment-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.composer-pending-attachment-icon {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.22);
+  align-items: center;
+  justify-content: center;
+}
+.composer-pending-attachment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+.composer-pending-attachment-remove {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(239, 68, 68, 0.28);
+  color: #fca5a5;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.composer-pending-attachment-remove:hover { background: rgba(239, 68, 68, 0.55); color: #fff; }
+
+
 /* === No-rail single-column layout (sidebar killed per user directive) === */
 .caos-shell-no-rail .caos-shell-grid,
 .caos-shell-grid-no-rail {

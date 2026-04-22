@@ -54,6 +54,7 @@ class MessageRecord(BaseModel):
     content: str
     metadata_tags: list[str] = Field(default_factory=list)
     inference_provider: str | None = None
+    latency_ms: int | None = None
     timestamp: datetime = Field(default_factory=utc_now)
 
 
