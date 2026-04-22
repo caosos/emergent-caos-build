@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, BookOpen, ChevronDown, ChevronRight, History, LogOut, Monitor, PlusCircle, Sparkles, UserCircle, Zap } from "lucide-react";
+import { Bot, BookOpen, ChevronDown, ChevronRight, FileText, History, Image as ImageIcon, Link2, LogOut, Monitor, PlusCircle, Sparkles, UserCircle, Zap } from "lucide-react";
 
 const LABELS = { openai: "OpenAI", anthropic: "Claude", gemini: "Gemini", xai: "Grok" };
 
@@ -26,6 +26,7 @@ export const AccountMenu = ({
   onLogOut,
   onNewThread,
   onOpenAdminDocs,
+  onOpenFiles,
   onOpenProfile,
   onOpenSwarm,
   onOpenThreads,
@@ -34,6 +35,7 @@ export const AccountMenu = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [engineSubOpen, setEngineSubOpen] = useState(false);
+  const [desktopSubOpen, setDesktopSubOpen] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
@@ -42,9 +44,10 @@ export const AccountMenu = ({
       if (ref.current && !ref.current.contains(event.target)) {
         setIsOpen(false);
         setEngineSubOpen(false);
+        setDesktopSubOpen(false);
       }
     };
-    const esc = (event) => { if (event.key === "Escape") { setIsOpen(false); setEngineSubOpen(false); } };
+    const esc = (event) => { if (event.key === "Escape") { setIsOpen(false); setEngineSubOpen(false); setDesktopSubOpen(false); } };
     document.addEventListener("mousedown", outside);
     document.addEventListener("keydown", esc);
     return () => {
@@ -61,6 +64,7 @@ export const AccountMenu = ({
     fn?.();
     setIsOpen(false);
     setEngineSubOpen(false);
+    setDesktopSubOpen(false);
   };
 
   return (
@@ -82,9 +86,45 @@ export const AccountMenu = ({
       </button>
       {isOpen ? (
         <div className="inspector-menu" data-testid="caos-account-menu" role="menu">
-          <div className="inspector-menu-header" data-testid="caos-account-menu-header">
-            <Monitor size={13} />
-            <span>Desktop</span>
+          <div className="inspector-menu-engine-row" data-testid="caos-account-menu-desktop-row">
+            <button
+              className={`inspector-menu-item inspector-menu-item-engine ${desktopSubOpen ? "inspector-menu-item-active" : ""}`}
+              data-testid="caos-account-menu-desktop-button"
+              onClick={() => setDesktopSubOpen((v) => !v)}
+              type="button"
+            >
+              <Monitor size={14} />
+              <span>Desktop</span>
+              <ChevronRight size={12} className={desktopSubOpen ? "inspector-menu-chevron-open" : ""} style={{ marginLeft: "auto" }} />
+            </button>
+            {desktopSubOpen ? (
+              <div className="inspector-menu-engine-sub" data-testid="caos-account-menu-desktop-sub">
+                <button
+                  className="inspector-menu-sub-item"
+                  data-testid="caos-account-menu-desktop-files"
+                  onClick={pick(() => { onOpenFiles?.("files"); })}
+                  type="button"
+                >
+                  <FileText size={11} /><span>Files</span>
+                </button>
+                <button
+                  className="inspector-menu-sub-item"
+                  data-testid="caos-account-menu-desktop-photos"
+                  onClick={pick(() => { onOpenFiles?.("photos"); })}
+                  type="button"
+                >
+                  <ImageIcon size={11} /><span>Photos</span>
+                </button>
+                <button
+                  className="inspector-menu-sub-item"
+                  data-testid="caos-account-menu-desktop-links"
+                  onClick={pick(() => { onOpenFiles?.("links"); })}
+                  type="button"
+                >
+                  <Link2 size={11} /><span>Links</span>
+                </button>
+              </div>
+            ) : null}
           </div>
           <button className="inspector-menu-item inspector-menu-item-primary" data-testid="caos-account-menu-new-thread" onClick={pick(onNewThread)} type="button">
             <PlusCircle size={14} /><span>New Thread</span>
@@ -93,7 +133,7 @@ export const AccountMenu = ({
             <History size={14} /><span>Previous Threads</span>
           </button>
           <button className="inspector-menu-item" data-testid="caos-account-menu-profile" onClick={pick(onOpenProfile)} type="button">
-            <UserCircle size={14} /><span>Profile</span>
+            <UserCircle size={14} /><span>Settings</span>
           </button>
           <div className="inspector-menu-engine-row" data-testid="caos-account-menu-engine-row">
             <button

@@ -183,37 +183,58 @@ body .command-footer,
 }
 
 /* Make space at the page bottom so the last message isn't tucked under the floating composer */
-.caos-shell-no-rail .caos-main-column { padding-bottom: 260px; }
+.caos-shell-no-rail .caos-main-column { padding-bottom: 140px; }
 
-/* === Previous Threads rendered as CENTERED MODAL (since no rail) === */
+/* === Previous Threads rendered as LEFT SLIDE-OUT (matching Base44) === */
 .previous-threads-panel:not(.previous-threads-panel-embedded) {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(760px, 94vw);
-  max-height: 80vh;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(360px, 92vw);
+  max-height: none;
   z-index: 55;
   display: flex;
   flex-direction: column;
-  background: rgba(12, 12, 20, 0.97);
-  border: 1px solid rgba(167, 139, 250, 0.35);
-  border-radius: 20px;
-  box-shadow: 0 30px 80px rgba(2, 6, 23, 0.6);
+  background: rgba(12, 12, 20, 0.98);
+  border-right: 1px solid rgba(167, 139, 250, 0.22);
+  border-radius: 0;
+  box-shadow: 24px 0 80px rgba(2, 6, 23, 0.6);
   overflow: hidden;
-  padding: 14px 0 18px;
+  padding: 14px 0 14px;
+  animation: threadPanelSlideIn 220ms ease forwards;
+  transform: none;
+}
+@keyframes threadPanelSlideIn {
+  from { transform: translateX(-20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
 .previous-threads-panel:not(.previous-threads-panel-embedded)::before {
-  content: "";
-  position: fixed; inset: 0; z-index: -1;
-  background: rgba(2, 6, 23, 0.68);
-  backdrop-filter: blur(6px);
+  content: none; /* no fullscreen backdrop — LEFT slide-out only */
 }
 .previous-threads-panel:not(.previous-threads-panel-embedded) .previous-threads-list {
-  padding: 0 14px 6px;
-  max-height: 60vh;
+  padding: 0 12px 10px;
+  max-height: none;
   overflow-y: auto;
+  flex: 1 1 auto;
 }
+.previous-threads-panel:not(.previous-threads-panel-embedded) .previous-threads-header {
+  padding: 6px 14px 10px;
+}
+.previous-threads-panel:not(.previous-threads-panel-embedded) .previous-threads-search {
+  padding: 0 14px 10px;
+}
+
+/* Thread card: inline meter visible ONLY on active; others show a hint */
+.previous-thread-meter-hint {
+  display: block;
+  margin-top: 6px;
+  padding: 0 12px 10px;
+  font-size: 10.5px;
+  color: rgba(148, 163, 184, 0.55);
+  font-style: italic;
+}
+.previous-thread-card:not(.previous-thread-card-active) .thread-mini-meter { display: none; }
 
 /* === Bigger inline attachment images + click-to-expand lightbox === */
 .message-attachment-image {

@@ -26,6 +26,7 @@ export const ShellHeader = ({
   onLogOut,
   onNewThread,
   onOpenAdminDocs,
+  onOpenFiles,
   onOpenProfile,
   onOpenSwarm,
   onOpenThreads,
@@ -51,6 +52,7 @@ export const ShellHeader = ({
           onLogOut={onLogOut}
           onNewThread={onNewThread}
           onOpenAdminDocs={onOpenAdminDocs}
+          onOpenFiles={onOpenFiles}
           onOpenProfile={onOpenProfile}
           onOpenSwarm={onOpenSwarm}
           onOpenThreads={onOpenThreads}

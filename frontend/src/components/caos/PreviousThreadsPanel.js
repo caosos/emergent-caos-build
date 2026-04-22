@@ -142,6 +142,11 @@ export const PreviousThreadsPanel = ({
                   tokens={tokens}
                 />
               </button>
+              {!isActive ? (
+                <span className="previous-thread-meter-hint" data-testid={`caos-previous-thread-meter-hint-${session.session_id}`}>
+                  — open thread to load meter
+                </span>
+              ) : null}
               <div className="previous-thread-card-actions" data-testid={`caos-previous-thread-actions-${session.session_id}`}>
                 {awaitingDelete ? (
                   <>

@@ -1,11 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FolderKanban, X } from "lucide-react";
 
 
-export const ArtifactsDrawer = ({ artifacts, files, isOpen, onClose, onSaveLink, onUploadFile }) => {
+export const ArtifactsDrawer = ({ artifacts, files, initialFilter, isOpen, onClose, onSaveLink, onUploadFile }) => {
   const [activeTab, setActiveTab] = useState("files");
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
+
+  // Respect the submenu choice from the account dropdown ("Files" / "Photos" / "Links").
+  useEffect(() => {
+    if (!isOpen || !initialFilter) return;
+    const tabForFilter = initialFilter === "photos" ? "files"  // photos live under the files tab with kind filter
+      : initialFilter === "links" ? "files"
+      : "files";
+    setActiveTab(tabForFilter);
+  }, [initialFilter, isOpen]);
   if (!isOpen) return null;
 
   const grouped = {

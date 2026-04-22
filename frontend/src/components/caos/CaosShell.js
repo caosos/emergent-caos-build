@@ -25,6 +25,7 @@ export const CaosShell = ({ authenticatedUser }) => {
   const [draft, setDraft] = useState("");
   const [showAdminDocs, setShowAdminDocs] = useState(false);
   const [showArtifacts, setShowArtifacts] = useState(false);
+  const [artifactsFilter, setArtifactsFilter] = useState("files");
   const [showInspector, setShowInspector] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -194,6 +195,7 @@ export const CaosShell = ({ authenticatedUser }) => {
         }}
         onNewThread={() => { createSession("New Thread"); }}
         onOpenAdminDocs={openAdminDocs}
+        onOpenFiles={(filter) => { setArtifactsFilter(filter || "files"); setShowArtifacts(true); }}
         onOpenProfile={openProfile}
         onOpenSwarm={() => setShowSwarm(true)}
         onOpenThreads={toggleThreads}
@@ -326,6 +328,7 @@ export const CaosShell = ({ authenticatedUser }) => {
       <ArtifactsDrawer
         artifacts={artifacts}
         files={files}
+        initialFilter={artifactsFilter}
         isOpen={showArtifacts}
         onClose={() => setShowArtifacts(false)}
         onSaveLink={saveLink}
