@@ -8,7 +8,7 @@ import uuid
 import requests
 
 # Configuration
-BASE_URL = "https://swarm-command-4.preview.emergentagent.com"
+BASE_URL = "https://cognitive-shell.preview.emergentagent.com"
 API_BASE = f"{BASE_URL}/api"
 
 def create_test_user() -> str:
