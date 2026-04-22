@@ -426,3 +426,25 @@ User reported **messages tripling themselves while dictating** and screenshots s
 - P1: Observe whether the new temporal anchors reduce hydration-date confusion in real conversation turns on `caosos.com`.
 - P1: Gmail Phase A planning/implementation.
 
+## Scroll Lock-Up + Header Access Fix (Apr 22, 2026 — late-night hotfix)
+
+### Root cause
+- Fresh-load positioning to the latest message was working, but wheel input could get swallowed in the live-style page-scroll layout.
+- A later stylesheet override in `caos-base44-parity-v3.css` was also resetting the header back to `position: relative`, so once the user landed low in the thread the menu/header could scroll off-screen and feel "gone."
+
+### Shipped
+- Simplified duplicate auto-scroll behavior so the page is no longer fighting the user after load.
+- Added a wheel-scroll fallback for the page-scrolling shell so manual upward scroll keeps working even when the browser/input path fails to move the page naturally.
+- Pinned the shell header/menu so it stays reachable while the user is deep in the thread.
+- Preserved bottom-load behavior: CAOS still opens near the latest message, but the page is no longer effectively trapped there.
+
+### Verified
+- Fresh load lands near the latest message (`distance from bottom: 0px`).
+- Mouse-wheel scroll works from that state (verified movement from `8076px` to `6076px`).
+- Header remains fixed and reachable at all scroll positions (`viewport Y ≈ 12px`).
+- Composer remains visible and usable.
+
+## Analytics Note
+- User asked about platform analytics counts. Clarified that Emergent app analytics can include preview traffic, bots/crawlers, health checks, platform monitoring, and repeated requests — not necessarily real human users.
+- User also wants anonymous first-party product analytics later (active users/messages without personal identities). This is **not implemented yet**.
+
