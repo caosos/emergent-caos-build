@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { FolderKanban, X } from "lucide-react";
 
 
-export const ArtifactsDrawer = ({ artifacts, files, initialFilter, isOpen, onClose, onSaveLink, onUploadFile }) => {
+export const ArtifactsDrawer = ({ artifacts, files, initialFilter, isOpen, links = [], onClose, onSaveLink, onUploadFile }) => {
   const [activeTab, setActiveTab] = useState("files");
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
@@ -17,7 +17,6 @@ export const ArtifactsDrawer = ({ artifacts, files, initialFilter, isOpen, onClo
   const grouped = {
     files: files.filter((item) => item.kind === "file"),
     photos: files.filter((item) => item.kind === "photo"),
-    links: files.filter((item) => item.kind === "link"),
   };
 
   const recentReceipts = (artifacts?.receipts || []).slice(0, 8);
@@ -26,7 +25,7 @@ export const ArtifactsDrawer = ({ artifacts, files, initialFilter, isOpen, onClo
   const tabs = [
     { id: "files", label: "Files", count: grouped.files.length },
     { id: "photos", label: "Photos", count: grouped.photos.length },
-    { id: "links", label: "Links", count: grouped.links.length },
+    { id: "links", label: "Links", count: links.length },
     { id: "receipts", label: "Receipts", count: recentReceipts.length },
     { id: "summaries", label: "Summaries", count: recentSummaries.length },
     { id: "seeds", label: "Seeds", count: recentSeeds.length },
@@ -48,7 +47,7 @@ export const ArtifactsDrawer = ({ artifacts, files, initialFilter, isOpen, onClo
         <div className="drawer-stats-row" data-testid="caos-artifacts-stats-row">
           <div className="drawer-stat-card" data-testid="caos-artifacts-files-stat">
             <span>Stored items</span>
-            <strong>{grouped.files.length + grouped.photos.length + grouped.links.length}</strong>
+            <strong>{grouped.files.length + grouped.photos.length + links.length}</strong>
           </div>
           <div className="drawer-stat-card" data-testid="caos-artifacts-receipts-stat">
             <span>Receipts</span>
@@ -108,13 +107,14 @@ export const ArtifactsDrawer = ({ artifacts, files, initialFilter, isOpen, onClo
         <section className="drawer-section" data-testid="caos-links-section" hidden={activeTab !== "links"}>
           <h3 data-testid="caos-links-heading">Links</h3>
           <div className="drawer-link-form">
-            <input data-testid="caos-link-label-input" placeholder="Link label" value={label} onChange={(event) => setLabel(event.target.value)} />
+            <input data-testid="caos-link-label-input" placeholder="Link label (optional)" value={label} onChange={(event) => setLabel(event.target.value)} />
             <input data-testid="caos-link-url-input" placeholder="https://..." value={url} onChange={(event) => setUrl(event.target.value)} />
             <button
               className="message-action-button"
               data-testid="caos-save-link-button"
-              onClick={() => {
-                onSaveLink(url, label);
+              onClick={async () => {
+                const saved = await onSaveLink(url, label);
+                if (!saved) return;
                 setLabel("");
                 setUrl("");
               }}
@@ -122,10 +122,15 @@ export const ArtifactsDrawer = ({ artifacts, files, initialFilter, isOpen, onClo
               Save link
             </button>
           </div>
-          {grouped.links.length === 0 ? <div className="drawer-empty">No links yet.</div> : null}
-          {grouped.links.map((item) => (
-            <div className="drawer-list-item" data-testid={`caos-links-item-${item.id}`} key={item.id}>
-              {item.url ? <a href={item.url} rel="noreferrer" target="_blank">{item.label || item.url}</a> : item.name}
+          {links.length === 0 ? <div className="drawer-empty" data-testid="caos-links-empty">No links yet. URLs you send in chat will appear here automatically.</div> : null}
+          {links.map((item) => (
+            <div className="drawer-list-item drawer-list-item-rich drawer-link-item" data-testid={`caos-links-item-${item.id}`} key={item.id}>
+              <a data-testid={`caos-links-item-link-${item.id}`} href={item.url} rel="noreferrer" target="_blank">{item.label || item.host || item.url}</a>
+              <span data-testid={`caos-links-item-url-${item.id}`}>{item.url}</span>
+              <div className="drawer-link-meta" data-testid={`caos-links-item-meta-${item.id}`}>
+                <span data-testid={`caos-links-item-source-${item.id}`}>{item.source === "auto" ? "Auto-detected" : item.source === "legacy" ? "Legacy" : "Saved manually"}</span>
+                <span data-testid={`caos-links-item-count-${item.id}`}>Mentioned {item.mention_count || 1}×</span>
+              </div>
             </div>
           ))}
         </section>

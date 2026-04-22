@@ -389,11 +389,31 @@ class UserFileRecord(BaseModel):
     created_at: datetime
 
 
+class UserLinkRecord(BaseModel):
+    id: str
+    user_email: str
+    session_id: str
+    url: str
+    normalized_url: str
+    label: str
+    host: str
+    source: Literal["manual", "auto", "legacy"] = "manual"
+    mention_count: int = 1
+    created_at: datetime
+    updated_at: datetime
+
+
 class LinkCreateRequest(BaseModel):
     user_email: str
     url: str
     label: str
     session_id: str | None = None
+
+
+class SessionLinkCreateRequest(BaseModel):
+    url: str
+    label: str | None = None
+    source: Literal["manual", "auto"] = "manual"
 
 
 class TTSRequest(BaseModel):

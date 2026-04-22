@@ -654,17 +654,26 @@
   padding: 12px; border-radius: 14px;
   border: 1px solid; cursor: pointer; text-align: left;
   color: #fff; min-height: 140px;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
 }
 .multi-agent-column:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35); }
 .multi-agent-column-focused {
   box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.4);
   transform: translateY(-2px);
+  background: rgba(15, 23, 42, 0.92) !important;
 }
 .multi-agent-column-failed { opacity: 0.55; }
 .multi-agent-column-header {
   display: flex; align-items: center; justify-content: space-between;
   font-size: 11px;
+  gap: 10px;
+}
+.multi-agent-column-titleblock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
 }
 .multi-agent-column-header strong { font-size: 13px; letter-spacing: 0.02em; }
 .multi-agent-column-header span { color: rgba(255, 255, 255, 0.45); font-family: monospace; font-size: 10px; }
@@ -672,6 +681,22 @@
   flex: 1; margin: 0; font-size: 12.5px; line-height: 1.5;
   color: rgba(255, 255, 255, 0.92); overflow: hidden;
   max-height: 240px;
+}
+.multi-agent-column-body-expanded { max-height: none; overflow: visible; }
+.multi-agent-column-preview-hint {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: rgba(226, 232, 240, 0.55);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.multi-agent-column-focused .multi-agent-column-preview-hint {
+  -webkit-line-clamp: unset;
+  overflow: visible;
+  color: rgba(226, 232, 240, 0.72);
 }
 .multi-agent-column-error { color: #f87171; font-size: 11.5px; }
 .multi-agent-column-actions {
@@ -852,6 +877,27 @@
 .profile-files-card:hover { background: rgba(255, 255, 255, 0.08); }
 .profile-files-card strong { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .profile-files-card span { font-size: 10.5px; color: rgba(255, 255, 255, 0.5); }
+
+.drawer-link-item {
+  gap: 6px;
+}
+.drawer-link-item a {
+  color: #93c5fd;
+  font-weight: 600;
+  text-decoration: none;
+}
+.drawer-link-item a:hover { color: #bfdbfe; }
+.drawer-link-item > span {
+  color: rgba(226, 232, 240, 0.72);
+  word-break: break-all;
+}
+.drawer-link-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 10.5px;
+  color: rgba(148, 163, 184, 0.8);
+}
 
 .drawer-back-button {
   background: transparent; border: none; padding: 4px; border-radius: 6px;

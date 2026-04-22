@@ -26,6 +26,8 @@ async def ensure_indexes() -> None:
         ("user_profiles", [("user_email", ASCENDING)], {"unique": True}),
         ("user_files", [("user_email", ASCENDING), ("created_at", DESCENDING)], {}),
         ("user_files", [("user_email", ASCENDING), ("session_id", ASCENDING)], {}),
+        ("user_links", [("user_id", ASCENDING), ("session_id", ASCENDING), ("normalized_url", ASCENDING)], {"unique": True}),
+        ("user_links", [("user_id", ASCENDING), ("session_id", ASCENDING), ("updated_at", DESCENDING)], {}),
         ("receipts", [("session_id", ASCENDING), ("created_at", DESCENDING)], {}),
         ("thread_summaries", [("session_id", ASCENDING)], {}),
         ("context_seeds", [("session_id", ASCENDING)], {}),

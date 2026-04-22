@@ -32,6 +32,7 @@ export const useCaosShell = (authenticatedUser = null) => {
   const [artifacts, setArtifacts] = useState({ receipts: [], summaries: [], seeds: [] });
   const [continuity, setContinuity] = useState(null);
   const [files, setFiles] = useState([]);
+  const [links, setLinks] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [lastTurn, setLastTurn] = useState(null);
   const [runtimeSettings, setRuntimeSettings] = useState(DEFAULT_RUNTIME);
@@ -88,6 +89,16 @@ export const useCaosShell = (authenticatedUser = null) => {
     return response.data;
   }, [userEmail]);
 
+  const loadSessionLinks = useCallback(async (sessionId) => {
+    if (!sessionId) {
+      setLinks([]);
+      return [];
+    }
+    const response = await axios.get(`${API}/caos/sessions/${sessionId}/links`);
+    setLinks(response.data);
+    return response.data;
+  }, []);
+
   const loadArtifacts = useCallback(async (sessionId) => {
     if (!sessionId) {
       setArtifacts({ receipts: [], summaries: [], seeds: [] });
@@ -116,6 +127,7 @@ export const useCaosShell = (authenticatedUser = null) => {
       await loadMessages(session.session_id);
       await loadArtifacts(session.session_id);
       await loadContinuity(session.session_id);
+      await loadSessionLinks(session.session_id);
       await loadFiles();
       setStatus(`Loaded session ${session.title}.`);
     } catch (issue) {
@@ -125,7 +137,7 @@ export const useCaosShell = (authenticatedUser = null) => {
     } finally {
       setBusy(false);
     }
-  }, [loadArtifacts, loadContinuity, loadFiles, loadMessages]);
+  }, [loadArtifacts, loadContinuity, loadFiles, loadMessages, loadSessionLinks]);
 
   const createSession = useCallback(async (title = "New Thread") => {
     setBusy(true);
@@ -146,6 +158,7 @@ export const useCaosShell = (authenticatedUser = null) => {
       setMessages([]);
       setArtifacts({ receipts: [], summaries: [], seeds: [] });
       setContinuity(null);
+      setLinks([]);
       setLastTurn(null);
       setStatus(`Created session ${created.title}.`);
       return created;
@@ -202,8 +215,10 @@ export const useCaosShell = (authenticatedUser = null) => {
           loadMessages(fallback.session_id);
           loadArtifacts(fallback.session_id);
           loadContinuity(fallback.session_id);
+          loadSessionLinks(fallback.session_id);
         } else {
           setMessages([]);
+          setLinks([]);
         }
         return fallback;
       });
@@ -214,7 +229,7 @@ export const useCaosShell = (authenticatedUser = null) => {
       setError(message);
       return false;
     }
-  }, [loadArtifacts, loadContinuity, loadMessages, loadSessions]);
+  }, [loadArtifacts, loadContinuity, loadMessages, loadSessionLinks, loadSessions]);
 
   const updateRuntimeSelection = useCallback(async (provider, model) => {
     setBusy(true);
@@ -263,7 +278,7 @@ export const useCaosShell = (authenticatedUser = null) => {
   });
 
   const { uploadFile, saveLink } = useFilesCrud({
-    userEmail, currentSession, loadFiles, setBusy, setError, setStatus,
+    userEmail, currentSession, loadFiles, loadSessionLinks, setBusy, setError, setStatus,
   });
 
   const { transcribeAudio, transcribeAudioChunk, speakText } = useVoiceIO({
@@ -393,6 +408,7 @@ export const useCaosShell = (authenticatedUser = null) => {
       await loadMessages(session.session_id);
       await loadArtifacts(session.session_id);
       await loadContinuity(session.session_id);
+      await loadSessionLinks(session.session_id);
       await loadProfile();
       await loadFiles();
       setStatus("CAOS replied with session-scoped context.");
@@ -404,7 +420,7 @@ export const useCaosShell = (authenticatedUser = null) => {
     } finally {
       setBusy(false);
     }
-  }, [createSession, currentSession, files, loadArtifacts, loadContinuity, loadFiles, loadMessages, loadProfile, loadSessions, multiAgentMode, runtimeSettings.default_model, runtimeSettings.default_provider, userEmail]);
+  }, [createSession, currentSession, files, loadArtifacts, loadContinuity, loadFiles, loadMessages, loadProfile, loadSessionLinks, loadSessions, multiAgentMode, runtimeSettings.default_model, runtimeSettings.default_provider, userEmail]);
 
   useEffect(() => {
     const hydrate = async () => {
@@ -417,9 +433,11 @@ export const useCaosShell = (authenticatedUser = null) => {
           await loadMessages(foundSessions[0].session_id);
           await loadArtifacts(foundSessions[0].session_id);
           await loadContinuity(foundSessions[0].session_id);
+          await loadSessionLinks(foundSessions[0].session_id);
           setStatus(`Loaded ${foundSessions.length} saved sessions.`);
         } else {
           setMessages([]);
+          setLinks([]);
           setStatus("No sessions yet. Start a thread to begin the CAOS shell.");
         }
       } catch (issue) {
@@ -431,7 +449,7 @@ export const useCaosShell = (authenticatedUser = null) => {
       }
     };
     hydrate();
-  }, [loadArtifacts, loadContinuity, loadFiles, loadMessages, loadProfile, loadRuntimeSettings, loadSessions]);
+  }, [loadArtifacts, loadContinuity, loadFiles, loadMessages, loadProfile, loadRuntimeSettings, loadSessionLinks, loadSessions]);
 
   const filteredMessages = useMemo(() => {
     if (!searchQuery.trim()) return messages;
@@ -450,7 +468,7 @@ export const useCaosShell = (authenticatedUser = null) => {
 
   return {
     artifacts, busy, continuity, createSession, currentSession, deleteSession, error, filteredMessages,
-    files, lastTurn, messages, multiAgentMode, profile, renameSession, runtimeSettings, searchQuery,
+    files, lastTurn, links, messages, multiAgentMode, profile, renameSession, runtimeSettings, searchQuery,
     selectSession, sendMessage, sessions, setMultiAgentMode, setSearchQuery, commitUserEmail,
     saveLink, saveMemory, speakText, status, toggleFlagSession, transcribeAudio, transcribeAudioChunk,
     updateMemory, updateProfile, updateRuntimeSelection, updateVoiceSettings, uploadFile,

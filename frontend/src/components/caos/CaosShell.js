@@ -46,6 +46,7 @@ export const CaosShell = ({ authenticatedUser }) => {
     filteredMessages,
     files,
     lastTurn,
+    links,
     multiAgentMode,
     renameSession,
     searchQuery,
@@ -335,6 +336,7 @@ export const CaosShell = ({ authenticatedUser }) => {
         files={files}
         initialFilter={artifactsFilter}
         isOpen={showArtifacts}
+        links={links}
         onClose={() => setShowArtifacts(false)}
         onSaveLink={saveLink}
         onUploadFile={uploadFile}

@@ -101,6 +101,7 @@ export const MultiAgentMessageGroup = ({ agents, synthesis, onSpeak, timestamp }
           {sorted.map((agent, index) => {
             const accent = PROVIDER_ACCENTS[agent.provider] || PROVIDER_ACCENTS.anthropic;
             const isFocused = focusedIndex === index;
+            const replyPreview = (agent.reply || "").slice(0, 180);
             return (
               <button
                 className={`multi-agent-column ${isFocused ? "multi-agent-column-focused" : ""} ${agent.ok ? "" : "multi-agent-column-failed"}`}
@@ -111,13 +112,21 @@ export const MultiAgentMessageGroup = ({ agents, synthesis, onSpeak, timestamp }
                 type="button"
               >
                 <div className="multi-agent-column-header" data-testid={`caos-multi-agent-header-${agent.provider}`}>
-                  <strong style={{ color: accent.label }}>{agent.label}</strong>
-                  <span>{agent.model?.replace("-preview", "")}</span>
+                  <div className="multi-agent-column-titleblock" data-testid={`caos-multi-agent-titleblock-${agent.provider}`}>
+                    <strong style={{ color: accent.label }}>{agent.label}</strong>
+                    <span data-testid={`caos-multi-agent-subtitle-${agent.provider}`}>{agent.model?.replace("-preview", "")}</span>
+                  </div>
+                  <span data-testid={`caos-multi-agent-expand-state-${agent.provider}`}>{isFocused ? "Expanded" : "Preview"}</span>
                 </div>
                 {agent.ok ? (
-                  <p className="multi-agent-column-body" data-testid={`caos-multi-agent-body-${agent.provider}`}>
+                  <>
+                    <p className={`multi-agent-column-body ${isFocused ? "multi-agent-column-body-expanded" : ""}`} data-testid={`caos-multi-agent-body-${agent.provider}`}>
                     {agent.reply}
-                  </p>
+                    </p>
+                    <p className="multi-agent-column-preview-hint" data-testid={`caos-multi-agent-preview-hint-${agent.provider}`}>
+                      {isFocused ? "Tap again to collapse this card." : `${replyPreview}${(agent.reply || "").length > 180 ? "…" : ""}`}
+                    </p>
+                  </>
                 ) : (
                   <p className="multi-agent-column-error" data-testid={`caos-multi-agent-error-${agent.provider}`}>
                     Failed: {agent.error || "unknown error"}

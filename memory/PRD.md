@@ -315,3 +315,22 @@ User reported **messages tripling themselves while dictating** and screenshots s
 - Phase 4: Complaint Flagging (P1) — awaits user's Resend API key.
 - Phase 7: Google Workspace connectors (Gmail / Drive / Calendar).
 
+## Link Persistence + Carousel Expansion (Apr 22, 2026 — evening)
+
+### Shipped
+- **Session-scoped link persistence**: added `user_links` collection support with deduped storage (`user_id + session_id + normalized_url`) plus Mongo indexes in `startup.py`.
+- **Auto-detect from chat content**: `/api/caos/chat`, `/chat/stream`, and `/chat/multi` now extract prose-embedded URLs via regex and persist them once per session without duplicating on multi-agent fan-out.
+- **New links API**: `GET /api/caos/sessions/{session_id}/links` and `POST /api/caos/sessions/{session_id}/links` now serve the Artifacts drawer. Legacy `user_files(kind=link)` records are merged in for backwards compatibility.
+- **Artifacts drawer wired**: Links tab now reads the dedicated session links feed, shows source + mention count, supports optional manual labels, and refreshes immediately after manual save.
+- **Proactive card expansion**: `MultiAgentMessageGroup` source cards now toggle between preview and expanded states so the selected card reveals full body text instead of staying clipped.
+
+### Verified
+- Backend manual verification with seeded auth token: created session, saved manual links, auto-captured two prose URLs via `capture_links_from_message`, and confirmed all links via `GET /api/caos/sessions/{id}/links`.
+- Frontend smoke test: authenticated preview loaded, account menu + links drawer mounted, and the links surface rendered under the welcome/tour overlay.
+
+## Updated Next Action Items
+- User to verify on `caosos.com` after clicking **Re-deploy changes**.
+- P1: Live-turn validation of auto link capture in normal chat and multi-agent mode on the user domain.
+- P1: Resend email notifications for support tickets once the Resend API key is provided.
+- P2: GitHub token unlock for Swarm repo tools, TTS speed slider, engine-used badge.
+

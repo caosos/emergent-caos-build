@@ -28,6 +28,7 @@ from app.schemas.caos import (
     RuntimeSettingsResponse,
     RuntimeSettingsUpsertRequest,
     RuntimeProviderRecord,
+    SessionLinkCreateRequest,
     TTSRequest,
     TTSResponse,
     TranscriptionResponse,
@@ -36,11 +37,13 @@ from app.schemas.caos import (
     VoiceSettingsUpsertRequest,
     LinkCreateRequest,
     UserFileRecord,
+    UserLinkRecord,
     UserProfileRecord,
     UserProfileUpsertRequest,
 )
 from app.services.file_storage import build_link_record, save_upload, save_upload_to_disk
 from app.services.chat_pipeline import run_chat_turn
+from app.services.link_service import capture_links_from_message, legacy_file_link_to_user_link, upsert_session_links
 from app.services.multi_agent import run_multi_agent_turn
 from app.services.swarm_service import run_supervisor, run_workers, run_critic, run_swarm
 from app.services.context_engine import (
@@ -57,6 +60,15 @@ from app.services.voice_service import generate_tts_base64, transcribe_upload
 from app.services.auth_service import require_user
 
 router = APIRouter(prefix="/caos", tags=["caos"], dependencies=[Depends(require_user)])
+
+
+async def _require_session_owner(session_id: str, user: dict) -> dict:
+    session = await collection("sessions").find_one({"session_id": session_id}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if session.get("user_email") != user.get("email"):
+        raise HTTPException(status_code=403, detail="Not your session")
+    return session
 
 
 @router.post("/sessions", response_model=SessionRecord)
@@ -138,6 +150,42 @@ async def create_message(input: MessageCreate):
 async def get_session_messages(session_id: str):
     docs = await collection("messages").find({"session_id": session_id}, {"_id": 0}).sort("timestamp", 1).to_list(1000)
     return [MessageRecord(**doc) for doc in docs]
+
+
+@router.get("/sessions/{session_id}/links", response_model=list[UserLinkRecord])
+async def get_session_links(session_id: str, user=Depends(require_user)):
+    await _require_session_owner(session_id, user)
+    new_docs = await collection("user_links").find(
+        {"user_id": user["user_id"], "session_id": session_id},
+        {"_id": 0},
+    ).sort("updated_at", -1).to_list(100)
+    legacy_docs = await collection("user_files").find(
+        {"user_email": user["email"], "session_id": session_id, "kind": "link"},
+        {"_id": 0},
+    ).sort("created_at", -1).to_list(100)
+    merged: dict[str, dict] = {
+        doc.get("normalized_url") or doc.get("url"): doc
+        for doc in new_docs
+    }
+    for doc in legacy_docs:
+        legacy = legacy_file_link_to_user_link(doc)
+        merged.setdefault(legacy.get("normalized_url") or legacy.get("url"), legacy)
+    records = sorted(merged.values(), key=lambda item: item.get("updated_at") or item.get("created_at"), reverse=True)
+    return [UserLinkRecord(**doc) for doc in records]
+
+
+@router.post("/sessions/{session_id}/links", response_model=UserLinkRecord)
+async def save_session_link(session_id: str, input: SessionLinkCreateRequest, user=Depends(require_user)):
+    await _require_session_owner(session_id, user)
+    records = await upsert_session_links(
+        user,
+        session_id,
+        [{"url": input.url, "label": input.label or input.url}],
+        source=input.source,
+    )
+    if not records:
+        raise HTTPException(status_code=400, detail="Valid link required")
+    return UserLinkRecord(**records[0])
 
 
 @router.get("/sessions/{session_id}/artifacts", response_model=SessionArtifactsResponse)
@@ -353,14 +401,16 @@ async def prepare_context(input: ContextPrepareRequest):
 
 
 @router.post("/chat/multi")
-async def chat_multi_agent(input: ChatRequest):
+async def chat_multi_agent(input: ChatRequest, user=Depends(require_user)):
     """Parallel multi-agent fan-out: same prompt → Claude + OpenAI + Gemini concurrently.
 
     Each agent gets its own lane suffix so its turn is stored independently. Returns
     a list of per-agent responses (reply + wcw + assistant_message_id).
     """
     try:
-        return await run_multi_agent_turn(input)
+        result = await run_multi_agent_turn(input)
+        await capture_links_from_message(user, input.session_id, input.content)
+        return result
     except ValueError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     except Exception as error:
@@ -419,9 +469,11 @@ async def swarm_stream(input: SwarmRunRequest, user=Depends(require_user)):
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(input: ChatRequest):
+async def chat(input: ChatRequest, user=Depends(require_user)):
     try:
-        return await run_chat_turn(input)
+        result = await run_chat_turn(input)
+        await capture_links_from_message(user, input.session_id, input.content)
+        return result
     except ValueError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     except Exception as error:
@@ -430,7 +482,7 @@ async def chat(input: ChatRequest):
 
 
 @router.post("/chat/stream")
-async def chat_stream(input: ChatRequest):
+async def chat_stream(input: ChatRequest, user=Depends(require_user)):
     """SSE streaming chat endpoint — Base44 TSB-036 parity.
 
     Flow: Option A — run full pipeline, then stream the final reply text in
@@ -443,6 +495,7 @@ async def chat_stream(input: ChatRequest):
     async def event_stream():
         try:
             result = await run_chat_turn(input)
+            await capture_links_from_message(user, input.session_id, input.content)
         except ValueError as error:
             yield f"event: error\ndata: {json.dumps({'error': str(error), 'code': 'not_found'})}\n\n"
             return
