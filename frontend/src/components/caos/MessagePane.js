@@ -30,33 +30,60 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
   // Track window scroll position to decide whether to show the jump-to-bottom FAB.
   useEffect(() => {
     const handler = () => {
-      const scrolled = window.scrollY || document.documentElement.scrollTop;
-      const height = document.documentElement.scrollHeight - window.innerHeight;
+      const container = scrollRef.current;
+      if (!container) {
+        setShowScrollBottom(false);
+        return;
+      }
+      const scrolled = container.scrollTop;
+      const height = container.scrollHeight - container.clientHeight;
       // Show the button when the user is > 240px away from the bottom.
       setShowScrollBottom(height - scrolled > 240);
     };
-    window.addEventListener("scroll", handler, { passive: true });
+    const container = scrollRef.current;
+    container?.addEventListener("scroll", handler, { passive: true });
     handler();
-    return () => window.removeEventListener("scroll", handler);
+    return () => container?.removeEventListener("scroll", handler);
   }, [messages.length]);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = (behavior = "smooth") => {
     try {
-      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
+      const container = scrollRef.current;
+      if (container) {
+        if (behavior === "auto") {
+          container.scrollTop = container.scrollHeight;
+        } else {
+          container.scrollTo({ top: container.scrollHeight, behavior });
+        }
+        return;
+      }
+      window.scrollTo({ top: document.documentElement.scrollHeight, behavior });
     } catch { /* no-op */ }
   };
+
+  const snapToBottom = () => scrollToBottom("auto");
 
   useEffect(() => {
     const sessionId = currentSession?.session_id || "";
     const sessionChanged = sessionScrollRef.current !== sessionId;
     sessionScrollRef.current = sessionId;
     if (!messages.length) return undefined;
-    const scrolled = window.scrollY || document.documentElement.scrollTop;
-    const remaining = document.documentElement.scrollHeight - window.innerHeight - scrolled;
+    const container = scrollRef.current;
+    if (!container) return undefined;
+    const scrolled = container.scrollTop;
+    const remaining = container.scrollHeight - container.clientHeight - scrolled;
     if (!sessionChanged && remaining > 260) return undefined;
-    const timer = window.setTimeout(() => scrollToBottom(), 60);
-    return () => window.clearTimeout(timer);
-  }, [currentSession?.session_id, messages.length]);
+    snapToBottom();
+    const timers = [80, 220, 520, 1100, 2200].map((delay) => window.setTimeout(() => snapToBottom(), delay));
+    const resizeObserver = typeof ResizeObserver !== "undefined"
+      ? new ResizeObserver(() => snapToBottom())
+      : null;
+    resizeObserver?.observe(container);
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+      resizeObserver?.disconnect();
+    };
+  }, [currentSession?.session_id, messages.length, receipts.length, files.length]);
 
   // Close lightbox on Escape
   useEffect(() => {

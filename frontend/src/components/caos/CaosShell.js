@@ -117,6 +117,21 @@ export const CaosShell = ({ authenticatedUser }) => {
   const showCommandToolbar = activeSurface === "chat";
   const showWelcome = !filteredMessages.length && !draft.trim() && !busy;
 
+  useEffect(() => {
+    if (busy || !currentSession?.session_id || !filteredMessages.length || showArtifacts || showInspector || showProfile || showSearch || showThreadExplorer) {
+      return undefined;
+    }
+    const run = () => {
+      try {
+        const container = document.querySelector('[data-testid="caos-message-scroll"]');
+        if (container) container.scrollTop = container.scrollHeight;
+      } catch { /* noop */ }
+    };
+    run();
+    const timers = [80, 220, 520, 1100, 2200].map((delay) => window.setTimeout(run, delay));
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [busy, currentSession?.session_id, filteredMessages.length, showArtifacts, showInspector, showProfile, showSearch, showThreadExplorer]);
+
   const focusChat = () => {
     setShowArtifacts(false);
     setShowInspector(false);
