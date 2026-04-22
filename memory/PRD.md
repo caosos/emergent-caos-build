@@ -489,3 +489,19 @@ User reported **messages tripling themselves while dictating** and screenshots s
 - Thread title placed next to search trigger.
 - `Latest` button fixed in place during scroll (0px Y drift during test) and normal page scrolling still works.
 
+## Low-Budget Header Refinement Pass (Apr 22, 2026 — follow-up polish)
+
+### Shipped
+- Reduced the residual bright top glow so the header sits more naturally in the dark star field.
+- Restored the `Cognitive Adaptive Operating System` subtitle under `CAOS`.
+- Moved the thread title to the **left** of the `Search this thread` control and kept it trimmed to roughly 2–3 words.
+- Restored the WCW monitor on the right side of the header.
+- Reverted the scroll control back to an icon-only circle with hover title `Last message`.
+
+### Verified
+- Subtitle visible again.
+- Thread title left of search and trimmed to 3 words.
+- WCW meter visible again.
+- Scroll button icon-only, fixed in place, and hover title reads `Last message`.
+- Page scrolling still works normally.
+
