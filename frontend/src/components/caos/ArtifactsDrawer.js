@@ -10,10 +10,7 @@ export const ArtifactsDrawer = ({ artifacts, files, initialFilter, isOpen, onClo
   // Respect the submenu choice from the account dropdown ("Files" / "Photos" / "Links").
   useEffect(() => {
     if (!isOpen || !initialFilter) return;
-    const tabForFilter = initialFilter === "photos" ? "files"  // photos live under the files tab with kind filter
-      : initialFilter === "links" ? "files"
-      : "files";
-    setActiveTab(tabForFilter);
+    setActiveTab(initialFilter);
   }, [initialFilter, isOpen]);
   if (!isOpen) return null;
 
@@ -27,15 +24,17 @@ export const ArtifactsDrawer = ({ artifacts, files, initialFilter, isOpen, onClo
   const recentSummaries = (artifacts?.summaries || []).slice(0, 6);
   const recentSeeds = (artifacts?.seeds || []).slice(0, 6);
   const tabs = [
-    { id: "files", label: "Files", count: grouped.files.length + grouped.photos.length + grouped.links.length },
+    { id: "files", label: "Files", count: grouped.files.length },
+    { id: "photos", label: "Photos", count: grouped.photos.length },
+    { id: "links", label: "Links", count: grouped.links.length },
     { id: "receipts", label: "Receipts", count: recentReceipts.length },
     { id: "summaries", label: "Summaries", count: recentSummaries.length },
     { id: "seeds", label: "Seeds", count: recentSeeds.length },
   ];
 
   return (
-    <div className="drawer-overlay" data-testid="caos-artifacts-drawer-overlay">
-      <aside className="drawer-shell" data-testid="caos-artifacts-drawer">
+    <div className="drawer-overlay" data-testid="caos-artifacts-drawer-overlay" onClick={onClose}>
+      <aside className="drawer-shell" data-testid="caos-artifacts-drawer" onClick={(e) => e.stopPropagation()}>
         <div className="drawer-header">
           <div className="context-card-heading">
             <FolderKanban size={16} />
@@ -77,11 +76,37 @@ export const ArtifactsDrawer = ({ artifacts, files, initialFilter, isOpen, onClo
         </div>
 
         <section className="drawer-section" data-testid="caos-files-section" hidden={activeTab !== "files"}>
-          <h3 data-testid="caos-files-heading">Files / Photos / Links</h3>
+          <h3 data-testid="caos-files-heading">Files</h3>
           <label className="message-action-button" data-testid="caos-files-upload-button">
             Upload file
             <input data-testid="caos-files-upload-input" hidden type="file" onChange={(event) => onUploadFile(event.target.files?.[0])} />
           </label>
+          {grouped.files.length === 0 ? <div className="drawer-empty">No files yet.</div> : null}
+          {grouped.files.map((item) => (
+            <div className="drawer-list-item" data-testid={`caos-files-item-${item.id}`} key={item.id}>
+              {item.url ? <a href={item.url} rel="noreferrer" target="_blank">{item.name}</a> : item.name}
+            </div>
+          ))}
+        </section>
+
+        <section className="drawer-section" data-testid="caos-photos-section" hidden={activeTab !== "photos"}>
+          <h3 data-testid="caos-photos-heading">Photos</h3>
+          <label className="message-action-button" data-testid="caos-photos-upload-button">
+            Upload photo
+            <input data-testid="caos-photos-upload-input" accept="image/*" hidden type="file" onChange={(event) => onUploadFile(event.target.files?.[0])} />
+          </label>
+          {grouped.photos.length === 0 ? <div className="drawer-empty">No photos yet.</div> : null}
+          <div className="drawer-photo-grid">
+            {grouped.photos.map((item) => (
+              <a className="drawer-photo-tile" data-testid={`caos-photos-item-${item.id}`} href={item.url} key={item.id} rel="noreferrer" target="_blank" title={item.name}>
+                <img alt={item.name} loading="lazy" src={item.url} />
+              </a>
+            ))}
+          </div>
+        </section>
+
+        <section className="drawer-section" data-testid="caos-links-section" hidden={activeTab !== "links"}>
+          <h3 data-testid="caos-links-heading">Links</h3>
           <div className="drawer-link-form">
             <input data-testid="caos-link-label-input" placeholder="Link label" value={label} onChange={(event) => setLabel(event.target.value)} />
             <input data-testid="caos-link-url-input" placeholder="https://..." value={url} onChange={(event) => setUrl(event.target.value)} />
@@ -97,14 +122,10 @@ export const ArtifactsDrawer = ({ artifacts, files, initialFilter, isOpen, onClo
               Save link
             </button>
           </div>
-          {["files", "photos", "links"].map((section) => (
-            <div className="drawer-section-block" data-testid={`caos-${section}-section`} key={section}>
-              <h3>{section}</h3>
-              {(grouped[section] || []).slice(0, 8).map((item) => (
-                <div className="drawer-list-item" data-testid={`caos-${section}-item-${item.id}`} key={item.id}>
-                  {item.url ? <a href={item.url} rel="noreferrer" target="_blank">{item.name}</a> : item.name}
-                </div>
-              ))}
+          {grouped.links.length === 0 ? <div className="drawer-empty">No links yet.</div> : null}
+          {grouped.links.map((item) => (
+            <div className="drawer-list-item" data-testid={`caos-links-item-${item.id}`} key={item.id}>
+              {item.url ? <a href={item.url} rel="noreferrer" target="_blank">{item.label || item.url}</a> : item.name}
             </div>
           ))}
         </section>

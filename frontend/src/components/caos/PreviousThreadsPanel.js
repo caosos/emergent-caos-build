@@ -1,5 +1,5 @@
 import { Check, Flag, History, Pencil, Trash2, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ThreadMiniMeter } from "@/components/caos/ThreadMiniMeter";
 
@@ -33,6 +33,25 @@ export const PreviousThreadsPanel = ({
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const panelRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const handler = (event) => {
+      if (panelRef.current && !panelRef.current.contains(event.target)) {
+        onClose?.();
+      }
+    };
+    const escHandler = (event) => { if (event.key === "Escape") onClose?.(); };
+    // Small timeout so the click that opened the panel doesn't immediately close it
+    const t = setTimeout(() => document.addEventListener("mousedown", handler), 100);
+    document.addEventListener("keydown", escHandler);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("keydown", escHandler);
+    };
+  }, [isOpen, onClose]);
 
   const visibleSessions = useMemo(() => {
     if (!query.trim()) return sessions.slice(0, 40);
@@ -66,6 +85,7 @@ export const PreviousThreadsPanel = ({
     <aside
       className={`previous-threads-panel ${isEmbedded ? "previous-threads-panel-embedded" : ""}`}
       data-testid="caos-previous-threads-panel"
+      ref={panelRef}
     >
       <div className="previous-threads-header" data-testid="caos-previous-threads-header">
         <div className="context-card-heading">

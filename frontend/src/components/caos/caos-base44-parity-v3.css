@@ -1,3 +1,105 @@
+/* === Title-search popover (under CAOS title) — replaces right-side inline === */
+.caos-header-center { position: relative; }
+.caos-title-search-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px auto 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 16, 24, 0.6);
+  color: rgba(148, 163, 184, 0.85);
+  cursor: pointer;
+  transition: border-color 160ms ease, color 140ms ease, background-color 140ms ease, transform 140ms ease;
+}
+.caos-title-search-trigger:hover { color: #c4b5fd; border-color: rgba(167, 139, 250, 0.5); transform: scale(1.08); }
+.caos-title-search-trigger-active { color: #fde68a; border-color: rgba(250, 204, 21, 0.55); background: rgba(250, 204, 21, 0.12); }
+
+.caos-title-search-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  min-width: 180px;
+  width: 220px;
+  max-width: 90vw;
+  border-radius: 12px;
+  background: rgba(12, 12, 20, 0.98);
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  z-index: 70;
+  animation: titleSearchIn 160ms ease forwards;
+}
+@keyframes titleSearchIn { from { opacity: 0; transform: translate(-50%, -6px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.caos-title-search-popover svg { color: rgba(148, 163, 184, 0.85); flex: none; }
+.caos-title-search-popover input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: rgba(226, 232, 240, 0.98);
+  font: inherit;
+  font-size: 12.5px;
+  padding: 2px 0;
+}
+.caos-title-search-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.28);
+  color: #fde68a;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.caos-title-search-clear {
+  width: 20px; height: 20px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; border-radius: 999px;
+  background: rgba(239, 68, 68, 0.28);
+  color: #fca5a5;
+  cursor: pointer;
+}
+.caos-title-search-clear:hover { background: rgba(239, 68, 68, 0.55); color: #fff; }
+
+/* Thread pill: now a non-interactive label (no longer opens anything) */
+.caos-thread-pill {
+  cursor: default !important;
+  pointer-events: none;
+}
+
+/* Kill the old inline right-side search box styles */
+.caos-header-search-inline { display: none !important; }
+
+/* === Artifacts: photos grid + empty states === */
+.drawer-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.drawer-photo-tile {
+  display: block;
+  border-radius: 10px;
+  overflow: hidden;
+  aspect-ratio: 1;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  transition: transform 140ms ease, border-color 140ms ease;
+}
+.drawer-photo-tile:hover { transform: scale(1.03); border-color: rgba(167, 139, 250, 0.55); }
+.drawer-photo-tile img { width: 100%; height: 100%; object-fit: cover; }
+.drawer-empty { padding: 12px 4px; color: rgba(148, 163, 184, 0.7); font-size: 12px; text-align: center; }
+
+
 /* === Header compacted for mobile + progressive-disclosure search === */
 .caos-header h1 { font-size: 16px !important; letter-spacing: 0.28em !important; }
 .caos-header p { font-size: 10.5px !important; letter-spacing: 0.14em !important; opacity: 0.72; }

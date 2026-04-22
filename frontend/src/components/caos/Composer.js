@@ -265,20 +265,23 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
         </div>
       ) : null}
       <div className="composer-row">
-        <label className="message-action-button composer-upload" data-testid="caos-composer-upload-button">
+        <label className="message-action-button composer-upload" data-testid="caos-composer-upload-button" title="Attach a file or photo" aria-label="Attach a file or photo">
           <Paperclip size={16} />
           <input data-testid="caos-composer-upload-input" hidden multiple type="file" onChange={handleUpload} />
         </label>
         <button
+          aria-label={lastAssistantMessage?.content ? "Read last CAOS reply aloud" : "No reply yet to read"}
           className="message-action-button composer-read-last"
           data-testid="caos-composer-read-last-button"
           disabled={!lastAssistantMessage?.content}
           onClick={handleReadLastAssistant}
+          title="Read last CAOS reply aloud"
           type="button"
         >
           <Volume2 size={16} />
         </button>
         <button
+          aria-label="Stash current thought to queue"
           className="message-action-button composer-stash-btn"
           data-testid="caos-composer-stash-button"
           disabled={!draft.trim()}
@@ -308,10 +311,23 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
             }
           }}
         />
-        <button className={`message-action-button composer-mic ${recording ? "composer-mic-recording" : ""}`} data-testid="caos-composer-mic-button" onClick={handleRecord} type="button">
+        <button
+          aria-label={recording ? "Stop recording" : "Record voice message"}
+          className={`message-action-button composer-mic ${recording ? "composer-mic-recording" : ""}`}
+          data-testid="caos-composer-mic-button"
+          onClick={handleRecord}
+          title={recording ? "Stop recording" : "Hold to dictate — speech-to-text"}
+          type="button"
+        >
           {recording ? <Square size={16} /> : <Mic size={16} />}
         </button>
-        <button className="primary-shell-button composer-send" data-testid="caos-composer-send-button" disabled={busy || (!draft.trim() && thoughtStash.length === 0)}>
+        <button
+          aria-label="Send message"
+          className="primary-shell-button composer-send"
+          data-testid="caos-composer-send-button"
+          disabled={busy || (!draft.trim() && thoughtStash.length === 0)}
+          title="Send message (Enter)"
+        >
           <SendHorizontal size={16} />
         </button>
       </div>
