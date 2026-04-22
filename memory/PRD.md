@@ -398,3 +398,31 @@ User reported **messages tripling themselves while dictating** and screenshots s
 - P1: Gmail Phase A planning/implementation.
 - P1: Resend support-ticket emails once the API key is provided.
 
+## Live Deployed Scroll Parity + Temporal Hydration Anchors (Apr 22, 2026 — late night)
+
+### Root causes found
+- **Scroll/layout mismatch:** an older global stylesheet (`App.css`) was still forcing the CAOS shell into a viewport-locked layout (`height: 100vh`, `overflow: hidden`) and making `caos-message-scroll` the active internal scroller with `overflow: auto`. That produced the boxed scrollbar and let older messages disappear behind the composer on the deployed site.
+- **Hydration timing ambiguity:** continuity already injected timestamps, but summaries/seeds were stamped mainly by storage time. The prompt also needed a stronger rule that rehydration time is never the event time.
+
+### Shipped
+- **Full-page scroll parity**: switched CAOS back to document/page scrolling for chat on desktop-style layouts. The scrollbar is now on the far right of the page/window, while the composer stays fixed at the bottom with enough page padding so older messages remain readable above it.
+- **Hybrid scroll logic**: `MessagePane` + `CaosShell` now detect whether the active scroller is the page or an inner container and scroll the correct surface to the latest message.
+- **Temporal-anchor fields**: new `thread_summaries` and `context_seeds` now store `source_started_at` and `source_ended_at` so rehydrated facts can carry the original message window, not just the later storage timestamp.
+- **Prompt hardening for time-aware hydration**: continuity lines now include `source-window | stored` anchors, memory blocks now include recorded/updated timestamps, and the system prompt explicitly says that reinjection time is not the fact date.
+
+### Verified
+- Frontend page-scroll test passed:
+  - page scroll active, inner message scroller inactive
+  - older messages visible above the fixed composer
+  - fresh load still lands at the bottom
+  - Mail button still visible
+- Backend temporal-anchor test passed:
+  - `source_started_at` and `source_ended_at` present on new summaries/seeds
+  - continuity/artifacts endpoints serialize successfully
+  - recent chat turn still works (`openai:gpt-5.2` tiny reply verified)
+
+## Updated Immediate Next Actions
+- User to click **Re-deploy changes** again so the live domain gets the page-scroll parity and temporal-anchor changes.
+- P1: Observe whether the new temporal anchors reduce hydration-date confusion in real conversation turns on `caosos.com`.
+- P1: Gmail Phase A planning/implementation.
+
