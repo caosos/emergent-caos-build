@@ -35,9 +35,39 @@
     radial-gradient(1px 1px at 96% 86%, rgba(200, 220, 255, 0.7) 50%, transparent 55%);
   background-repeat: repeat;
   background-size: 780px 620px;
+  background-position: 0 0;
   opacity: 1;
+  animation: caosStarfieldDrift 180s linear infinite alternate;
 }
 .caos-shell-root > * { position: relative; z-index: 1; }
+
+[data-testid^="caos-constellation-"] {
+  animation: caosConstellationFloat 54s ease-in-out infinite alternate;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+[data-testid^="caos-planet-"] {
+  animation: caosPlanetFloat 72s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes caosStarfieldDrift {
+  from { background-position: 0 0; }
+  to { background-position: 28px 16px; }
+}
+
+@keyframes caosConstellationFloat {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(5px, -3px, 0) scale(1.008); }
+  100% { transform: translate3d(-4px, 4px, 0) scale(0.996); }
+}
+
+@keyframes caosPlanetFloat {
+  0% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(6px, -4px, 0); }
+  100% { transform: translate3d(-5px, 5px, 0); }
+}
 
 /* ---------------- Header — 3-column centered ---------------- */
 .caos-header {

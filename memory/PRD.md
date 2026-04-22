@@ -30,6 +30,11 @@ Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergen
 - Replaced the gray/foggy overlap effect with a clean fixed background curtain matched to the shell backdrop, preserving the transparent-header feel without showing message text underneath.
 - Verified in preview with a seeded authenticated session and a long message thread using Playwright screenshots.
 
+## Sky Motion Polish (Apr 22, 2026 — late evening)
+- Restored the starfield layer after an earlier header-mask regression.
+- Added subtle continuous motion back to the sky: drifting starfield background, gentle constellation float, and slow planet drift so the scene feels alive without looking busy.
+- Verified in preview that `caosStarfieldDrift`, `caosConstellationFloat`, and `caosPlanetFloat` are active.
+
 ### Backend
 - `/api/caos/sessions`, `/messages`, `/artifacts`, `/continuity`
 - `POST /api/caos/chat` — non-streaming full pipeline
