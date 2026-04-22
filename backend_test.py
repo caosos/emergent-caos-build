@@ -449,21 +449,164 @@ def test_auto_thread_title_feature():
     
     return results
 
+def test_openai_temperature_fix():
+    """Test the OpenAI temperature parameter fix."""
+    results = TestResults()
+    
+    print("\n=== OpenAI Temperature Fix Test ===")
+    
+    # Use the provided auth header and seeded session
+    auth_header = "Bearer test_session_b82ef2e35c02445c821a01d02179530a"
+    user_email = "seeded@example.com"
+    session_id = "3bba52d9-07f0-44d8-b7e8-fc4afd7966d4"
+    
+    headers = {
+        "Authorization": auth_header,
+        "Content-Type": "application/json"
+    }
+    
+    # Test POST /api/caos/chat with OpenAI gpt-5.2
+    chat_payload = {
+        "user_email": user_email,
+        "session_id": session_id,
+        "content": "Reply with exactly OK.",
+        "provider": "openai",
+        "model": "gpt-5.2"
+    }
+    
+    print(f"Testing POST /api/caos/chat with OpenAI gpt-5.2...")
+    print(f"Using session_id: {session_id}")
+    print(f"Using user_email: {user_email}")
+    
+    chat_response = make_request("POST", f"{API_BASE}/caos/chat", json=chat_payload, headers=headers)
+    
+    if chat_response is None:
+        results.add_result(
+            "OpenAI chat request", 
+            False, 
+            "Request timed out - unable to test temperature fix"
+        )
+        return results
+    
+    if chat_response.status_code == 200:
+        chat_data = chat_response.json()
+        
+        # Verify response includes assistant reply
+        if "reply" in chat_data and chat_data["reply"]:
+            results.add_result(
+                "OpenAI response includes assistant reply", 
+                True, 
+                f"Assistant reply received: '{chat_data['reply'][:50]}...'"
+            )
+        else:
+            results.add_result(
+                "OpenAI response includes assistant reply", 
+                False, 
+                "No assistant reply found in response"
+            )
+        
+        # Verify response includes receipt
+        if "receipt" in chat_data and chat_data["receipt"]:
+            receipt = chat_data["receipt"]
+            results.add_result(
+                "OpenAI response includes receipt", 
+                True, 
+                f"Receipt included with fields: {list(receipt.keys())}"
+            )
+            
+            # Check for continuity/timestamp info in receipt
+            continuity_fields = ["selected_summary_ids", "selected_seed_ids", "continuity_chars", "estimated_context_chars"]
+            found_continuity = any(field in receipt for field in continuity_fields)
+            
+            if found_continuity:
+                results.add_result(
+                    "Receipt includes continuity info", 
+                    True, 
+                    f"Continuity fields found: {[f for f in continuity_fields if f in receipt]}"
+                )
+            else:
+                results.add_result(
+                    "Receipt includes continuity info", 
+                    False, 
+                    f"No continuity fields found in receipt. Available fields: {list(receipt.keys())}"
+                )
+        else:
+            results.add_result(
+                "OpenAI response includes receipt", 
+                False, 
+                "No receipt found in response"
+            )
+        
+        # Verify provider and model in response
+        if chat_data.get("provider") == "openai" and chat_data.get("model") == "gpt-5.2":
+            results.add_result(
+                "Response provider/model correct", 
+                True, 
+                f"Provider: {chat_data.get('provider')}, Model: {chat_data.get('model')}"
+            )
+        else:
+            results.add_result(
+                "Response provider/model correct", 
+                False, 
+                f"Expected openai/gpt-5.2, got {chat_data.get('provider')}/{chat_data.get('model')}"
+            )
+        
+        # Check for temperature-related errors in response
+        response_text = chat_response.text.lower()
+        if "temperature" in response_text and ("error" in response_text or "invalid" in response_text):
+            results.add_result(
+                "No temperature parameter errors", 
+                False, 
+                "Temperature-related error found in response"
+            )
+        else:
+            results.add_result(
+                "No temperature parameter errors", 
+                True, 
+                "No temperature-related errors detected"
+            )
+            
+    elif chat_response.status_code >= 400:
+        error_text = chat_response.text
+        
+        # Check if this is the old temperature parameter error
+        if "temperature" in error_text.lower():
+            results.add_result(
+                "OpenAI temperature fix", 
+                False, 
+                f"Temperature parameter error still occurring: {error_text}"
+            )
+        else:
+            results.add_result(
+                "OpenAI chat request", 
+                False, 
+                f"Chat request failed with {chat_response.status_code}: {error_text}"
+            )
+    else:
+        results.add_result(
+            "OpenAI chat request", 
+            False, 
+            f"Unexpected response status: {chat_response.status_code}"
+        )
+    
+    return results
+
 def main():
-    """Run all auto-thread-title tests."""
-    print("🚀 Starting CAOS Auto-Thread-Title Feature Tests")
+    """Run all tests."""
+    print("🚀 Starting CAOS Backend Tests")
     print(f"Testing against: {BASE_URL}")
     
     try:
-        results = test_auto_thread_title_feature()
-        success = results.summary()
+        # Run OpenAI temperature fix test
+        openai_results = test_openai_temperature_fix()
+        openai_success = openai_results.summary()
         
-        if success:
-            print("\n🎉 All tests passed! Auto-thread-title feature is working correctly.")
+        if openai_success:
+            print("\n🎉 OpenAI temperature fix test passed!")
         else:
-            print(f"\n❌ Some tests failed. Please review the failures above.")
+            print(f"\n❌ OpenAI temperature fix test failed.")
             
-        return success
+        return openai_success
         
     except Exception as e:
         print(f"\n💥 Test execution failed with error: {e}")
