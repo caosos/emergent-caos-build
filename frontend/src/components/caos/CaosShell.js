@@ -281,6 +281,7 @@ export const CaosShell = ({ authenticatedUser }) => {
             <MessagePane
               busy={busy}
               currentSession={currentSession}
+              files={files}
               messages={filteredMessages}
               onSpeak={speakText}
               receipts={artifacts.receipts}

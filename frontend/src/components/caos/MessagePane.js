@@ -1,5 +1,5 @@
-import { Copy, CornerDownLeft, FileSearch, ThumbsUp, Volume2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Copy, CornerDownLeft, FileSearch, Paperclip, ThumbsUp, Volume2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { LatencyIndicator } from "@/components/caos/LatencyIndicator";
 import { MultiAgentMessageGroup } from "@/components/caos/MultiAgentMessageGroup";
@@ -15,8 +15,10 @@ const formatFullDate = (value) => {
   } catch { return ""; }
 };
 
+const ATTACH_WINDOW_MS = 75 * 1000;  // files uploaded within 75s of a user message = attached to that message
 
-export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts }) => {
+
+export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, receipts }) => {
   const [actionStatus, setActionStatus] = useState("");
   const [messageMeta, setMessageMeta] = useState({});
   const [speakingId, setSpeakingId] = useState("");
@@ -28,6 +30,24 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
     const timer = setTimeout(() => setActionStatus(""), 4000);
     return () => clearTimeout(timer);
   }, [actionStatus]);
+
+  // Map each user message → list of files uploaded within ATTACH_WINDOW_MS
+  // of that message's timestamp. Base44-parity: photos show INLINE on the
+  // bubble instead of silently attaching.
+  const userMessageAttachments = useMemo(() => {
+    const bySession = (files || []).filter((file) => file.session_id === currentSession?.session_id);
+    if (bySession.length === 0) return {};
+    const map = {};
+    for (const message of messages) {
+      if (message.role !== "user" || !message.timestamp) continue;
+      const anchor = new Date(message.timestamp).getTime();
+      map[message.id] = bySession.filter((file) => {
+        const uploaded = new Date(file.created_at).getTime();
+        return Math.abs(uploaded - anchor) < ATTACH_WINDOW_MS;
+      });
+    }
+    return map;
+  }, [files, messages, currentSession?.session_id]);
 
   const updateMeta = (messageId, updater) => {
     setMessageMeta((previous) => ({
@@ -126,6 +146,39 @@ export const MessagePane = ({ busy, currentSession, messages, onSpeak, receipts 
                     ) : null}
                   </p>
                 )}
+                {message.role === "user" && (userMessageAttachments[message.id]?.length || 0) > 0 ? (
+                  <div className="message-attachments" data-testid={`caos-message-attachments-${message.id}`}>
+                    {userMessageAttachments[message.id].map((file) => {
+                      const isImage = (file.mime_type || "").startsWith("image/") && !!file.url;
+                      return isImage ? (
+                        <a
+                          className="message-attachment-image"
+                          data-testid={`caos-message-attachment-image-${file.id}`}
+                          href={file.url}
+                          key={file.id}
+                          rel="noopener noreferrer"
+                          target="_blank"
+                          title={file.name}
+                        >
+                          <img alt={file.name} loading="lazy" src={file.url} />
+                        </a>
+                      ) : (
+                        <a
+                          className="message-attachment-chip"
+                          data-testid={`caos-message-attachment-chip-${file.id}`}
+                          href={file.url || "#"}
+                          key={file.id}
+                          rel="noopener noreferrer"
+                          target="_blank"
+                          title={file.name}
+                        >
+                          <Paperclip size={12} />
+                          <span>{file.name}</span>
+                        </a>
+                      );
+                    })}
+                  </div>
+                ) : null}
                 {isPending ? null : (
                 <div className="message-actions-row" data-testid={`caos-message-actions-${message.id}`}>
                   <button className="message-action-button" data-testid={`caos-message-copy-${message.id}`} onClick={() => handleCopy(message)}>

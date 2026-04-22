@@ -1,3 +1,52 @@
+/* === Inline message attachments (Base44-parity photo display on user bubbles) === */
+.message-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  margin-bottom: 2px;
+}
+.message-attachment-image {
+  display: block;
+  border-radius: 12px;
+  overflow: hidden;
+  max-width: 240px;
+  max-height: 240px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.35);
+  transition: transform 160ms ease, border-color 160ms ease;
+}
+.message-attachment-image:hover {
+  transform: scale(1.02);
+  border-color: rgba(167, 139, 250, 0.55);
+}
+.message-attachment-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 240px;
+  object-fit: cover;
+}
+.message-attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(15, 16, 24, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: rgba(226, 232, 240, 0.95);
+  font-size: 11.5px;
+  text-decoration: none;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: border-color 140ms ease;
+}
+.message-attachment-chip:hover { border-color: rgba(167, 139, 250, 0.55); }
+
+
 /* === Base44-parity search: inline header input + right-side results panel === */
 
 /* --- Inline header search input --- */
