@@ -783,7 +783,14 @@ body .command-footer,
 
 
 /* --- Ensure account-menu dropdown sits above the main grid for both paint + hit-testing --- */
-.caos-shell-root > .caos-header { z-index: 50; position: relative; }
+.caos-shell-root > .caos-header {
+  z-index: 50;
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(1100px, calc(100vw - 48px));
+}
 .account-menu-shell { position: relative; z-index: 50; }
 .account-menu-shell .inspector-menu { z-index: 100; }
 
@@ -1091,6 +1098,14 @@ body .command-footer,
 .admin-docs-error { padding: 12px 14px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px; color: #fecaca; font-size: 12.5px; margin-bottom: 12px; }
 
 @media (max-width: 768px) {
+  .caos-shell-root > .caos-header {
+    position: static;
+    top: auto;
+    left: auto;
+    transform: none;
+    width: auto;
+  }
+
   .admin-docs-body { grid-template-columns: 1fr; }
   .admin-docs-nav { border-right: none; border-bottom: 1px solid rgba(148, 163, 184, 0.12); max-height: 160px; }
 }
