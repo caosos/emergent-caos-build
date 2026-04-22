@@ -140,33 +140,33 @@
 }
 
 .command-footer {
-  left: calc(16px + var(--rail-width) + 18px);
-  right: 16px;
-  bottom: 18px;
-  position: sticky;
-  bottom: 16px;
-  z-index: 5;
-  margin-top: auto;
-  padding-top: 10px;
-  background: linear-gradient(180deg, rgba(9, 9, 14, 0), rgba(9, 9, 14, 0.92) 40%, rgba(9, 9, 14, 0.98));
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  padding: 10px 16px 14px;
+  background: rgba(9, 9, 14, 0.98);
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
   backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+}
+
+.command-footer-inner {
+  width: min(100%, 1100px);
 }
 
 .caos-main-column {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 96px);
+  min-height: calc(100vh - 110px);
+  padding-bottom: 220px; /* leave room for the fixed composer */
 }
 
 .message-pane {
   flex: 1 1 auto;
   min-height: 0;
-  padding-bottom: 12px;
-}
-
-/* Extra breathing room so the last message isn't tucked under the sticky composer */
-.message-pane > *:last-child {
-  margin-bottom: 140px;
 }
 
 .command-footer-inner {

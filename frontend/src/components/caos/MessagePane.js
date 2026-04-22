@@ -1,4 +1,4 @@
-import { Copy, CornerDownLeft, FileSearch, Paperclip, ThumbsUp, Volume2 } from "lucide-react";
+import { ArrowDown, Copy, CornerDownLeft, FileSearch, Paperclip, ThumbsUp, Volume2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { LatencyIndicator } from "@/components/caos/LatencyIndicator";
@@ -22,7 +22,36 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
   const [actionStatus, setActionStatus] = useState("");
   const [messageMeta, setMessageMeta] = useState({});
   const [speakingId, setSpeakingId] = useState("");
+  const [lightboxImage, setLightboxImage] = useState(null);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
   const scrollRef = useRef(null);
+
+  // Track window scroll position to decide whether to show the jump-to-bottom FAB.
+  useEffect(() => {
+    const handler = () => {
+      const scrolled = window.scrollY || document.documentElement.scrollTop;
+      const height = document.documentElement.scrollHeight - window.innerHeight;
+      // Show the button when the user is > 240px away from the bottom.
+      setShowScrollBottom(height - scrolled > 240);
+    };
+    window.addEventListener("scroll", handler, { passive: true });
+    handler();
+    return () => window.removeEventListener("scroll", handler);
+  }, [messages.length]);
+
+  const scrollToBottom = () => {
+    try {
+      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
+    } catch { /* no-op */ }
+  };
+
+  // Close lightbox on Escape
+  useEffect(() => {
+    if (!lightboxImage) return undefined;
+    const esc = (event) => { if (event.key === "Escape") setLightboxImage(null); };
+    document.addEventListener("keydown", esc);
+    return () => document.removeEventListener("keydown", esc);
+  }, [lightboxImage]);
 
   // Auto-clear transient status after 4s so stale banners never linger.
   useEffect(() => {
@@ -151,17 +180,16 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
                     {userMessageAttachments[message.id].map((file) => {
                       const isImage = (file.mime_type || "").startsWith("image/") && !!file.url;
                       return isImage ? (
-                        <a
+                        <button
                           className="message-attachment-image"
                           data-testid={`caos-message-attachment-image-${file.id}`}
-                          href={file.url}
                           key={file.id}
-                          rel="noopener noreferrer"
-                          target="_blank"
-                          title={file.name}
+                          onClick={() => setLightboxImage({ url: file.url, name: file.name })}
+                          title="Click to expand"
+                          type="button"
                         >
                           <img alt={file.name} loading="lazy" src={file.url} />
-                        </a>
+                        </button>
                       ) : (
                         <a
                           className="message-attachment-chip"
@@ -284,6 +312,37 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
         )}
       </div>
       {actionStatus ? <div className="message-action-status" data-testid="caos-message-action-status">{actionStatus}</div> : null}
+      {showScrollBottom ? (
+        <button
+          aria-label="Scroll to bottom"
+          className="scroll-to-bottom-button"
+          data-testid="caos-scroll-to-bottom-button"
+          onClick={scrollToBottom}
+          type="button"
+        >
+          <ArrowDown size={16} />
+        </button>
+      ) : null}
+      {lightboxImage ? (
+        <div
+          className="image-lightbox-backdrop"
+          data-testid="caos-image-lightbox-backdrop"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button
+            aria-label="Close image"
+            className="image-lightbox-close"
+            data-testid="caos-image-lightbox-close"
+            onClick={(event) => { event.stopPropagation(); setLightboxImage(null); }}
+            type="button"
+          >
+            <X size={18} />
+          </button>
+          <div className="image-lightbox-inner" onClick={(event) => event.stopPropagation()}>
+            <img alt={lightboxImage.name} data-testid="caos-image-lightbox-image" src={lightboxImage.url} />
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 };

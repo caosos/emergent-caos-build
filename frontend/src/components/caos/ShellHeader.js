@@ -1,4 +1,4 @@
-import { PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 
 import { AccountMenu } from "@/components/caos/AccountMenu";
 
@@ -10,13 +10,10 @@ const formatTokens = (value) => {
 };
 
 /**
- * Base44-parity header: 3-column layout.
- * Left  : rail toggle + AccountMenu (the identity chip IS the menu trigger)
+ * Base44-parity header — NO sidebar. Just account menu + title + right tools.
+ * Left  : AccountMenu chip (single dropdown, no rail toggle)
  * Center: CAOS title + subtitle
- * Right : active thread pill + inline search box + live WCW meter
- *
- * The search input lives INSIDE the header. Typing drives `searchQuery`;
- * the right-side panel mounts automatically when the query is non-empty.
+ * Right : thread pill + inline search box + live WCW meter
  */
 export const ShellHeader = ({
   activeProvider,
@@ -25,7 +22,6 @@ export const ShellHeader = ({
   currentSession,
   displayName,
   isAdmin,
-  isRailOpen,
   matchCount,
   onLogOut,
   onNewThread,
@@ -34,7 +30,6 @@ export const ShellHeader = ({
   onOpenSwarm,
   onOpenThreads,
   onSelectProvider,
-  onToggleRail,
   providerCatalog,
   searchQuery,
   setSearchQuery,
@@ -47,9 +42,6 @@ export const ShellHeader = ({
   return (
     <header className="caos-header" data-testid="caos-shell-header">
       <div className="caos-header-left" data-testid="caos-header-left">
-        <button className="search-icon-button" data-testid="caos-rail-toggle-button" onClick={onToggleRail}>
-          {isRailOpen ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
-        </button>
         <AccountMenu
           activeModel={activeModel}
           activeProvider={activeProvider}

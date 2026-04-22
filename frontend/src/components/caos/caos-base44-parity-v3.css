@@ -1,3 +1,155 @@
+/* === No-rail single-column layout (sidebar killed per user directive) === */
+.caos-shell-no-rail .caos-shell-grid,
+.caos-shell-grid-no-rail {
+  display: block !important;
+  grid-template-columns: none !important;
+  --rail-width: 0px;
+}
+.caos-shell-no-rail .caos-rail-column,
+.caos-shell-no-rail .thread-rail { display: none !important; }
+.caos-shell-no-rail .caos-main-column { margin: 0 auto; max-width: 1100px; padding: 0 24px; }
+
+/* Force the composer to stay truly pinned at the bottom of the viewport,
+   overriding older App.css and caos-redesign-shell rules */
+.caos-shell-no-rail ~ .command-footer,
+body .command-footer,
+.caos-shell-root + .command-footer,
+.caos-shell-root .command-footer {
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  top: auto !important;
+  z-index: 12 !important;
+  padding: 10px 16px 14px !important;
+  background: rgba(9, 9, 14, 0.98) !important;
+  border-top: 1px solid rgba(148, 163, 184, 0.12) !important;
+  backdrop-filter: blur(10px);
+  display: flex !important;
+  justify-content: center !important;
+  gap: 0 !important;
+}
+.command-footer-inner { width: min(100%, 1100px) !important; margin: 0 auto !important; }
+
+/* === Previous Threads rendered as CENTERED MODAL (since no rail) === */
+.previous-threads-panel:not(.previous-threads-panel-embedded) {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(760px, 94vw);
+  max-height: 80vh;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  background: rgba(12, 12, 20, 0.97);
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  border-radius: 20px;
+  box-shadow: 0 30px 80px rgba(2, 6, 23, 0.6);
+  overflow: hidden;
+  padding: 14px 0 18px;
+}
+.previous-threads-panel:not(.previous-threads-panel-embedded)::before {
+  content: "";
+  position: fixed; inset: 0; z-index: -1;
+  background: rgba(2, 6, 23, 0.68);
+  backdrop-filter: blur(6px);
+}
+.previous-threads-panel:not(.previous-threads-panel-embedded) .previous-threads-list {
+  padding: 0 14px 6px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+/* === Bigger inline attachment images + click-to-expand lightbox === */
+.message-attachment-image {
+  max-width: 420px;
+  max-height: 320px;
+}
+.message-attachment-image img {
+  max-height: 320px;
+}
+
+.image-lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(2, 6, 23, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  animation: imageLightboxFadeIn 160ms ease forwards;
+  cursor: zoom-out;
+}
+@keyframes imageLightboxFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.image-lightbox-inner {
+  max-width: 95vw;
+  max-height: 95vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.image-lightbox-inner img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 10px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
+}
+.image-lightbox-close {
+  position: fixed;
+  top: 18px; right: 18px;
+  width: 36px; height: 36px;
+  border: none; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background-color 140ms ease;
+  z-index: 81;
+}
+.image-lightbox-close:hover { background: rgba(255, 255, 255, 0.28); }
+
+/* === Scroll-to-bottom floating button === */
+.scroll-to-bottom-button {
+  position: fixed;
+  right: 28px;
+  bottom: 200px;
+  z-index: 8;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  background: rgba(24, 24, 36, 0.95);
+  color: rgba(226, 232, 240, 0.95);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  transition: transform 140ms ease, background-color 140ms ease;
+  animation: scrollBtnFadeIn 200ms ease forwards;
+}
+.scroll-to-bottom-button:hover {
+  background: rgba(99, 102, 241, 0.35);
+  transform: translateY(-2px) scale(1.05);
+}
+@keyframes scrollBtnFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Composer top-strip: Engine + Multi-Agent chips INSIDE the composer, not a floating shadow bar */
+.composer-top-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 4px 10px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.command-footer-engine { display: none !important; }
+
+
 /* === Inline message attachments (Base44-parity photo display on user bubbles) === */
 .message-attachments {
   display: flex;
