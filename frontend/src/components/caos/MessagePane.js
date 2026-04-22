@@ -198,15 +198,14 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
 
   const scrollButton = (
     <button
-      aria-label="Jump to latest message"
-      className={`scroll-to-bottom-button ${showScrollBottom ? "scroll-to-bottom-button-active" : "scroll-to-bottom-button-idle"}`}
+      aria-label="Last message"
+      className="scroll-to-bottom-button"
       data-testid="caos-scroll-to-bottom-button"
       onClick={scrollToBottom}
-      title="Jump to latest message"
+      title="Last message"
       type="button"
     >
       <ArrowDown size={16} />
-      <span data-testid="caos-scroll-to-bottom-label">Latest</span>
     </button>
   );
 

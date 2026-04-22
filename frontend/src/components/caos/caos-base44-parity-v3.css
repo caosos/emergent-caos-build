@@ -1,7 +1,12 @@
 /* === Title-search popover (under CAOS title) — replaces right-side inline === */
 .caos-header-center { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .caos-header-center p[data-testid="caos-header-subtitle"] {
-  display: none;
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.72);
+  font-weight: 500;
 }
 
 /* Click-to-open search dropdown that drops DOWN beneath the magnifying glass */
@@ -220,7 +225,7 @@
   display: inline-flex;
   align-items: center;
   min-width: 0;
-  max-width: 380px;
+  max-width: 180px;
   color: rgba(226, 232, 240, 0.84);
 }
 
@@ -560,9 +565,9 @@ body .command-footer,
   right: 28px;
   bottom: 180px;
   z-index: 60;
-  min-width: 108px;
+  width: 44px;
   height: 44px;
-  padding: 0 14px;
+  padding: 0;
   border-radius: 999px;
   border: 1px solid rgba(167, 139, 250, 0.55);
   background: rgba(24, 24, 36, 0.96);
@@ -571,18 +576,13 @@ body .command-footer,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
-  transition: transform 140ms ease, background-color 140ms ease, color 140ms ease, opacity 140ms ease;
-  animation: scrollBtnFadeIn 200ms ease forwards;
+  transition: transform 140ms ease, background-color 140ms ease, color 140ms ease;
 }
-.scroll-to-bottom-button span { font-size: 12px; font-weight: 600; letter-spacing: 0.02em; }
 .scroll-to-bottom-button:hover {
   background: rgba(99, 102, 241, 0.35);
   transform: translateY(-2px) scale(1.05);
 }
-.scroll-to-bottom-button-idle { opacity: 0.72; }
-.scroll-to-bottom-button-active { opacity: 1; }
 @keyframes scrollBtnFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Composer top-strip: Engine + Multi-Agent chips INSIDE the composer, not a floating shadow bar */
@@ -811,10 +811,8 @@ body .command-footer,
 /* --- Ensure account-menu dropdown sits above the main grid for both paint + hit-testing --- */
 .caos-shell-root > .caos-header {
   z-index: 50;
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
   width: 100%;
   transform: none;
   background: transparent !important;
