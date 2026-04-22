@@ -19,6 +19,13 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
     try { return JSON.parse(localStorage.getItem("caos_thought_stash") || "[]"); }
     catch { return []; }
   });
+  // Composer read-aloud uses the BROWSER's native speechSynthesis (not API) —
+  // so it plays instantly, is free, and user can stop it on second click.
+  const [nativeSpeaking, setNativeSpeaking] = useState(false);
+  const [nativeVoices, setNativeVoices] = useState([]);
+  const [nativeVoiceURI, setNativeVoiceURI] = useState(() => localStorage.getItem("caos_native_tts_voice") || "");
+  const [voicePickerOpen, setVoicePickerOpen] = useState(false);
+  const voicePickerRef = useRef(null);
   const recorderRef = useRef(null);
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
@@ -202,16 +209,71 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
     recorder.start(1400);
   };
 
-  const handleReadLastAssistant = async () => {
+  // Load Chrome's native voices (async on first call) + subscribe to changes.
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return undefined;
+    const refresh = () => {
+      const voices = window.speechSynthesis.getVoices() || [];
+      setNativeVoices(voices);
+    };
+    refresh();
+    window.speechSynthesis.addEventListener("voiceschanged", refresh);
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", refresh);
+  }, []);
+
+  // Close voice-picker on click-outside + Escape.
+  useEffect(() => {
+    if (!voicePickerOpen) return undefined;
+    const onDown = (event) => {
+      if (voicePickerRef.current && !voicePickerRef.current.contains(event.target)) {
+        setVoicePickerOpen(false);
+      }
+    };
+    const onEsc = (event) => { if (event.key === "Escape") setVoicePickerOpen(false); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [voicePickerOpen]);
+
+  // Cancel any in-flight native speech when this component unmounts.
+  useEffect(() => () => {
+    try { window.speechSynthesis?.cancel(); } catch { /* no-op */ }
+  }, []);
+
+  const handleReadLastAssistant = () => {
+    const synth = typeof window !== "undefined" ? window.speechSynthesis : null;
+    if (!synth) {
+      toast.error("This browser has no native TTS");
+      return;
+    }
+    // Second click → stop.
+    if (nativeSpeaking) {
+      synth.cancel();
+      setNativeSpeaking(false);
+      return;
+    }
     if (!lastAssistantMessage?.content) {
       toast.error("No assistant reply to read yet");
       return;
     }
-    try {
-      await onSpeak(lastAssistantMessage.content);
-    } catch (error) {
-      toast.error(`Read aloud failed: ${(error?.message || "unknown").slice(0, 60)}`);
-    }
+    try { synth.cancel(); } catch { /* no-op */ }
+    const utter = new SpeechSynthesisUtterance(lastAssistantMessage.content);
+    const picked = nativeVoices.find((v) => v.voiceURI === nativeVoiceURI);
+    if (picked) utter.voice = picked;
+    utter.onend = () => setNativeSpeaking(false);
+    utter.onerror = () => setNativeSpeaking(false);
+    setNativeSpeaking(true);
+    synth.speak(utter);
+  };
+
+  const pickNativeVoice = (voiceURI) => {
+    setNativeVoiceURI(voiceURI);
+    localStorage.setItem("caos_native_tts_voice", voiceURI);
+    setVoicePickerOpen(false);
+    toast.success(`Voice: ${nativeVoices.find((v) => v.voiceURI === voiceURI)?.name || "default"}`, { duration: 1500 });
   };
 
   return (
@@ -268,17 +330,41 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
           <Paperclip size={16} />
           <input data-testid="caos-composer-upload-input" hidden multiple type="file" onChange={handleUpload} />
         </label>
+        <div className="composer-read-last-wrap" ref={voicePickerRef} style={{ position: "relative", display: "inline-flex" }}>
         <button
-          aria-label={lastAssistantMessage?.content ? "Read last CAOS reply aloud" : "No reply yet to read"}
-          className="message-action-button composer-read-last"
+          aria-label={nativeSpeaking ? "Stop reading" : (lastAssistantMessage?.content ? "Read last CAOS reply aloud (right-click to choose voice)" : "No reply yet to read")}
+          className={`message-action-button composer-read-last ${nativeSpeaking ? "composer-read-last-speaking" : ""}`}
           data-testid="caos-composer-read-last-button"
-          disabled={!lastAssistantMessage?.content}
+          disabled={!lastAssistantMessage?.content && !nativeSpeaking}
           onClick={handleReadLastAssistant}
-          title="Read last CAOS reply aloud"
+          onContextMenu={(event) => { event.preventDefault(); setVoicePickerOpen((v) => !v); }}
+          title={nativeSpeaking ? "Stop reading" : "Read last CAOS reply aloud (right-click: pick voice)"}
           type="button"
         >
           <Volume2 size={16} />
         </button>
+        {voicePickerOpen ? (
+          <div className="composer-voice-picker" data-testid="caos-composer-voice-picker" style={{ position: "absolute", bottom: "calc(100% + 8px)", left: 0, zIndex: 80, minWidth: 220, maxHeight: 280, overflowY: "auto", background: "rgba(12, 12, 20, 0.98)", border: "1px solid rgba(167, 139, 250, 0.45)", borderRadius: 12, padding: 6, boxShadow: "0 14px 40px rgba(0,0,0,0.55)" }}>
+            <div style={{ fontSize: 10.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(167, 139, 250, 0.85)", padding: "6px 8px 8px" }}>
+              Browser voice ({nativeVoices.length})
+            </div>
+            {nativeVoices.length === 0 ? (
+              <div style={{ padding: "8px 10px", fontSize: 12, color: "rgba(148, 163, 184, 0.7)" }}>No voices found in this browser.</div>
+            ) : (
+              nativeVoices.map((v) => (
+                <button
+                  key={v.voiceURI}
+                  data-testid={`caos-composer-voice-option-${v.voiceURI}`}
+                  onClick={() => pickNativeVoice(v.voiceURI)}
+                  style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 10px", fontSize: 12.5, borderRadius: 8, border: "none", cursor: "pointer", background: v.voiceURI === nativeVoiceURI ? "rgba(167, 139, 250, 0.22)" : "transparent", color: "rgba(226, 232, 240, 0.95)" }}
+                >
+                  {v.name} <span style={{ opacity: 0.55 }}>· {v.lang}</span>{v.default ? <span style={{ opacity: 0.55 }}> · default</span> : null}
+                </button>
+              ))
+            )}
+          </div>
+        ) : null}
+        </div>
         <button
           aria-label="Stash current thought to queue"
           className="message-action-button composer-stash-btn"

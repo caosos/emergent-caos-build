@@ -74,6 +74,14 @@
 .drawer-shell { display: flex !important; flex-direction: column; }
 .profile-drawer-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 
+/* Composer read-aloud: pulsing when browser speechSynthesis is speaking */
+.composer-read-last-speaking {
+  color: #86efac !important;
+  box-shadow: 0 0 0 2px rgba(134, 239, 172, 0.35);
+  animation: composerReadPulse 1.1s ease-in-out infinite;
+}
+@keyframes composerReadPulse { 0%,100% { box-shadow: 0 0 0 2px rgba(134, 239, 172, 0.35);} 50% { box-shadow: 0 0 0 5px rgba(134, 239, 172, 0.18);} }
+
 /* Thread pill: now a non-interactive label (no longer opens anything) */
 .caos-thread-pill {
   cursor: default !important;
