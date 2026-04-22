@@ -15,6 +15,7 @@
     height: auto;
     box-sizing: border-box;
     padding: 18px;
+    padding-top: 92px;
     padding-bottom: 220px;
     overflow: visible;
     display: block;
@@ -55,8 +56,11 @@
     overflow: visible;
     background: rgba(8, 15, 31, 0.58);
     box-shadow: 0 16px 44px rgba(0, 0, 0, 0.18);
-    position: sticky;
-    top: 10px;
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(1100px, calc(100vw - 48px));
     z-index: 22;
 }
 
@@ -1459,6 +1463,9 @@
 
     .caos-header {
         flex-direction: column;
+        position: static;
+        width: auto;
+        transform: none;
     }
 
     .chat-surface-actions,
@@ -1530,6 +1537,10 @@
     .App {
         height: auto;
         overflow: visible;
+    }
+
+    .caos-shell-root {
+        padding-top: 18px;
     }
 
     .quick-actions-strip {

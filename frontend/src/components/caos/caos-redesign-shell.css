@@ -3,9 +3,6 @@
   border: none;
   padding: 4px 8px 10px;
   margin-bottom: 14px;
-  position: sticky;
-  top: 10px;
-  z-index: 22;
 }
 
 .caos-header-center h1 {
