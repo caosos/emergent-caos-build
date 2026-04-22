@@ -1,5 +1,6 @@
 import { ArrowDown, Clock, Copy, CornerDownLeft, FileSearch, Mail, Paperclip, ThumbsUp, Volume2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { LatencyIndicator } from "@/components/caos/LatencyIndicator";
 import { MultiAgentMessageGroup } from "@/components/caos/MultiAgentMessageGroup";
@@ -26,6 +27,11 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const scrollRef = useRef(null);
   const sessionScrollRef = useRef("");
+  const [portalReady, setPortalReady] = useState(false);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   const resolveScrollTarget = () => {
     const container = scrollRef.current;
@@ -189,6 +195,20 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
       setActionStatus("Email compose could not be opened.");
     }
   };
+
+  const scrollButton = (
+    <button
+      aria-label="Jump to latest message"
+      className={`scroll-to-bottom-button ${showScrollBottom ? "scroll-to-bottom-button-active" : "scroll-to-bottom-button-idle"}`}
+      data-testid="caos-scroll-to-bottom-button"
+      onClick={scrollToBottom}
+      title="Jump to latest message"
+      type="button"
+    >
+      <ArrowDown size={16} />
+      <span data-testid="caos-scroll-to-bottom-label">Latest</span>
+    </button>
+  );
 
   return (
     <section className="message-pane" data-testid="caos-message-pane">
@@ -402,17 +422,7 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
         )}
       </div>
       {actionStatus ? <div className="message-action-status" data-testid="caos-message-action-status">{actionStatus}</div> : null}
-      <button
-        aria-label="Jump to latest message"
-        className={`scroll-to-bottom-button ${showScrollBottom ? "scroll-to-bottom-button-active" : "scroll-to-bottom-button-idle"}`}
-        data-testid="caos-scroll-to-bottom-button"
-        onClick={scrollToBottom}
-        title="Jump to latest message"
-        type="button"
-      >
-        <ArrowDown size={16} />
-        <span data-testid="caos-scroll-to-bottom-label">Latest</span>
-      </button>
+      {portalReady ? createPortal(scrollButton, document.body) : scrollButton}
       {lightboxImage ? (
         <div
           className="image-lightbox-backdrop"
