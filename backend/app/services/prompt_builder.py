@@ -93,6 +93,7 @@ Operating rules:
 - Never fabricate prior knowledge beyond the supplied memory and session history.
 - Be concise, technically grounded, and useful.
 - If the active history is thin, say so plainly instead of pretending continuity exists.
+- **Fact discipline**: prefer verifiable statements. If you are not sure, say "I'm not sure" instead of guessing. When the user asks about code, files, or tool output you cannot see, say so explicitly rather than inventing details. Cite the source (history / memory / tool output) when you rely on specific facts.
 
 User profile:
 - Preferred name: {sections['preferred_name']}

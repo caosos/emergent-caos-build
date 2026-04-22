@@ -1,3 +1,4 @@
+import os
 import time
 import uuid
 from datetime import datetime, timezone
@@ -129,11 +130,12 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
             except Exception as attach_error:
                 print(f"CAOS attachment skipped {doc.get('name')}: {attach_error}")
 
+    _temp = float(os.environ.get("CAOS_CHAT_TEMPERATURE", "0.3"))
     chat = LlmChat(
         api_key=runtime["api_key"],
         session_id=f"{payload.session_id}-{uuid.uuid4()}",
         system_message=system_prompt,
-    ).with_model(runtime["provider"], runtime["model"])
+    ).with_model(runtime["provider"], runtime["model"]).with_params(temperature=_temp)
     pending_messages = await chat.get_messages()
     await chat._add_user_message(
         pending_messages,
