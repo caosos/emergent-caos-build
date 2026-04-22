@@ -80,51 +80,53 @@ export const ShellHeader = ({
         />
       </div>
 
-      <div className="caos-header-center" data-testid="caos-header-center" ref={searchPopoverRef}>
+      <div className="caos-header-center" data-testid="caos-header-center">
         <h1 data-testid="caos-header-title">CAOS</h1>
-        <button
-          aria-label="Search this thread"
-          className={`caos-title-search-trigger ${hasQuery || searchOpen ? "caos-title-search-trigger-active" : ""}`}
-          data-testid="caos-title-search-trigger"
-          onClick={() => setSearchOpen((v) => !v)}
-          title="Search this thread"
-          type="button"
-        >
-          <Search size={12} />
-        </button>
-        {searchOpen ? (
-          <div className="caos-title-search-popover" data-testid="caos-title-search-popover">
-            <Search size={12} />
-            <input
-              aria-label="Search this thread"
-              autoFocus
-              data-testid="caos-header-search-input"
-              onChange={(event) => setSearchQuery?.(event.target.value)}
-              placeholder="Search this thread…"
-              type="text"
-              value={searchQuery || ""}
-            />
-            {hasQuery ? (
-              <>
-                <span className="caos-title-search-count" data-testid="caos-header-search-count" title={`${matchCount || 0} match${matchCount === 1 ? "" : "es"}`}>{matchCount || 0}</span>
-                <button
-                  aria-label="Clear search"
-                  className="caos-title-search-clear"
-                  data-testid="caos-header-search-clear-button"
-                  onClick={() => setSearchQuery?.("")}
-                  title="Clear search"
-                  type="button"
-                ><X size={12} /></button>
-              </>
-            ) : null}
-          </div>
-        ) : null}
       </div>
 
-      <div className="caos-header-actions" data-testid="caos-header-actions">
+      <div className="caos-header-actions" data-testid="caos-header-actions" ref={searchPopoverRef}>
         <span className="caos-thread-pill" data-testid="caos-header-thread-pill" title={currentSession?.title || "No active thread"}>
-          {currentSession?.title || "Start a new chat"}
+          {(currentSession?.title || "Start a new chat").split(/\s+/).slice(0, 3).join(" ")}
         </span>
+        <div className="caos-header-search-wrap" data-testid="caos-header-search-wrap">
+          <button
+            aria-label="Search this thread"
+            className={`caos-title-search-trigger ${hasQuery || searchOpen ? "caos-title-search-trigger-active" : ""}`}
+            data-testid="caos-title-search-trigger"
+            onClick={() => setSearchOpen((v) => !v)}
+            title="Search this thread"
+            type="button"
+          >
+            <Search size={12} />
+          </button>
+          {searchOpen ? (
+            <div className="caos-title-search-popover caos-title-search-popover-right" data-testid="caos-title-search-popover">
+              <Search size={12} />
+              <input
+                aria-label="Search this thread"
+                autoFocus
+                data-testid="caos-header-search-input"
+                onChange={(event) => setSearchQuery?.(event.target.value)}
+                placeholder="Search this thread…"
+                type="text"
+                value={searchQuery || ""}
+              />
+              {hasQuery ? (
+                <>
+                  <span className="caos-title-search-count" data-testid="caos-header-search-count" title={`${matchCount || 0} match${matchCount === 1 ? "" : "es"}`}>{matchCount || 0}</span>
+                  <button
+                    aria-label="Clear search"
+                    className="caos-title-search-clear"
+                    data-testid="caos-header-search-clear-button"
+                    onClick={() => setSearchQuery?.("")}
+                    title="Clear search"
+                    type="button"
+                  ><X size={12} /></button>
+                </>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
         <div className="caos-header-wcw" data-testid="caos-header-wcw" title="Working Context Window (live)">
           <span data-testid="caos-header-wcw-used">{formatTokens(wcwUsed)}</span>
           <span className="caos-header-wcw-divider">/</span>
