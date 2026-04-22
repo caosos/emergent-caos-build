@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Volume2, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { Volume2, ChevronDown, ChevronUp, Sparkles, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 const LABEL_ORDER = ["Claude", "OpenAI", "Gemini"];
@@ -15,12 +15,22 @@ const handleRead = async (event, text, onSpeak) => {
   catch { toast.error("Read aloud failed"); }
 };
 
+const handleMail = (event, text, sessionTitle) => {
+  event.stopPropagation();
+  try {
+    const subject = (sessionTitle || "Draft from CAOS").trim() || "Draft from CAOS";
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text || "")}`;
+  } catch {
+    toast.error("Email compose could not be opened");
+  }
+};
+
 /**
  * Renders a synthesized multi-agent reply with collapsible source columns.
  * The Synthesizer (Claude Sonnet 4.5) merges Claude + OpenAI + Gemini into one
  * consolidated answer. The 3 raw columns are tucked behind a "Show sources" toggle.
  */
-export const MultiAgentMessageGroup = ({ agents, synthesis, onSpeak, timestamp }) => {
+export const MultiAgentMessageGroup = ({ agents, synthesis, onSpeak, sessionTitle, timestamp }) => {
   const [focusedIndex, setFocusedIndex] = useState(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
 
@@ -69,6 +79,14 @@ export const MultiAgentMessageGroup = ({ agents, synthesis, onSpeak, timestamp }
               role="button"
             >
               <Volume2 size={11} />Read
+            </span>
+            <span
+              className="multi-agent-read"
+              data-testid="caos-multi-agent-synthesis-mail"
+              onClick={(event) => handleMail(event, synthesis.reply, sessionTitle)}
+              role="button"
+            >
+              <Mail size={11} />Mail
             </span>
             <span className="multi-agent-tokens">Claude Sonnet 4.5 · merged from {synthesis.source_labels?.join(" · ") || "agents"}</span>
           </div>
@@ -141,6 +159,14 @@ export const MultiAgentMessageGroup = ({ agents, synthesis, onSpeak, timestamp }
                       role="button"
                     >
                       <Volume2 size={11} />Read
+                    </span>
+                    <span
+                      className="multi-agent-read"
+                      data-testid={`caos-multi-agent-mail-${agent.provider}`}
+                      onClick={(event) => handleMail(event, agent.reply, sessionTitle)}
+                      role="button"
+                    >
+                      <Mail size={11} />Mail
                     </span>
                     <span className="multi-agent-tokens">{agent.wcw_used_estimate} tok</span>
                   </div>

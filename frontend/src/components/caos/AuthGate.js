@@ -39,12 +39,34 @@ export const AuthGate = () => {
   // of agency at second #1. Skip for guests.
   useEffect(() => {
     if (!user || user === "guest") return;
-    try {
-      const named = localStorage.getItem("caos_assistant_named") === "true";
-      const tourDone = localStorage.getItem("caos_tour_completed") === "true";
-      if (!named) setShowNamePicker(true);
-      else if (!tourDone) setShowTour(true);
-    } catch { /* noop */ }
+    let cancelled = false;
+    const syncOnboarding = async () => {
+      try {
+        const response = await axios.get(`${API}/caos/profile/${encodeURIComponent(user.email)}`, { withCredentials: true });
+        if (cancelled) return;
+        const hasAssistantName = Boolean(response.data?.assistant_name?.trim());
+        const tourDone = localStorage.getItem("caos_tour_completed") === "true";
+        if (hasAssistantName) {
+          try { localStorage.setItem("caos_assistant_named", "true"); } catch { /* noop */ }
+          setShowNamePicker(false);
+          if (!tourDone) setShowTour(true);
+          return;
+        }
+        const named = localStorage.getItem("caos_assistant_named") === "true";
+        if (!named) setShowNamePicker(true);
+        else if (!tourDone) setShowTour(true);
+      } catch {
+        if (cancelled) return;
+        try {
+          const named = localStorage.getItem("caos_assistant_named") === "true";
+          const tourDone = localStorage.getItem("caos_tour_completed") === "true";
+          if (!named) setShowNamePicker(true);
+          else if (!tourDone) setShowTour(true);
+        } catch { /* noop */ }
+      }
+    };
+    syncOnboarding();
+    return () => { cancelled = true; };
   }, [user]);
 
   const handleNameChosen = () => {

@@ -25,6 +25,7 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
   const [lightboxImage, setLightboxImage] = useState(null);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const scrollRef = useRef(null);
+  const sessionScrollRef = useRef("");
 
   // Track window scroll position to decide whether to show the jump-to-bottom FAB.
   useEffect(() => {
@@ -44,6 +45,18 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
       window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
     } catch { /* no-op */ }
   };
+
+  useEffect(() => {
+    const sessionId = currentSession?.session_id || "";
+    const sessionChanged = sessionScrollRef.current !== sessionId;
+    sessionScrollRef.current = sessionId;
+    if (!messages.length) return undefined;
+    const scrolled = window.scrollY || document.documentElement.scrollTop;
+    const remaining = document.documentElement.scrollHeight - window.innerHeight - scrolled;
+    if (!sessionChanged && remaining > 260) return undefined;
+    const timer = window.setTimeout(() => scrollToBottom(), 60);
+    return () => window.clearTimeout(timer);
+  }, [currentSession?.session_id, messages.length]);
 
   // Close lightbox on Escape
   useEffect(() => {
@@ -152,6 +165,7 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
                   synthesis={message.synthesis}
                   key={message.id}
                   onSpeak={onSpeak}
+                  sessionTitle={currentSession?.title}
                   timestamp={message.timestamp}
                 />
               );
