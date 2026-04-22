@@ -30,12 +30,12 @@ export const EngineChip = ({ activeProvider, activeModel, providerCatalog, onSel
         className="engine-chip"
         data-testid="caos-engine-chip"
         onClick={() => setIsOpen((value) => !value)}
-        title={`Engine: ${label} — click to switch`}
+        title={`Engine: ${label} — click to switch inference engine`}
         type="button"
       >
         <Zap size={13} />
         <strong data-testid="caos-engine-chip-label">{label}</strong>
-        <span className="engine-chip-hint" data-testid="caos-engine-chip-hint">click to switch</span>
+        <span className="engine-chip-hint" data-testid="caos-engine-chip-hint">click to switch engine</span>
       </button>
       {isOpen ? (
         <div className="engine-chip-menu" data-testid="caos-engine-chip-menu" role="menu">

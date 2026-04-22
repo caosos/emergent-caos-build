@@ -16,7 +16,18 @@ def _split_memories(memories: list[MemoryEntry]) -> tuple[list[MemoryEntry], lis
 def _format_history(history: list[MessageRecord]) -> str:
     if not history:
         return "No prior session history is available."
-    return "\n".join(f"{message.role.upper()}: {message.content}" for message in history)
+    lines: list[str] = []
+    for message in history:
+        # Prepend a compact timestamp so Aria can calculate temporal deltas
+        # ("this was said 3 days ago"). Falls back to role-only if missing.
+        ts = getattr(message, "timestamp", None)
+        try:
+            when = ts.strftime("%b %-d, %-I:%M %p") if ts else ""
+        except Exception:
+            when = str(ts) if ts else ""
+        stamp = f" [{when}]" if when else ""
+        lines.append(f"{message.role.upper()}{stamp}: {message.content}")
+    return "\n".join(lines)
 
 
 def _format_continuity(continuity_packet: dict) -> str:
@@ -96,8 +107,16 @@ def build_system_prompt_from_sections(sections: dict) -> str:
             "\n  - `[TOOL: grep_code pattern=<regex> path=/absolute/path glob=*.js]` — returns up to 50 matching `file:line: text` lines. Default glob is `*.py`; use `*.js` for frontend searches."
             "\n  After each tool result comes back, produce your next step: either another tool call (if you need more data) or the final user-facing reply (no more markers). Cite exact file paths and line numbers when you explain what you found. Secrets (`.env`, `*.key`, `*.pem`, `credentials*`, `secrets*`) are blocked at the tool layer — don't try to read them."
         )
+    import datetime as _dt
+    _now = _dt.datetime.now(_dt.timezone.utc)
+    _time_block = (
+        f"\n\nTIME_CONTEXT (authoritative — anchor ALL temporal math to this, NOT to any date you see in older messages):"
+        f"\n- Today is {_now.strftime('%A, %B %-d, %Y')}"
+        f"\n- Current UTC timestamp: {_now.strftime('%Y-%m-%dT%H:%M:%SZ')}"
+        f"\n- When you see phrases like 'in 7 days' or 'next week' in history, calculate relative to the date/time stamp on THAT message, not today. When the user asks 'what day is it?' or similar, answer with the date above."
+    )
     return f"""
-You are {sections.get('assistant_name', 'Aria')} inside {sections['environment_name']}, a continuous AI workspace.
+You are {sections.get('assistant_name', 'Aria')} inside {sections['environment_name']}, a continuous AI workspace.{_time_block}
 
 Operating rules:
 - Treat `session_id` as the active isolation boundary.
