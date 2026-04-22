@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 
 import { CaosShell } from "@/components/caos/CaosShell";
 import { LoginScreen } from "@/components/caos/LoginScreen";
+import { NameYourAssistant } from "@/components/caos/NameYourAssistant";
 import { WelcomeTour } from "@/components/caos/WelcomeTour";
 import { API } from "@/config/apiBase";
 
@@ -19,6 +20,7 @@ import { API } from "@/config/apiBase";
 export const AuthGate = () => {
   const [user, setUser] = useState(null);
   const [showTour, setShowTour] = useState(false);
+  const [showNamePicker, setShowNamePicker] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,14 +34,26 @@ export const AuthGate = () => {
     return () => { cancelled = true; };
   }, []);
 
-  // First-run detection: if authenticated and tour never completed, auto-open.
+  // First-run detection: on authenticated users, show the name-your-assistant
+  // modal ONCE before the welcome tour, so every user gets a personal moment
+  // of agency at second #1. Skip for guests.
   useEffect(() => {
     if (!user || user === "guest") return;
     try {
-      const done = localStorage.getItem("caos_tour_completed") === "true";
-      if (!done) setShowTour(true);
-    } catch {}
+      const named = localStorage.getItem("caos_assistant_named") === "true";
+      const tourDone = localStorage.getItem("caos_tour_completed") === "true";
+      if (!named) setShowNamePicker(true);
+      else if (!tourDone) setShowTour(true);
+    } catch { /* noop */ }
   }, [user]);
+
+  const handleNameChosen = () => {
+    setShowNamePicker(false);
+    try {
+      const tourDone = localStorage.getItem("caos_tour_completed") === "true";
+      if (!tourDone) setShowTour(true);
+    } catch { /* noop */ }
+  };
 
   const handleTakeTour = () => {
     // Guest tour path — show tour over the pre-login screen itself.
@@ -86,6 +100,11 @@ export const AuthGate = () => {
   return (
     <>
       <CaosShell authenticatedUser={shellUser} />
+      <NameYourAssistant
+        isOpen={showNamePicker}
+        userEmail={shellUser.email}
+        onChosen={handleNameChosen}
+      />
       <WelcomeTour
         isOpen={showTour}
         onClose={() => setShowTour(false)}
