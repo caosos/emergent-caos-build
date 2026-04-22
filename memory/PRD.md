@@ -448,3 +448,28 @@ User reported **messages tripling themselves while dictating** and screenshots s
 - User asked about platform analytics counts. Clarified that Emergent app analytics can include preview traffic, bots/crawlers, health checks, platform monitoring, and repeated requests — not necessarily real human users.
 - User also wants anonymous first-party product analytics later (active users/messages without personal identities). This is **not implemented yet**.
 
+## Boxed Layout / Missing Scrollbar Regression Fix (Apr 22, 2026 — rollback correction)
+
+### What regressed
+- A later round of scroll/header hotfixes accidentally pushed CAOS into a boxed-feeling state again:
+  - header styling became visually trapped inside a panel
+  - page scrollbar disappeared
+  - chat felt like it was inside a box instead of the full page
+
+### Root cause
+- The page-level scroll surface had been shifted to the wrong layer during the lock-up fixes.
+- A centered/fixed header width override plus top-level scroll container mismatch made the UI look boxed and hid true page scrolling.
+
+### Shipped correction
+- Restored **true page/window scrolling** with `html` as the scrolling surface again.
+- Set `body` back to non-scrolling so the app no longer behaves like a trapped internal body box.
+- Kept the header **full-width across the top of the viewport** instead of a centered boxed strip.
+- Kept the previous lock-up fix benefits: page still loads near the latest message and remains scrollable/reachable.
+
+### Verified
+- Header spans full viewport width.
+- Page/window is the active scrolling surface again.
+- Right-edge page scrollbar behavior restored.
+- Scrolling up from the latest-message position works.
+- Composer remains visible and starry background remains present.
+
