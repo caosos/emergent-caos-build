@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Backend test for CAOS temporal-anchor/hydration changes
-Testing the preview backend at https://cognitive-shell.preview.emergentagent.com
+Testing the preview backend at https://caos-workspace.preview.emergentagent.com
 """
 
 import requests
@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 
 # Test configuration
-BASE_URL = "https://cognitive-shell.preview.emergentagent.com/api"
+BASE_URL = "https://caos-workspace.preview.emergentagent.com/api"
 AUTH_HEADER = "Bearer test_session_b82ef2e35c02445c821a01d02179530a"
 SEEDED_USER_EMAIL = "seeded@example.com"
 SEEDED_SESSION_ID = "3bba52d9-07f0-44d8-b7e8-fc4afd7966d4"

@@ -6,7 +6,7 @@ Quick verification of existing links in the test session
 import requests
 import json
 
-BASE_URL = "https://cognitive-shell.preview.emergentagent.com"
+BASE_URL = "https://caos-workspace.preview.emergentagent.com"
 API_BASE = f"{BASE_URL}/api"
 AUTH_HEADER = "Bearer test_session_b82ef2e35c02445c821a01d02179530a"
 TEST_SESSION_ID = "3bba52d9-07f0-44d8-b7e8-fc4afd7966d4"

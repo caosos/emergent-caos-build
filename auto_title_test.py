@@ -9,7 +9,7 @@ import requests
 import time
 
 # Configuration
-BASE_URL = "https://cognitive-shell.preview.emergentagent.com"
+BASE_URL = "https://caos-workspace.preview.emergentagent.com"
 API_BASE = f"{BASE_URL}/api"
 
 def create_test_user() -> str:

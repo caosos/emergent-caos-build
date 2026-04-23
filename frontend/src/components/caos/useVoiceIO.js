@@ -33,43 +33,30 @@ export const useVoiceIO = ({ userEmail, voiceSettings }) => {
   }, [userEmail, voiceSettings.stt_fallback_model, voiceSettings.stt_language, voiceSettings.stt_primary_model]);
 
   const speakText = useCallback(async (text, overrides = {}) => {
-    // Primary: OpenAI TTS via backend proxy. Fallback: browser speechSynthesis.
-    // Backend TTS currently returns 500 at the Emergent proxy layer — fallback
-    // keeps Read Aloud functional while the support ticket is open.
+    // Primary: Browser's native speechSynthesis for instant playback.
+    // This avoids the 1-2 minute wait to download WAV files from OpenAI TTS API.
     // On Linux/Chrome without speech-dispatcher, voices may be empty — we wait
     // briefly for voiceschanged and then throw a specific, actionable error.
-    try {
-      const response = await axios.post(`${API}/caos/voice/tts`, {
-        text,
-        voice: overrides.voice || voiceSettings.tts_voice,
-        model: overrides.model || voiceSettings.tts_model,
-        speed: overrides.speed || voiceSettings.tts_speed,
-      });
-      const audio = new Audio(`data:${response.data.content_type};base64,${response.data.audio_base64}`);
-      await audio.play();
-      return audio;
-    } catch (error) {
-      if (typeof window === "undefined" || !window.speechSynthesis) {
-        throw new Error("Your browser doesn't support speech synthesis");
-      }
-      let voices = window.speechSynthesis.getVoices();
-      if (!voices || voices.length === 0) {
-        await new Promise((resolve) => {
-          const timer = setTimeout(resolve, 500);
-          window.speechSynthesis.onvoiceschanged = () => { clearTimeout(timer); resolve(); };
-        });
-        voices = window.speechSynthesis.getVoices();
-      }
-      if (!voices || voices.length === 0) {
-        throw new Error("No TTS voices on this system. On Ubuntu: sudo apt install speech-dispatcher");
-      }
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.rate = overrides.speed || voiceSettings.tts_speed || 1.0;
-      window.speechSynthesis.speak(utter);
-      return utter;
+    if (typeof window === "undefined" || !window.speechSynthesis) {
+      throw new Error("Your browser doesn't support speech synthesis");
     }
-  }, [voiceSettings.tts_model, voiceSettings.tts_speed, voiceSettings.tts_voice]);
+    let voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) {
+      await new Promise((resolve) => {
+        const timer = setTimeout(resolve, 500);
+        window.speechSynthesis.onvoiceschanged = () => { clearTimeout(timer); resolve(); };
+      });
+      voices = window.speechSynthesis.getVoices();
+    }
+    if (!voices || voices.length === 0) {
+      throw new Error("No TTS voices on this system. On Ubuntu: sudo apt install speech-dispatcher");
+    }
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = overrides.speed || voiceSettings.tts_speed || 1.0;
+    window.speechSynthesis.speak(utter);
+    return utter;
+  }, [voiceSettings.tts_speed]);
 
   return { transcribeAudio, transcribeAudioChunk, speakText };
 };

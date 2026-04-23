@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 CAOS Pre-Deploy Backend Sanity Pass
-Tests core readiness for deployment on https://cognitive-shell.preview.emergentagent.com/api
+Tests core readiness for deployment on https://caos-workspace.preview.emergentagent.com/api
 
 Focus areas:
 1. Session creation endpoint works
@@ -24,7 +24,7 @@ import aiohttp
 
 
 # Configuration
-BACKEND_URL = "https://cognitive-shell.preview.emergentagent.com/api"
+BACKEND_URL = "https://caos-workspace.preview.emergentagent.com/api"
 TEST_USER_EMAIL = "sanity-test-user@example.com"
 
 
