@@ -51,8 +51,23 @@ export const useVoiceIO = ({ userEmail, voiceSettings }) => {
     if (!voices || voices.length === 0) {
       throw new Error("No TTS voices on this system. On Ubuntu: sudo apt install speech-dispatcher");
     }
+    // Strip markdown formatting so it doesn't read "asterisk asterisk" etc.
+    const cleanText = text
+      .replace(/```[\s\S]*?```/g, " code block ") // code blocks
+      .replace(/`([^`]+)`/g, "$1") // inline code
+      .replace(/\*\*([^*]+)\*\*/g, "$1") // bold
+      .replace(/\*([^*]+)\*/g, "$1") // italic
+      .replace(/__([^_]+)__/g, "$1") // bold underscore
+      .replace(/_([^_]+)_/g, "$1") // italic underscore
+      .replace(/~~([^~]+)~~/g, "$1") // strikethrough
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links
+      .replace(/^#{1,6}\s+/gm, "") // headers
+      .replace(/^\s*[-*+]\s+/gm, "") // list bullets
+      .replace(/^\s*\d+\.\s+/gm, "") // numbered lists
+      .replace(/\n{3,}/g, "\n\n") // excessive newlines
+      .trim();
     window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
+    const utter = new SpeechSynthesisUtterance(cleanText);
     utter.rate = overrides.speed || voiceSettings.tts_speed || 1.0;
     window.speechSynthesis.speak(utter);
     return utter;
