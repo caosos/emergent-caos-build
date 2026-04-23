@@ -40,6 +40,11 @@ Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergen
 - Switched back to using the header's own background band instead of a separate overlay element, so the top of the app no longer shows a giant horizontal slab across messages.
 - Verified in preview with a lightweight screenshot check.
 
+## Response Formatting Upgrade (Apr 23, 2026 — shortly after midnight)
+- Added a reusable markdown renderer for assistant/system replies so CAOS now presents headings, bullets, numbered lists, code blocks, and markdown tables as formatted UI instead of raw markdown text.
+- Updated Aria's system prompt with a persistent formatting contract: structured markdown, real tables for comparisons, short paragraphs, fenced code blocks, and direct tone.
+- Verified with a seeded markdown-style assistant message plus preview smoke check; JS and Python lint both passed.
+
 ### Backend
 - `/api/caos/sessions`, `/messages`, `/artifacts`, `/continuity`
 - `POST /api/caos/chat` — non-streaming full pipeline

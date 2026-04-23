@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { LatencyIndicator } from "@/components/caos/LatencyIndicator";
+import { MarkdownMessage } from "@/components/caos/MarkdownMessage";
 import { MultiAgentMessageGroup } from "@/components/caos/MultiAgentMessageGroup";
 import { SelectionReactionPopover } from "@/components/caos/SelectionReactionPopover";
 
@@ -276,12 +277,19 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
                     <span /><span /><span />
                   </div>
                 ) : (
-                  <p data-testid={`caos-message-content-${message.id}`}>
-                    {message.content}
-                    {isPending && message.role === "assistant" && message.content ? (
-                      <span className="streaming-cursor" data-testid={`caos-streaming-cursor-${message.id}`}>▌</span>
-                    ) : null}
-                  </p>
+                  message.role === "assistant" || message.role === "system" ? (
+                    <MarkdownMessage
+                      content={`${message.content}${isPending && message.role === "assistant" && message.content ? "▌" : ""}`}
+                      testId={`caos-message-content-${message.id}`}
+                    />
+                  ) : (
+                    <p data-testid={`caos-message-content-${message.id}`}>
+                      {message.content}
+                      {isPending && message.role === "assistant" && message.content ? (
+                        <span className="streaming-cursor" data-testid={`caos-streaming-cursor-${message.id}`}>▌</span>
+                      ) : null}
+                    </p>
+                  )
                 )}
                 {message.error ? <div className="message-error-note" data-testid={`caos-message-error-${message.id}`}>{message.error}</div> : null}
                 {message.role === "user" && (userMessageAttachments[message.id]?.length || 0) > 0 ? (
