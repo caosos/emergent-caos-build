@@ -566,20 +566,7 @@ body .command-footer,
 }
 
 .message-pane-header-curtain {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 18;
-  display: block;
-  width: 100vw;
-  height: calc(var(--caos-header-height, 84px) + 6px);
-  margin-bottom: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(5, 6, 12, 0.82) 0%, rgba(5, 6, 12, 0.72) 100%),
-    radial-gradient(ellipse at 20% 10%, rgba(24, 24, 64, 0.28) 0%, transparent 55%),
-    radial-gradient(ellipse at 80% 90%, rgba(12, 24, 60, 0.22) 0%, transparent 55%);
+  display: none !important;
 }
 
 .message-scroll {
@@ -850,8 +837,9 @@ body .command-footer,
   right: 0;
   width: 100%;
   transform: none;
-  background: transparent !important;
-  box-shadow: none !important;
+  background:
+    linear-gradient(180deg, rgba(5, 6, 12, 0.92) 0%, rgba(6, 10, 22, 0.88) 72%, rgba(6, 10, 22, 0.46) 100%) !important;
+  box-shadow: 0 10px 28px rgba(2, 6, 23, 0.12) !important;
   backdrop-filter: none !important;
   border: none !important;
   min-height: var(--caos-header-height, 84px);

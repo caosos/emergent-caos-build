@@ -35,6 +35,11 @@ Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergen
 - Added subtle continuous motion back to the sky: drifting starfield background, gentle constellation float, and slow planet drift so the scene feels alive without looking busy.
 - Verified in preview that `caosStarfieldDrift`, `caosConstellationFloat`, and `caosPlanetFloat` are active.
 
+## Header Bar Removal (Apr 23, 2026 — midnight)
+- Removed the visible full-width message-cutting mask bar from the top of the thread area.
+- Switched back to using the header's own background band instead of a separate overlay element, so the top of the app no longer shows a giant horizontal slab across messages.
+- Verified in preview with a lightweight screenshot check.
+
 ### Backend
 - `/api/caos/sessions`, `/messages`, `/artifacts`, `/continuity`
 - `POST /api/caos/chat` — non-streaming full pipeline
