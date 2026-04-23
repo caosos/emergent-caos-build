@@ -566,18 +566,20 @@ body .command-footer,
 }
 
 .message-pane-header-curtain {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 18;
   display: block;
-  width: 100%;
-  height: calc(var(--caos-header-height, 84px) + 14px);
-  margin-bottom: calc(-1 * (var(--caos-header-height, 84px) + 14px));
+  width: 100vw;
+  height: calc(var(--caos-header-height, 84px) + 6px);
+  margin-bottom: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at top, rgba(59, 130, 246, 0.06), transparent 28%),
-    radial-gradient(circle at 80% 20%, rgba(14, 165, 233, 0.08), transparent 24%),
-    linear-gradient(180deg, #071120 0%, #09172a 42%, #030813 100%);
+    linear-gradient(180deg, rgba(5, 6, 12, 0.82) 0%, rgba(5, 6, 12, 0.72) 100%),
+    radial-gradient(ellipse at 20% 10%, rgba(24, 24, 64, 0.28) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 90%, rgba(12, 24, 60, 0.22) 0%, transparent 55%);
 }
 
 .message-scroll {
