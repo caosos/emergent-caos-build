@@ -91,7 +91,7 @@ export const ProfileDrawer = ({ authenticatedUser, deleteMemory, isOpen, memoryC
           </button>
         ) : null}
         <h2 data-testid="caos-profile-drawer-heading" style={{ textTransform: "capitalize" }}>
-          {activeView === "profile" ? "Profile" : activeView}
+          {activeView === "profile" ? "Settings" : activeView}
         </h2>
       </div>
       <button className="drawer-close-button" data-testid="caos-profile-drawer-close-button" onClick={onClose} type="button">

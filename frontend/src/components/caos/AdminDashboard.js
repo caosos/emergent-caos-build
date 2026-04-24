@@ -8,6 +8,7 @@ export const AdminDashboard = ({ onClose }) => {
   const [tokenUsage, setTokenUsage] = useState(null);
   const [dailyUsage, setDailyUsage] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
@@ -17,6 +18,7 @@ export const AdminDashboard = ({ onClose }) => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const [metricsRes, tokenRes, dailyRes] = await Promise.all([
         axios.get(`${API}/admin/dashboard/metrics`),
         axios.get(`${API}/admin/dashboard/token-usage`),
@@ -27,6 +29,7 @@ export const AdminDashboard = ({ onClose }) => {
       setDailyUsage(dailyRes.data);
     } catch (error) {
       console.error("Failed to load dashboard:", error);
+      setError(error.response?.data?.detail || error.message || "Failed to load dashboard");
     } finally {
       setLoading(false);
     }
@@ -36,7 +39,41 @@ export const AdminDashboard = ({ onClose }) => {
     return (
       <div className="admin-dashboard-overlay">
         <div className="admin-dashboard-shell">
+          <div className="admin-dashboard-header">
+            <h1>🛡️ Admin Dashboard</h1>
+            <button className="admin-close-btn" onClick={onClose}>✕</button>
+          </div>
           <div className="admin-loading">Loading dashboard...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="admin-dashboard-overlay">
+        <div className="admin-dashboard-shell">
+          <div className="admin-dashboard-header">
+            <h1>🛡️ Admin Dashboard</h1>
+            <button className="admin-close-btn" onClick={onClose}>✕</button>
+          </div>
+          <div className="admin-loading" style={{ color: "#ef4444" }}>
+            ❌ Error: {error}
+            <button 
+              onClick={loadDashboardData}
+              style={{ 
+                marginTop: "16px", 
+                padding: "8px 16px", 
+                background: "#8b5cf6", 
+                border: "none", 
+                borderRadius: "8px", 
+                color: "#fff", 
+                cursor: "pointer" 
+              }}
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </div>
     );
