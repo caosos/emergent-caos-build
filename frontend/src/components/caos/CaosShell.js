@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 
 import { AdminDocsDrawer } from "@/components/caos/AdminDocsDrawer";
+import { AdminDashboard } from "@/components/caos/AdminDashboard";
 import { ArtifactsDrawer } from "@/components/caos/ArtifactsDrawer";
 import { Composer } from "@/components/caos/Composer";
 import { ConstellationLayer } from "@/components/caos/ConstellationLayer";
@@ -26,6 +27,7 @@ import "./caos-base44-parity-v3.css";
 export const CaosShell = ({ authenticatedUser }) => {
   const [draft, setDraft] = useState("");
   const [showAdminDocs, setShowAdminDocs] = useState(false);
+  const [showAdminDashboard, setShowAdminDashboard] = useState(false);
   const [showSupport, setShowSupport] = useState(false);
   const [showArtifacts, setShowArtifacts] = useState(false);
   const [artifactsFilter, setArtifactsFilter] = useState("files");
@@ -192,6 +194,10 @@ export const CaosShell = ({ authenticatedUser }) => {
     setShowAdminDocs(true);
   };
 
+  const openAdminDashboard = () => {
+    setShowAdminDashboard(true);
+  };
+
   const handleWelcomeAction = (action) => {
     if (action === "image") {
       openArtifacts();
@@ -222,6 +228,7 @@ export const CaosShell = ({ authenticatedUser }) => {
           window.location.replace("/");
         }}
         onNewThread={() => { createSession("New Thread"); }}
+        onOpenAdminDashboard={openAdminDashboard}
         onOpenAdminDocs={openAdminDocs}
         onOpenFiles={(filter) => { setArtifactsFilter(filter || "files"); setShowArtifacts(true); }}
         onOpenProfile={openProfile}
@@ -372,6 +379,9 @@ export const CaosShell = ({ authenticatedUser }) => {
         isOpen={showAdminDocs}
         onClose={() => setShowAdminDocs(false)}
       />
+      {showAdminDashboard && (
+        <AdminDashboard onClose={() => setShowAdminDashboard(false)} />
+      )}
       <SupportTicketsDrawer
         isAdmin={isAdmin}
         isOpen={showSupport}

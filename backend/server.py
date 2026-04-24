@@ -10,6 +10,7 @@ from app.config import settings
 from app.db import client, db
 from app.routes.auth import router as auth_router
 from app.routes.admin_docs import router as admin_docs_router
+from app.routes.admin_dashboard import router as admin_dashboard_router
 from app.routes.caos import router as caos_router
 from app.routes.health import router as health_router
 from app.routes.memory_profile import router as memory_profile_router
@@ -82,6 +83,7 @@ app.include_router(auth_router, prefix="/api")
 app.include_router(health_router, prefix="/api")
 app.include_router(caos_router, prefix="/api")
 app.include_router(admin_docs_router, prefix="/api")
+app.include_router(admin_dashboard_router, prefix="/api")
 app.include_router(memory_profile_router, prefix="/api")
 app.include_router(memory_workers_router, prefix="/api")
 app.include_router(support_router, prefix="/api")

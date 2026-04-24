@@ -7,22 +7,42 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.db import collection
 
 
-# Tier configurations
+# Tier configurations: Free → Novice → Skilled → Elite → Pro → Enterprise
 TIERS = {
     "free": {
-        "daily_tokens": 50000,  # 50k tokens/day (~10-15 solid interactions)
-        "name": "Free Tier",
-        "description": "Perfect for trying out CAOS",
+        "daily_tokens": 50000,  # 50k tokens/month (~20 chats)
+        "name": "Free",
+        "description": "Trial tier - get started with CAOS",
+    },
+    "novice": {
+        "daily_tokens": 250000,  # 250k tokens/month (~100 chats)
+        "name": "Novice",
+        "description": "$10/month - Casual users",
+        "price_monthly": 10,
+    },
+    "skilled": {
+        "daily_tokens": 500000,  # 500k tokens/month (~200 chats)
+        "name": "Skilled",
+        "description": "$20/month - Regular users",
+        "price_monthly": 20,
+    },
+    "elite": {
+        "daily_tokens": 2000000,  # 2M tokens/month (~800 chats)
+        "name": "Elite",
+        "description": "$50/month - Active power users",
+        "price_monthly": 50,
     },
     "pro": {
-        "daily_tokens": 500000,  # 500k tokens/day
-        "name": "Pro Tier",
-        "description": "$10/month - For power users",
+        "daily_tokens": 5000000,  # 5M tokens/month (~2k chats)
+        "name": "Pro",
+        "description": "$100/month - Professional users",
+        "price_monthly": 100,
     },
-    "unlimited": {
-        "daily_tokens": float("inf"),
-        "name": "Unlimited",
-        "description": "$30/month - No limits",
+    "enterprise": {
+        "daily_tokens": 10000000,  # 10M tokens/month (~4k chats)
+        "name": "Enterprise",
+        "description": "$200/month - Teams & businesses",
+        "price_monthly": 200,
     },
 }
 
