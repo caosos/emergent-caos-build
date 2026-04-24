@@ -2,9 +2,9 @@
    Z-index 400 so it sits above the admin dashboard (300) and drawers (200). */
 
 .vfm-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 400;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 400 !important;
   background: radial-gradient(ellipse at 50% 50%, rgba(30, 41, 59, 0.96) 0%, rgba(2, 6, 23, 0.99) 70%);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
