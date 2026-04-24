@@ -114,8 +114,23 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
   };
 
   const stopRecording = () => {
-    if (recorderRef.current?.state !== "inactive") {
-      recorderRef.current.stop();
+    // Force stop immediately - don't wait for state check
+    if (recorderRef.current) {
+      try {
+        if (recorderRef.current.state !== "inactive") {
+          recorderRef.current.stop();
+        }
+      } catch (error) {
+        // Force cleanup even if stop() fails
+        console.error("Stop recording error:", error);
+      }
+      // Immediately clean up stream
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+      setRecording(false);
+      setLiveStatus("");
     }
   };
 
@@ -184,9 +199,11 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
         liveTranscriptRef.current = merged;
         setLiveTranscript(merged);
         onDraftChange(joinDraft(initialDraftRef.current, merged));
-        setLiveStatus(`Streaming with ${response.model_used}${response.fallback_used ? " (fallback)" : ""}`);
+        // Don't show streaming status - clean UI only
+        setLiveStatus("");
       } catch {
-        setLiveStatus("Streaming unavailable — final transcript will still be added.");
+        // Silently handle streaming errors - don't show to user
+        setLiveStatus("");
       }
     };
     recorder.onstop = async () => {
@@ -198,9 +215,15 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
         setLiveTranscript(text);
         onDraftChange(joinDraft(initialDraftRef.current, text));
         setLiveStatus("");
-      } catch {
+      } catch (error) {
+        // Use captured live transcript if final call fails
         onDraftChange(joinDraft(initialDraftRef.current, liveTranscriptRef.current));
-        setLiveStatus("Transcription failed — using live stream capture.");
+        setLiveStatus("");
+        if (liveTranscriptRef.current) {
+          toast.info("Using live transcript");
+        } else {
+          toast.error("Transcription failed - please try again");
+        }
       }
       setRecording(false);
       streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -424,8 +447,6 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
           <span className="composer-equalizer-label">Recording</span>
         </div>
       ) : null}
-      {recording && liveStatus ? <div className="composer-live-status" data-testid="caos-composer-live-status">{liveStatus}</div> : null}
-      {recording && liveTranscript ? <div className="composer-live-transcript" data-testid="caos-composer-live-transcript">{liveTranscript}</div> : null}
       {showStatus ? <div className="composer-status" data-testid="caos-composer-status">{transientStatus}</div> : null}
     </form>
   );
