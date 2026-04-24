@@ -126,7 +126,7 @@
 
 .message-scroll {
   width: min(100%, 980px);
-  padding-bottom: 260px;
+  padding-bottom: 40px;
 }
 
 .message-bubble {
