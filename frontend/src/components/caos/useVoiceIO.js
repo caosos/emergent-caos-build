@@ -1,14 +1,16 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import axios from "axios";
 
 import { API } from "@/config/apiBase";
 
 /**
- * Voice I/O hook — Whisper transcription (full + chunk) and OpenAI TTS with
- * browser speechSynthesis fallback. Lives outside useCaosShell to keep the
- * shell orchestrator under the 400-line GOV v1.2 cap.
+ * Voice I/O hook — Whisper transcription (full + chunk) and browser TTS.
+ * Lives outside useCaosShell to keep the shell orchestrator under 400 lines.
  */
 export const useVoiceIO = ({ userEmail, voiceSettings }) => {
+  // Track active utterance globally so stop button can cancel properly
+  const activeUtteranceRef = useRef(null);
+
   const transcribeAudio = useCallback(async (blob, filename = "caos-voice-note.webm") => {
     const form = new FormData();
     form.append("user_email", userEmail);
@@ -34,9 +36,12 @@ export const useVoiceIO = ({ userEmail, voiceSettings }) => {
 
   const speakText = useCallback(async (text, overrides = {}) => {
     // Primary: Browser's native speechSynthesis for instant playback.
-    // This avoids the 1-2 minute wait to download WAV files from OpenAI TTS API.
-    // On Linux/Chrome without speech-dispatcher, voices may be empty — we wait
-    // briefly for voiceschanged and then throw a specific, actionable error.
+    // Cancel any existing speech first (fixes stop button buffering issue)
+    if (activeUtteranceRef.current) {
+      window.speechSynthesis.cancel();
+      activeUtteranceRef.current = null;
+    }
+    
     if (typeof window === "undefined" || !window.speechSynthesis) {
       throw new Error("Your browser doesn't support speech synthesis");
     }
@@ -66,9 +71,15 @@ export const useVoiceIO = ({ userEmail, voiceSettings }) => {
       .replace(/^\s*\d+\.\s+/gm, "") // numbered lists
       .replace(/\n{3,}/g, "\n\n") // excessive newlines
       .trim();
-    window.speechSynthesis.cancel();
+    
     const utter = new SpeechSynthesisUtterance(cleanText);
     utter.rate = overrides.speed || voiceSettings.tts_speed || 1.0;
+    
+    // Cleanup when speech ends naturally
+    utter.onend = () => { activeUtteranceRef.current = null; };
+    utter.onerror = () => { activeUtteranceRef.current = null; };
+    
+    activeUtteranceRef.current = utter;
     window.speechSynthesis.speak(utter);
     return utter;
   }, [voiceSettings.tts_speed]);

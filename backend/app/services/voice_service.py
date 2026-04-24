@@ -27,17 +27,11 @@ OPENAI_TTS_MODELS = ["gpt-4o-mini-tts", "tts-1", "tts-1-hd"]
 OPENAI_STT_MODELS = ["gpt-4o-mini-transcribe", "whisper-1"]
 
 # Whisper/GPT-4o-transcribe hallucinate these exact phrases when given silence
-# or near-silent audio. Observed in the wild: repeated "Bye-bye." / "Thank you."
-# / "Subtitles by the Amara.org community" loops. Drop them entirely.
-# Entries are normalized (lowercase, no trailing punctuation/space).
+# or near-silent audio. Only drop VERY obvious hallucinations to avoid filtering
+# real speech. Entries are normalized (lowercase, no trailing punctuation/space).
 _SILENCE_HALLUCINATIONS = {
-    "bye-bye", "bye bye", "bye", "buh-bye",
-    "thank you", "thanks", "thanks for watching", "thank you for watching",
-    "thank you so much", "thank you very much",
     "subtitles by the amara.org community",
     "subtitles by steamteam",
-    "see you next time", "see you",
-    "you",
 }
 
 
