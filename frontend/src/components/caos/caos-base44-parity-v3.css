@@ -1420,6 +1420,20 @@ body .command-footer,
 }
 
 /* =========================================================
+   FIX: Prevent scrolling past the last message into dead space.
+   `caos-redesign-shell.css` line 163 forces `.caos-main-column`
+   to `min-height: calc(100vh - 110px)`, which creates a huge
+   empty void below the last message in short threads. Override
+   so the column sizes to its content.
+   ========================================================= */
+.caos-shell-no-rail .caos-main-column,
+.caos-main-column {
+  min-height: 0 !important;
+  overscroll-behavior: contain;
+}
+html, body { overscroll-behavior-y: contain; }
+
+/* =========================================================
    FIX: Message bubbles — Base44-level transparency so stars+planets
    show through clearly. User bubble tint stays for readability but
    drops to ~0.32 alpha; assistant goes to ~0.22.
