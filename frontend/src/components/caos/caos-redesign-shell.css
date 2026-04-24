@@ -160,8 +160,8 @@
 .caos-main-column {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 110px);
-  padding-bottom: 220px; /* leave room for the fixed composer */
+  min-height: 0;
+  padding-bottom: 70px; /* one-step gap above the fixed composer */
 }
 
 .message-pane {
