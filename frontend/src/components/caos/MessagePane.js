@@ -1,4 +1,4 @@
-import { ArrowDown, Clock, Copy, CornerDownLeft, FileSearch, Mail, Paperclip, ThumbsUp, Volume2, X } from "lucide-react";
+import { ArrowDown, Clock, Copy, CornerDownLeft, FileSearch, Globe, Mail, Paperclip, ThumbsUp, Volume2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -10,6 +10,17 @@ import { SelectionReactionPopover } from "@/components/caos/SelectionReactionPop
 
 const formatRole = (role) => (role === "assistant" ? "CAOS" : role === "user" ? "MY" : "System");
 const formatTimestamp = (value) => new Date(value).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+const PROVIDER_LABELS = { openai: "OpenAI", anthropic: "Claude", gemini: "Gemini", xai: "Grok" };
+const providerLabelFrom = (inference_provider) => {
+  if (!inference_provider || typeof inference_provider !== "string") return "";
+  const provider = inference_provider.split(":")[0]?.toLowerCase();
+  return PROVIDER_LABELS[provider] || "";
+};
+const hasLiveWebTool = (tools_used) => {
+  if (!Array.isArray(tools_used)) return false;
+  return tools_used.some((t) => t === "web_fetch" || t === "github_fetch");
+};
 const formatFullDate = (value) => {
   try {
     const d = new Date(value);
@@ -266,6 +277,23 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
               >
                 <div className="message-bubble-topline">
                   <strong data-testid={`caos-message-role-${message.id}`}>{formatRole(message.role)}</strong>
+                  {message.role === "assistant" && providerLabelFrom(message.inference_provider) ? (
+                    <span
+                      className={`caos-engine-chip caos-engine-chip-${(message.inference_provider || "").split(":")[0]?.toLowerCase() || "default"}`}
+                      data-testid={`caos-message-engine-chip-${message.id}`}
+                      title={message.inference_provider}
+                    >{providerLabelFrom(message.inference_provider)}</span>
+                  ) : null}
+                  {message.role === "assistant" && hasLiveWebTool(message.tools_used) ? (
+                    <span
+                      className="caos-live-web-chip"
+                      data-testid={`caos-message-live-web-chip-${message.id}`}
+                      title={`Live data via ${(message.tools_used || []).join(", ")}`}
+                    >
+                      <Globe size={10} />
+                      <span>live</span>
+                    </span>
+                  ) : null}
                   <span data-testid={`caos-message-time-${message.id}`}>{formatTimestamp(message.timestamp)}</span>
                   {isFailed ? <span className="message-failed-chip" data-testid={`caos-message-failed-chip-${message.id}`}>Issue</span> : null}
                   {message.role === "assistant" && linkedReceipt ? (

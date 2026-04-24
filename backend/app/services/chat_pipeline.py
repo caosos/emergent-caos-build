@@ -200,11 +200,16 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     # Tool access now open to all authenticated users (freemium model).
     from app.services.aria_tools import extract_and_run_next_tool
     tool_iterations = 0
+    tools_used: list[str] = []
+    _TOOL_NAME_RX = __import__("re").compile(r"\[TOOL:\s*(\w+)")
     while tool_iterations < 3:
         marker, result = extract_and_run_next_tool(reply)
         if not marker or result is None:
             break
         tool_iterations += 1
+        name_match = _TOOL_NAME_RX.search(marker)
+        if name_match:
+            tools_used.append(name_match.group(1))
         # Persist Aria's partial (tool-requesting) reply into the chat history
         # so the next turn has context of what she asked for.
         await chat._add_assistant_message(pending_messages, reply)
@@ -255,6 +260,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         content=reply,
         inference_provider=f"{runtime['provider']}:{runtime['model']}",
         latency_ms=latency_ms,
+        tools_used=tools_used,
         metadata_tags=["SESSION_MEMORY", "SANITIZED_CONTEXT"],
     )
     assistant_doc = assistant_message.model_dump()

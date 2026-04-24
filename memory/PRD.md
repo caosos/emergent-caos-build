@@ -572,3 +572,27 @@ User reported **messages tripling themselves while dictating** and screenshots s
 - Ask Aria to test: "Fetch https://example.com and summarize it" or "Read README from facebook/react on GitHub" — confirm the new tools respond.
 
 
+
+## Engine Chip + Live-Web Chip on Assistant Replies (Apr 24, 2026 — late)
+
+User requested two transparency chips next to the `CAOS` role label on every assistant reply, smaller than Base44's yellow "Claude" pill:
+
+### Shipped
+- **Engine chip (tiny pill)** — shows which inference engine actually answered that turn. Color-coded per provider so it's instantly legible at a glance:
+  - `openai:*` → green `OpenAI`
+  - `anthropic:*` → yellow `Claude`
+  - `gemini:*` → blue `Gemini`
+  - `xai:*` → pink `Grok`
+  - Hover reveals the full `provider:model` string (e.g., `openai:gpt-5.2`). Reads from `message.inference_provider` which was already stored on every `MessageRecord` — zero backend data migration.
+- **LIVE chip (purple with globe icon + pulse animation)** — appears next to the engine chip whenever Aria used `web_fetch` or `github_fetch` on that turn, so you can tell at a glance that her answer came from real-time sources, not training data. Hover reveals exactly which tools ran.
+
+### Implementation
+- `MessageRecord` schema gained `tools_used: list[str] = []`.
+- `chat_pipeline.run_chat_turn` now collects tool names from markers during the agent loop and sets them on the saved assistant message. Both `/chat` and `/chat/stream` endpoints are covered (they share the same pipeline).
+- `MessagePane.js` renders the chips inside the existing `.message-bubble-topline` row, only on assistant bubbles, skipping multi-agent messages which already have their own per-agent cards.
+- New CSS in `caos-base44-parity-v3.css`: 9.5 px font, JetBrains Mono, pill border ~999 px, provider-tinted text/border/glow, breathing pulse on the LIVE chip.
+
+### Verified
+- Seeded 3 assistant messages across OpenAI / Claude / Gemini, two of them with `tools_used=["web_fetch"]` / `["github_fetch"]`, one with none. Screenshot: all 3 engine chips rendered with correct colors, both LIVE chips visible with globe icon on the two tool-using replies, none on the plain chat reply. Frontend + backend lint clean.
+
+

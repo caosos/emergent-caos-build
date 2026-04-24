@@ -1441,3 +1441,74 @@ body .command-footer,
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
+
+/* =========================================================
+   Engine chip (tiny) + Live-web chip on assistant replies
+   Smaller than Base44's "Claude" pill — sits next to CAOS label
+   ========================================================= */
+.caos-engine-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.caos-engine-chip-openai {
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.35);
+  background: rgba(52, 211, 153, 0.08);
+  text-shadow: 0 0 6px rgba(52, 211, 153, 0.25);
+}
+.caos-engine-chip-anthropic {
+  color: #fcd34d;
+  border-color: rgba(250, 204, 21, 0.38);
+  background: rgba(250, 204, 21, 0.08);
+  text-shadow: 0 0 6px rgba(250, 204, 21, 0.25);
+}
+.caos-engine-chip-gemini {
+  color: #7dd3fc;
+  border-color: rgba(125, 211, 252, 0.38);
+  background: rgba(125, 211, 252, 0.09);
+  text-shadow: 0 0 6px rgba(125, 211, 252, 0.25);
+}
+.caos-engine-chip-xai {
+  color: #f9a8d4;
+  border-color: rgba(244, 114, 182, 0.38);
+  background: rgba(244, 114, 182, 0.08);
+  text-shadow: 0 0 6px rgba(244, 114, 182, 0.25);
+}
+
+.caos-live-web-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px 1px 6px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #a78bfa;
+  background: rgba(167, 139, 250, 0.10);
+  border: 1px solid rgba(167, 139, 250, 0.40);
+  box-shadow: 0 0 10px rgba(167, 139, 250, 0.18);
+  line-height: 1.2;
+  white-space: nowrap;
+  animation: caosLiveWebPulse 3s ease-in-out infinite;
+}
+.caos-live-web-chip svg { color: #c4b5fd; flex: none; }
+@keyframes caosLiveWebPulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(167, 139, 250, 0.18); }
+  50% { box-shadow: 0 0 14px rgba(167, 139, 250, 0.34); }
+}
+
