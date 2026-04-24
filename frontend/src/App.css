@@ -789,7 +789,7 @@ body {
     width: min(100%, 960px);
     height: auto;
     margin-inline: auto;
-    padding-bottom: 40px;
+    padding-bottom: 12px;
     justify-items: stretch;
     overflow: visible;
 }

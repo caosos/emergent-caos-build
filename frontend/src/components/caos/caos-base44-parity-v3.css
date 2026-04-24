@@ -448,8 +448,8 @@ body .command-footer,
 }
 
 /* Make space at the page bottom so the last message isn't tucked under the floating composer */
-.caos-shell-no-rail .caos-main-column { padding-bottom: 40px !important; }
-.message-scroll { padding-bottom: 40px !important; }
+.caos-shell-no-rail .caos-main-column { padding-bottom: 12px !important; }
+.message-scroll { padding-bottom: 12px !important; }
 
 .caos-shell-no-rail .message-pane,
 .caos-shell-no-rail .message-scroll {
