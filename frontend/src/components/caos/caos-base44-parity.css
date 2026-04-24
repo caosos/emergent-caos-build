@@ -127,11 +127,26 @@
 }
 .caos-header-identity-menu-item:hover { background: rgba(255, 255, 255, 0.06); }
 
-/* WCW meter pill (right) */
+/* WCW meter pill (right) — clickable: opens the Context Inspector */
 .caos-header-wcw {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 11px; color: rgba(229, 231, 235, 0.75);
-  letter-spacing: 0.05em; padding: 4px 4px 4px 2px;
+  letter-spacing: 0.05em; padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+  font-family: inherit;
+}
+.caos-header-wcw:hover {
+  background: rgba(52, 211, 153, 0.08);
+  border-color: rgba(52, 211, 153, 0.35);
+  color: rgba(229, 231, 235, 0.95);
+}
+.caos-header-wcw:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.35);
 }
 .caos-header-wcw-divider { opacity: 0.4; }
 .caos-header-wcw-bar {

@@ -29,6 +29,7 @@ export const ShellHeader = ({
   onOpenAdminDashboard,
   onOpenAdminDocs,
   onOpenFiles,
+  onOpenInspector,
   onOpenProfile,
   onOpenSupport,
   onOpenSwarm,
@@ -140,14 +141,20 @@ export const ShellHeader = ({
             </div>
           ) : null}
         </div>
-        <div className="caos-header-wcw" data-testid="caos-header-wcw" title="Working Context Window (live)">
+        <button
+          className="caos-header-wcw"
+          data-testid="caos-header-wcw"
+          onClick={onOpenInspector}
+          title="Working Context Window — click to inspect what's in context"
+          type="button"
+        >
           <span data-testid="caos-header-wcw-used">{formatTokens(wcwUsed)}</span>
           <span className="caos-header-wcw-divider">/</span>
           <span data-testid="caos-header-wcw-budget">{formatTokens(wcwBudget)}</span>
           <div className="caos-header-wcw-bar" data-testid="caos-header-wcw-bar">
             <div className="caos-header-wcw-fill" style={{ width: `${percent}%` }} />
           </div>
-        </div>
+        </button>
       </div>
     </header>
   );

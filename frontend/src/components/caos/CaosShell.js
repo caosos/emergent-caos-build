@@ -270,6 +270,7 @@ export const CaosShell = ({ authenticatedUser }) => {
         onOpenAdminDashboard={openAdminDashboard}
         onOpenAdminDocs={openAdminDocs}
         onOpenFiles={(filter) => { setArtifactsFilter(filter || "files"); setShowArtifacts(true); }}
+        onOpenInspector={() => setShowInspector(true)}
         onOpenProfile={openProfile}
         onOpenSupport={() => setShowSupport(true)}
         onOpenSwarm={() => setShowSwarm(true)}
