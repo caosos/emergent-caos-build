@@ -211,34 +211,33 @@ async def get_activity_14d(user: dict = Depends(require_admin)):
 
 @router.get("/dashboard/errors")
 async def get_errors(user: dict = Depends(require_admin)):
-    """Error stats. Sourced from the support_tickets collection (category=bug)
-    plus the chat_pipeline's failure counter. If nothing is logged, returns
-    empty counts — UI renders a 'No errors yet' state.
+    """Error stats. Sourced from the `error_log` collection (populated by
+    `app.services.error_logger`). If empty, UI renders a 'No errors yet' state.
     """
-    now = datetime.now(timezone.utc)
-    today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc).isoformat()
-    week_ago = (now - timedelta(days=7)).isoformat()
+    from app.services.error_logger import get_error_stats
+    return await get_error_stats()
 
-    tickets_col = collection("support_tickets")
-    total_logged = await tickets_col.count_documents({"category": "bug"})
-    this_week = await tickets_col.count_documents({"category": "bug", "created_at": {"$gte": week_ago}})
-    today = await tickets_col.count_documents({"category": "bug", "created_at": {"$gte": today_start}})
 
-    # Breakdown — group bugs by the `source` field (aria_filed / user_filed / webhook / etc.)
-    type_pipeline = [
-        {"$match": {"category": "bug"}},
-        {"$group": {"_id": {"$ifNull": ["$source", "unknown"]}, "count": {"$sum": 1}}},
-        {"$sort": {"count": -1}},
-    ]
-    type_rows = await tickets_col.aggregate(type_pipeline).to_list(20)
-    by_type = {row["_id"]: row["count"] for row in type_rows}
+@router.get("/dashboard/errors/recent")
+async def get_recent_errors(user: dict = Depends(require_admin)):
+    from app.services.error_logger import list_recent_errors
+    rows = await list_recent_errors(limit=50)
+    return {"errors": rows}
 
-    return {
-        "total_logged": total_logged,
-        "this_week": this_week,
-        "today": today,
-        "by_type": by_type,
-    }
+
+@router.get("/dashboard/engine-timeline/{session_id}")
+async def get_engine_timeline(session_id: str, user: dict = Depends(require_admin)):
+    """Per-session audit: which engine answered each assistant turn, in order.
+    Feeds the 'Engine Timeline' artifact view.
+    """
+    rows = await collection("messages").find(
+        {"session_id": session_id, "role": "assistant"},
+        {"_id": 0, "id": 1, "timestamp": 1, "inference_provider": 1, "latency_ms": 1, "tools_used": 1, "content": 1},
+    ).sort("timestamp", 1).to_list(1000)
+    # Trim content preview
+    for row in rows:
+        row["preview"] = (row.pop("content", "") or "")[:140]
+    return {"session_id": session_id, "turns": rows}
 
 
 @router.get("/dashboard/token-usage")

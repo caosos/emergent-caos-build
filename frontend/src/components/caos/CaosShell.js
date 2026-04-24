@@ -36,6 +36,17 @@ export const CaosShell = ({ authenticatedUser }) => {
   const [showSearch, setShowSearch] = useState(false);
   const [showSwarm, setShowSwarm] = useState(false);
   const [showThreadExplorer, setShowThreadExplorer] = useState(false);
+
+  // Apply user preferences (ambient mode + bubble opacity) on boot so the
+  // setting survives refresh without needing to open the Settings drawer.
+  useEffect(() => {
+    try {
+      const ambient = localStorage.getItem("caos_ambient_mode") === "true";
+      if (ambient) document.documentElement.setAttribute("data-caos-ambient", "true");
+      const opacity = Number(localStorage.getItem("caos_bubble_opacity"));
+      if (opacity > 0) document.documentElement.style.setProperty("--caos-bubble-opacity", String(opacity));
+    } catch { /* no-op */ }
+  }, []);
   const {
     artifacts,
     busy,

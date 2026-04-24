@@ -105,7 +105,8 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
       const target = resolveScrollTarget();
       const node = target.node;
       const viewport = target.mode === "container" ? node.clientHeight : window.innerHeight;
-      const step = Math.max(240, Math.round(viewport * 0.85));
+      const settingStep = Number(localStorage.getItem("caos_scroll_step_px")) || 0;
+      const step = settingStep > 0 ? settingStep : Math.max(240, Math.round(viewport * 0.85));
       const currentTop = target.mode === "container"
         ? node.scrollTop
         : (window.scrollY || document.documentElement.scrollTop || 0);

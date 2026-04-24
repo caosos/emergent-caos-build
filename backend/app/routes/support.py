@@ -38,6 +38,27 @@ async def _insert_ticket(
     doc["created_at"] = doc["created_at"].isoformat()
     doc["updated_at"] = doc["updated_at"].isoformat()
     await collection("support_tickets").insert_one(doc)
+
+    # Best-effort email notification via Resend. No-op if RESEND_API_KEY unset.
+    try:
+        import os as _os
+        from app.services.resend_service import send_email, render_ticket_created
+        admin_inbox = (_os.environ.get("CARE_ADMIN_EMAIL") or "").strip()
+        html = render_ticket_created(
+            ticket_id=record.id,
+            title=record.title,
+            body=record.description,
+            user_email=record.user_email,
+            status=record.status,
+        )
+        subject = f"[CAOS Care] {record.category.upper()} · {record.title[:80]}"
+        recipients = [record.user_email]
+        if admin_inbox and admin_inbox not in recipients:
+            recipients.append(admin_inbox)
+        await send_email(to=recipients, subject=subject, html=html)
+    except Exception as email_err:  # pragma: no cover — best-effort
+        print(f"CAOS ticket email notify skipped: {email_err}")
+
     return record
 
 

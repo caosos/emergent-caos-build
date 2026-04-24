@@ -199,11 +199,13 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     # here as defense-in-depth).
     # Tool access now open to all authenticated users (freemium model).
     from app.services.aria_tools import extract_and_run_next_tool
+    from app.routes.connectors import get_github_token_for
+    _tool_context = {"github_token": await get_github_token_for(payload.user_email)}
     tool_iterations = 0
     tools_used: list[str] = []
     _TOOL_NAME_RX = __import__("re").compile(r"\[TOOL:\s*(\w+)")
     while tool_iterations < 3:
-        marker, result = extract_and_run_next_tool(reply)
+        marker, result = extract_and_run_next_tool(reply, context=_tool_context)
         if not marker or result is None:
             break
         tool_iterations += 1

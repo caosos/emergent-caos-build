@@ -1423,27 +1423,56 @@ body .command-footer,
    FIX: Message bubbles — Base44-level transparency so stars+planets
    show through clearly. User bubble tint stays for readability but
    drops to ~0.32 alpha; assistant goes to ~0.22.
+   --caos-bubble-opacity is user-adjustable (Settings slider); default 0.32.
    ========================================================= */
+:root { --caos-bubble-opacity: 0.32; }
+
 .message-bubble-user {
   background: linear-gradient(135deg,
-    rgba(109, 40, 217, 0.32) 0%,
-    rgba(91, 33, 182, 0.28) 50%,
-    rgba(76, 29, 149, 0.32) 100%) !important;
+    rgba(109, 40, 217, var(--caos-bubble-opacity)) 0%,
+    rgba(91, 33, 182, calc(var(--caos-bubble-opacity) - 0.04)) 50%,
+    rgba(76, 29, 149, var(--caos-bubble-opacity)) 100%) !important;
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
   border: 1px solid rgba(167, 139, 250, 0.22);
   box-shadow: 0 4px 18px rgba(109, 40, 217, 0.18) !important;
 }
 .message-bubble-assistant {
-  background: rgba(15, 23, 42, 0.22) !important;
+  background: rgba(15, 23, 42, calc(var(--caos-bubble-opacity) - 0.10)) !important;
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 .message-bubble-system {
-  background: rgba(30, 41, 59, 0.18) !important;
+  background: rgba(30, 41, 59, calc(var(--caos-bubble-opacity) - 0.14)) !important;
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
+}
+
+/* =========================================================
+   Ambient mode — "whispered in space". Removes hard borders +
+   boxy shadows so text feels like it's floating. Per-user toggle
+   stored in localStorage `caos_ambient_mode`. Applied as a root
+   attribute so all descendants inherit.
+   ========================================================= */
+[data-caos-ambient="true"] .message-bubble-user,
+[data-caos-ambient="true"] .message-bubble-assistant,
+[data-caos-ambient="true"] .message-bubble-system {
+  border-color: transparent !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+[data-caos-ambient="true"] .message-bubble {
+  padding: 14px 18px !important;
+}
+[data-caos-ambient="true"] .message-bubble-user * {
+  text-shadow: 0 0 12px rgba(167, 139, 250, 0.55), 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+[data-caos-ambient="true"] .message-bubble-assistant *,
+[data-caos-ambient="true"] .message-bubble-system * {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.18), 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
 /* =========================================================

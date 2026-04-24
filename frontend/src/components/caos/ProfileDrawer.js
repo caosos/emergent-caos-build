@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { Activity, AlertTriangle, Bot, Brain, Cake, Calendar, FileText, Gamepad2, Image as ImageIcon, Lock, Mail, Shield, Terminal, Trash2, Unlock, Volume2, X } from "lucide-react";
+import axios from "axios";
+import { Activity, AlertTriangle, Bot, Brain, Cake, Calendar, FileText, Gamepad2, Github, Image as ImageIcon, Lock, Mail, Moon, MousePointer2, Shield, Sparkles, Terminal, Trash2, Unlock, Volume2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Switch } from "@/components/ui/switch";
+import { API } from "@/config/apiBase";
 
 import { ProfileFilesView } from "@/components/caos/ProfileFilesView";
 import { ProfileMemoryView } from "@/components/caos/ProfileMemoryView";
@@ -29,6 +31,22 @@ const LOCAL_KEYS = {
   gameMode: "caos_game_mode",
   devMode: "caos_developer_mode",
   multiAgent: "caos_multi_agent_mode",
+  ambientMode: "caos_ambient_mode",
+  scrollStep: "caos_scroll_step_px",
+  bubbleOpacity: "caos_bubble_opacity",
+};
+
+const DEFAULT_SCROLL_STEP = 600;
+const DEFAULT_BUBBLE_OPACITY = 0.32;
+
+const applyAmbientMode = (enabled) => {
+  const root = document.documentElement;
+  if (enabled) root.setAttribute("data-caos-ambient", "true");
+  else root.removeAttribute("data-caos-ambient");
+};
+const applyBubbleOpacity = (opacity) => {
+  const pct = Math.max(0.08, Math.min(0.85, Number(opacity) || DEFAULT_BUBBLE_OPACITY));
+  document.documentElement.style.setProperty("--caos-bubble-opacity", String(pct));
 };
 
 export const ProfileDrawer = ({ authenticatedUser, deleteMemory, isOpen, memoryCount, onClose, onSpeak, profile, runtimeSettings, saveMemory, sessionsCount, updateMemory, updateProfile, updateVoiceSettings, userEmail, voiceSettings }) => {
@@ -39,7 +57,13 @@ export const ProfileDrawer = ({ authenticatedUser, deleteMemory, isOpen, memoryC
   const [birthday, setBirthday] = useState(profile?.date_of_birth || "");
   const [assistantNameDraft, setAssistantNameDraft] = useState(profile?.assistant_name || "Aria");
   const [isEditingAssistant, setIsEditingAssistant] = useState(false);
-  const [toggles, setToggles] = useState({ remember: true, gameMode: false, devMode: false, multiAgent: false });
+  const [toggles, setToggles] = useState({ remember: true, gameMode: false, devMode: false, multiAgent: false, ambientMode: false });
+  const [githubStatus, setGithubStatus] = useState({ connected: false, masked: null });
+  const [githubDraft, setGithubDraft] = useState("");
+  const [githubEditing, setGithubEditing] = useState(false);
+  const [githubSaving, setGithubSaving] = useState(false);
+  const [scrollStep, setScrollStep] = useState(DEFAULT_SCROLL_STEP);
+  const [bubbleOpacity, setBubbleOpacity] = useState(DEFAULT_BUBBLE_OPACITY);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -48,11 +72,21 @@ export const ProfileDrawer = ({ authenticatedUser, deleteMemory, isOpen, memoryC
       gameMode: localStorage.getItem(LOCAL_KEYS.gameMode) === "true",
       devMode: localStorage.getItem(LOCAL_KEYS.devMode) === "true",
       multiAgent: localStorage.getItem(LOCAL_KEYS.multiAgent) === "true",
+      ambientMode: localStorage.getItem(LOCAL_KEYS.ambientMode) === "true",
     });
+    setScrollStep(Number(localStorage.getItem(LOCAL_KEYS.scrollStep)) || DEFAULT_SCROLL_STEP);
+    setBubbleOpacity(Number(localStorage.getItem(LOCAL_KEYS.bubbleOpacity)) || DEFAULT_BUBBLE_OPACITY);
     setBirthday(profile?.date_of_birth || "");
     setAssistantNameDraft(profile?.assistant_name || "Aria");
     setIsEditingAssistant(false);
     setActiveView("profile");
+    // Fetch connector status
+    axios.get(`${API}/connectors/status`)
+      .then((res) => {
+        const gh = (res.data || []).find((r) => r.service === "github");
+        if (gh) setGithubStatus(gh);
+      })
+      .catch(() => { /* silent — treat as not connected */ });
   }, [isOpen, profile?.date_of_birth, profile?.assistant_name]);
 
   if (!isOpen) return null;
@@ -69,6 +103,51 @@ export const ProfileDrawer = ({ authenticatedUser, deleteMemory, isOpen, memoryC
     if (key === "gameMode") toast.message(value ? "Game mode on" : "Game mode off");
     if (key === "devMode") toast.message(value ? "Developer mode on" : "Developer mode off");
     if (key === "multiAgent") toast.message(value ? "Multi-agent mode on" : "Multi-agent mode off");
+    if (key === "ambientMode") {
+      applyAmbientMode(value);
+      toast.message(value ? "Ambient mode on — whispered in space" : "Ambient mode off");
+    }
+  };
+
+  const persistScrollStep = (value) => {
+    const next = Math.max(120, Math.min(1600, Number(value) || DEFAULT_SCROLL_STEP));
+    setScrollStep(next);
+    localStorage.setItem(LOCAL_KEYS.scrollStep, String(next));
+  };
+  const persistBubbleOpacity = (value) => {
+    const next = Math.max(0.08, Math.min(0.85, Number(value) || DEFAULT_BUBBLE_OPACITY));
+    setBubbleOpacity(next);
+    localStorage.setItem(LOCAL_KEYS.bubbleOpacity, String(next));
+    applyBubbleOpacity(next);
+  };
+
+  const saveGithubToken = async () => {
+    const token = githubDraft.trim();
+    if (!token) { toast.error("Paste a GitHub PAT first"); return; }
+    setGithubSaving(true);
+    try {
+      const response = await axios.put(`${API}/connectors/github`, { token });
+      setGithubStatus(response.data);
+      setGithubDraft("");
+      setGithubEditing(false);
+      toast.success("GitHub token saved");
+    } catch (error) {
+      toast.error(`Save failed: ${(error.response?.data?.detail || error.message || "unknown").slice(0, 80)}`);
+    } finally {
+      setGithubSaving(false);
+    }
+  };
+
+  const removeGithubToken = async () => {
+    try {
+      const response = await axios.delete(`${API}/connectors/github`);
+      setGithubStatus(response.data);
+      setGithubDraft("");
+      setGithubEditing(false);
+      toast.message("GitHub token removed");
+    } catch (error) {
+      toast.error(`Remove failed: ${(error.response?.data?.detail || error.message || "unknown").slice(0, 80)}`);
+    }
   };
 
   const handleSaveBirthday = async () => {
@@ -289,6 +368,97 @@ export const ProfileDrawer = ({ authenticatedUser, deleteMemory, isOpen, memoryC
           <div><span>Voice & Speech</span><strong>{voiceSettings?.tts_voice || "nova"} · {(voiceSettings?.tts_speed || 1.0).toFixed(2)}×</strong></div>
           <span className="profile-link-arrow">→</span>
         </button>
+
+        {/* Ambient mode — per-user transparent chat aesthetic */}
+        <div className="profile-toggle-row" data-testid="caos-profile-toggle-ambient">
+          <Moon size={14} className="profile-info-icon profile-info-icon-purple" />
+          <div><span>Ambient Mode</span><strong>{toggles.ambientMode ? "Whispered in space" : "Standard bubbles"}</strong></div>
+          <Switch checked={toggles.ambientMode} data-testid="caos-profile-toggle-ambient-switch" onCheckedChange={(value) => persistToggle("ambientMode", value)} />
+        </div>
+
+        {/* Scroll step slider */}
+        <div className="profile-slider-row" data-testid="caos-profile-scroll-step-row">
+          <MousePointer2 size={14} className="profile-info-icon profile-info-icon-cyan" />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span>Scroll step</span>
+            <strong>{scrollStep}px per click</strong>
+          </div>
+          <input
+            className="profile-slider-input"
+            data-testid="caos-profile-scroll-step-slider"
+            type="range"
+            min={200}
+            max={1400}
+            step={40}
+            value={scrollStep}
+            onChange={(event) => persistScrollStep(event.target.value)}
+          />
+        </div>
+
+        {/* Bubble opacity slider */}
+        <div className="profile-slider-row" data-testid="caos-profile-bubble-opacity-row">
+          <Sparkles size={14} className="profile-info-icon profile-info-icon-purple" />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span>Bubble transparency</span>
+            <strong>{Math.round((1 - bubbleOpacity) * 100)}% see-through</strong>
+          </div>
+          <input
+            className="profile-slider-input"
+            data-testid="caos-profile-bubble-opacity-slider"
+            type="range"
+            min={0.08}
+            max={0.85}
+            step={0.02}
+            value={bubbleOpacity}
+            onChange={(event) => persistBubbleOpacity(event.target.value)}
+          />
+        </div>
+
+        {/* GitHub connector */}
+        <div className="profile-connector-row" data-testid="caos-profile-connector-github">
+          <Github size={14} className="profile-info-icon" />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span>GitHub (private repos)</span>
+            <strong data-testid="caos-profile-connector-github-status">
+              {githubStatus.connected ? `Connected · ${githubStatus.masked}` : "Not connected"}
+            </strong>
+          </div>
+          {!githubEditing ? (
+            <button
+              className="profile-connector-action"
+              data-testid="caos-profile-connector-github-toggle"
+              onClick={() => setGithubEditing(true)}
+              type="button"
+            >{githubStatus.connected ? "Rotate" : "Connect"}</button>
+          ) : (
+            <div style={{ display: "flex", gap: 6, alignItems: "center", width: "100%" }}>
+              <input
+                autoFocus
+                className="profile-connector-input"
+                data-testid="caos-profile-connector-github-input"
+                type="password"
+                placeholder="ghp_…"
+                value={githubDraft}
+                onChange={(event) => setGithubDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") saveGithubToken();
+                  if (event.key === "Escape") { setGithubEditing(false); setGithubDraft(""); }
+                }}
+              />
+              <button className="profile-connector-action" data-testid="caos-profile-connector-github-save" disabled={githubSaving} onClick={saveGithubToken} type="button">
+                {githubSaving ? "Saving…" : "Save"}
+              </button>
+              <button className="profile-connector-action-ghost" data-testid="caos-profile-connector-github-cancel" onClick={() => { setGithubEditing(false); setGithubDraft(""); }} type="button">
+                Cancel
+              </button>
+            </div>
+          )}
+          {githubStatus.connected && !githubEditing ? (
+            <button className="profile-connector-action-danger" data-testid="caos-profile-connector-github-remove" onClick={removeGithubToken} type="button">
+              Remove
+            </button>
+          ) : null}
+        </div>
 
         <button
           className="profile-danger-row"

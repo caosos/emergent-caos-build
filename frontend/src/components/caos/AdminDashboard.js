@@ -46,6 +46,14 @@ export const AdminDashboard = ({ onClose }) => {
 
   useEffect(() => { loadAll(); }, []);
 
+  // Auto-refresh every 30 s while dashboard is open
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!document.hidden) loadAll();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   if (loading) {
     return (
       <div className="admin-dashboard-overlay" data-testid="caos-admin-dashboard-overlay">
@@ -91,6 +99,7 @@ export const AdminDashboard = ({ onClose }) => {
         <div className="admin-tabs">
           <button className={`admin-tab ${activeTab === "stats" ? "active" : ""}`} data-testid="caos-admin-tab-stats" onClick={() => setActiveTab("stats")}>📊 Users & Stats</button>
           <button className={`admin-tab ${activeTab === "errors" ? "active" : ""}`} data-testid="caos-admin-tab-errors" onClick={() => setActiveTab("errors")}>⚡ Errors</button>
+          <button className={`admin-tab ${activeTab === "timeline" ? "active" : ""}`} data-testid="caos-admin-tab-timeline" onClick={() => setActiveTab("timeline")}>🧭 Engine Timeline</button>
           <button className={`admin-tab ${activeTab === "users" ? "active" : ""}`} data-testid="caos-admin-tab-users" onClick={() => setActiveTab("users")}>👥 Top Users</button>
           <button className={`admin-tab ${activeTab === "usage" ? "active" : ""}`} data-testid="caos-admin-tab-usage" onClick={() => setActiveTab("usage")}>📈 Usage (30d)</button>
         </div>
@@ -98,6 +107,7 @@ export const AdminDashboard = ({ onClose }) => {
         <div className="admin-dashboard-content">
           {activeTab === "stats" && <StatsTab metrics={metrics} activity14d={activity14d} onRefresh={loadAll} />}
           {activeTab === "errors" && <ErrorsTab errors={errors} />}
+          {activeTab === "timeline" && <EngineTimelineTab />}
           {activeTab === "users" && <UsersTab tokenUsage={tokenUsage} tierDistribution={metrics?.users?.by_tier} />}
           {activeTab === "usage" && <UsageTab dailyUsage={dailyUsage} />}
         </div>
@@ -349,3 +359,134 @@ const BarList = ({ title, icon, rows }) => (
     </div>
   </div>
 );
+
+// ─── Engine Timeline tab ─────────────────────────────────────────────────────
+
+const ENGINE_COLOR = { openai: "#34d399", anthropic: "#fcd34d", gemini: "#7dd3fc", xai: "#f9a8d4" };
+const providerOf = (inf) => (inf || "").split(":")[0] || "";
+const labelOf = (inf) => ({ openai: "OpenAI", anthropic: "Claude", gemini: "Gemini", xai: "Grok" }[providerOf(inf)] || providerOf(inf) || "—");
+
+const EngineTimelineTab = () => {
+  const [sessionId, setSessionId] = useState("");
+  const [turns, setTurns] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+  const [recentSessions, setRecentSessions] = useState([]);
+
+  useEffect(() => {
+    axios.get(`${API}/caos/sessions?limit=30`)
+      .then((res) => setRecentSessions(res.data || []))
+      .catch(() => { /* non-fatal */ });
+  }, []);
+
+  const load = async (sid) => {
+    if (!sid) return;
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await axios.get(`${API}/admin/dashboard/engine-timeline/${sid}`);
+      setTurns(res.data?.turns || []);
+    } catch (error) {
+      setLoadError(error.response?.data?.detail || error.message || "Failed to load timeline");
+      setTurns([]);
+    } finally { setLoading(false); }
+  };
+
+  const distribution = useMemo(() => {
+    const counts = {};
+    turns.forEach((t) => {
+      const p = providerOf(t.inference_provider);
+      if (!p) return;
+      counts[p] = (counts[p] || 0) + 1;
+    });
+    return counts;
+  }, [turns]);
+  const totalTurns = turns.length || 1;
+
+  return (
+    <div className="admin-overview" data-testid="caos-admin-engine-timeline">
+      <SectionHeader icon="🧭" title="Engine Timeline" rightSlot={
+        <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>Audit per-turn engine per thread</span>
+      } />
+      <div className="admin-timeline-controls">
+        <input
+          className="admin-timeline-input"
+          data-testid="caos-admin-timeline-session-input"
+          placeholder="Paste session_id or pick recent…"
+          value={sessionId}
+          onChange={(event) => setSessionId(event.target.value)}
+          onKeyDown={(event) => { if (event.key === "Enter") load(sessionId.trim()); }}
+        />
+        <button className="admin-refresh-btn" data-testid="caos-admin-timeline-load" onClick={() => load(sessionId.trim())}>Load</button>
+        <select
+          className="admin-timeline-input"
+          data-testid="caos-admin-timeline-recent"
+          value=""
+          onChange={(event) => { const v = event.target.value; if (v) { setSessionId(v); load(v); } }}
+        >
+          <option value="">Recent sessions…</option>
+          {recentSessions.slice(0, 20).map((s) => (
+            <option key={s.session_id} value={s.session_id}>{(s.title || "(no title)")} · {s.session_id.slice(0, 8)}</option>
+          ))}
+        </select>
+      </div>
+
+      {loading ? <div className="admin-empty-state">Loading timeline…</div> : null}
+      {loadError ? <div className="admin-empty-state" style={{ color: "#fca5a5" }}>{loadError}</div> : null}
+      {!loading && !loadError && !turns.length ? (
+        <div className="admin-empty-state">Pick a session above to see which engine answered each turn.</div>
+      ) : null}
+
+      {turns.length > 0 ? (
+        <>
+          <div className="admin-stat-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+            {Object.entries(distribution).map(([provider, count]) => (
+              <StatCard
+                key={provider}
+                icon="⚙"
+                color={ENGINE_COLOR[provider] || "#94a3b8"}
+                label={labelOf(provider)}
+                value={count}
+                sub={`${((count / totalTurns) * 100).toFixed(0)}% of turns`}
+                testId={`timeline-engine-${provider}`}
+              />
+            ))}
+          </div>
+          <div className="admin-timeline-strip" data-testid="caos-admin-timeline-strip">
+            {turns.map((turn) => {
+              const provider = providerOf(turn.inference_provider);
+              return (
+                <div
+                  key={turn.id}
+                  className="admin-timeline-cell"
+                  style={{ background: ENGINE_COLOR[provider] || "#475569" }}
+                  title={`${labelOf(turn.inference_provider)} · ${turn.latency_ms || 0} ms\n${turn.preview}`}
+                />
+              );
+            })}
+          </div>
+          <div className="admin-timeline-list">
+            {turns.map((turn, idx) => {
+              const provider = providerOf(turn.inference_provider);
+              return (
+                <div key={turn.id} className="admin-timeline-row" data-testid={`caos-admin-timeline-row-${idx}`}>
+                  <span className="admin-timeline-idx">#{idx + 1}</span>
+                  <span
+                    className={`caos-engine-chip caos-engine-chip-${provider || "default"}`}
+                    style={{ minWidth: 74, textAlign: "center" }}
+                  >{labelOf(turn.inference_provider)}</span>
+                  <span className="admin-timeline-latency">{turn.latency_ms || 0}ms</span>
+                  {Array.isArray(turn.tools_used) && turn.tools_used.length > 0 ? (
+                    <span className="caos-live-web-chip" style={{ margin: 0 }}>{turn.tools_used.join(" · ")}</span>
+                  ) : <span style={{ width: 64 }} />}
+                  <span className="admin-timeline-preview">{turn.preview || "(no preview)"}</span>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+};
+

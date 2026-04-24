@@ -560,6 +560,16 @@ async def chat(input: ChatRequest, user=Depends(require_user)):
         raise HTTPException(status_code=404, detail=str(error)) from error
     except Exception as error:
         print(f"CAOS chat pipeline error: {error}")
+        try:
+            from app.services.error_logger import log_error
+            await log_error(
+                source="chat_pipeline",
+                error=error,
+                context={"session_id": input.session_id, "provider": input.provider, "model": input.model},
+                user_email=input.user_email,
+            )
+        except Exception:
+            pass
         raise HTTPException(status_code=500, detail="CAOS chat pipeline failed") from error
 
 
@@ -582,6 +592,16 @@ async def chat_stream(input: ChatRequest, user=Depends(require_user)):
             yield f"event: error\ndata: {json.dumps({'error': str(error), 'code': 'not_found'})}\n\n"
             return
         except Exception as error:
+            try:
+                from app.services.error_logger import log_error
+                await log_error(
+                    source="chat_pipeline_stream",
+                    error=error,
+                    context={"session_id": input.session_id, "provider": input.provider, "model": input.model},
+                    user_email=input.user_email,
+                )
+            except Exception:
+                pass
             yield f"event: error\ndata: {json.dumps({'error': str(error), 'code': 'pipeline_failed'})}\n\n"
             return
 

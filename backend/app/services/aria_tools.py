@@ -268,15 +268,15 @@ def web_fetch(url: str, mode: str = "auto") -> str:
         return f"ERROR: web_fetch failed — {str(error)[:200]}"
 
 
-def github_fetch(repo: str, path: str, ref: str = "main") -> str:
-    """Fetch a file from a public GitHub repo via raw.githubusercontent.com.
+def github_fetch(repo: str, path: str, ref: str = "main", user_token: str | None = None) -> str:
+    """Fetch a file from a public (or private) GitHub repo via raw.githubusercontent.com.
 
     Args:
         repo: "<owner>/<name>" (e.g., "openai/gpt-5-cookbook").
         path: file path inside repo (e.g., "README.md" or "src/app.py").
         ref: branch/tag/commit SHA. Default "main".
-
-    Uses GITHUB_TOKEN (if set in env) for private/rate-limited access.
+        user_token: per-user PAT resolved by the dispatcher; wins over
+            GITHUB_TOKEN env. Anonymous fallback if neither set (public only).
     """
     try:
         if not repo or "/" not in repo:
@@ -286,7 +286,7 @@ def github_fetch(repo: str, path: str, ref: str = "main") -> str:
         ref = (ref or "main").strip()
         owner_name = repo.strip().strip("/")
         url = f"https://raw.githubusercontent.com/{owner_name}/{ref}/{path}"
-        token = os.environ.get("GITHUB_TOKEN", "").strip()
+        token = (user_token or "").strip() or os.environ.get("GITHUB_TOKEN", "").strip()
         headers = {
             "User-Agent": "CAOS-Aria/1.0 (+https://caosos.com)",
             "Accept": "text/plain, application/vnd.github.v3.raw, */*;q=0.6",
@@ -297,7 +297,7 @@ def github_fetch(repo: str, path: str, ref: str = "main") -> str:
             response = client.get(url)
         status = response.status_code
         if status == 404:
-            return f"ERROR: not found — raw.githubusercontent.com/{owner_name}/{ref}/{path} (check repo, path, ref)"
+            return f"ERROR: not found — raw.githubusercontent.com/{owner_name}/{ref}/{path} (check repo, path, ref; if private, connect your GitHub PAT in Settings → Connectors)"
         if status >= 400:
             return f"ERROR: github returned {status} for {owner_name}/{ref}/{path}"
         body_bytes = response.content or b""
@@ -328,8 +328,12 @@ def _parse_args(body: str) -> dict:
     return args
 
 
-def extract_and_run_next_tool(text: str) -> tuple[str | None, str | None]:
+def extract_and_run_next_tool(text: str, context: dict | None = None) -> tuple[str | None, str | None]:
     """Find the FIRST tool marker in `text`, run it, return (marker, result).
+
+    Args:
+        text: Aria's reply to scan.
+        context: optional dict — supports `github_token` (per-user PAT).
 
     Returns (None, None) if no marker found.
     """
@@ -339,6 +343,7 @@ def extract_and_run_next_tool(text: str) -> tuple[str | None, str | None]:
     tool = match.group(1)
     body = match.group(2)
     args = _parse_args(body)
+    ctx = context or {}
     try:
         if tool == "read_file":
             result = safe_read_file(args.get("path", ""))
@@ -360,6 +365,7 @@ def extract_and_run_next_tool(text: str) -> tuple[str | None, str | None]:
                 repo=args.get("repo", ""),
                 path=args.get("path", ""),
                 ref=args.get("ref", "main"),
+                user_token=ctx.get("github_token"),
             )
         else:
             result = f"ERROR: unknown tool '{tool}'"

@@ -643,3 +643,57 @@ Section headers, mini bar charts, red-tinted error panel, yellow cost-reference 
 - Real error tracking from chat_pipeline exceptions → own `error_log` collection. ~S task next session.
 - Context Inspector / Repo / Swarm tabs from Base44 are separate features, not dashboard components.
 
+
+## S+M Connector Polish Session — Ambient / Sliders / GitHub / Resend / Errors / Timeline + L-tier Blueprint (Apr 24, 2026 — late evening)
+
+User approved doing S + M tier work in a single tight session and asked for a blueprint for the L-tier stack. Budget cap: 200 credits. Everything below shipped in one pass.
+
+### Backend
+
+1. **New route `app/routes/connectors.py`** — user-scoped connector token registry (GET `/connectors/status`, PUT `/connectors/{service}`, DELETE `/connectors/{service}`). Supported service: `github` (Gmail/Drive/Calendar will be added via the L-tier blueprint). Tokens stored at `user_profiles.connectors.<service>.token`; API responses only return a masked preview (`ghp_…xK2`) and `connected: bool`. Owner-only access guard via `require_user`.
+2. **New service `app/services/error_logger.py`** — structured logging into `error_log` collection. `log_error()` captures source, error_type classification (timeout / validation / auth / network / rate_limited / server_error), message, traceback, context, user. `get_error_stats()` aggregates counts for the Admin dashboard Errors tab. `list_recent_errors()` returns the latest 50 rows.
+3. **New service `app/services/resend_service.py`** — Resend transactional email. Gracefully degrades when `RESEND_API_KEY` is absent (logs + no-op). `render_ticket_created()` produces inline-CSS HTML for CAOS Care notifications.
+4. **Chat pipeline error logging** — both `/chat` and `/chat/stream` now wrap `run_chat_turn` with an exception handler that persists rows to `error_log` before raising. Real backend crashes (model timeouts, pipeline bugs, rate limits) now surface in the Errors tab.
+5. **`admin_dashboard.py` updates** — `/errors` endpoint pivoted to read from `error_log` (via `get_error_stats`); added `/dashboard/errors/recent` (detail list) and **`/dashboard/engine-timeline/{session_id}`** (per-turn engine audit from `messages.inference_provider` + `tools_used`).
+6. **`aria_tools.github_fetch`** now accepts an optional `user_token` parameter; `extract_and_run_next_tool` takes a `context={github_token}` dict. Chat pipeline resolves the caller's per-user GitHub token via `connectors.get_github_token_for(user_email)` once per turn and passes it in. Per-user PAT wins → `GITHUB_TOKEN` env → anonymous public-only.
+7. **Support ticket emails via Resend** — `support._insert_ticket` now calls `send_email(to=[ticket_creator, CARE_ADMIN_EMAIL?])` after insert. Failures logged (not raised). Wires together user notifications + your admin mailbox once `RESEND_API_KEY` is set.
+8. **`resend` added to requirements.txt**. Backend restarted; healthy.
+
+### Frontend
+
+1. **Settings drawer new rows** (`ProfileDrawer.js`):
+   - 🌙 **Ambient Mode** toggle — flips a `data-caos-ambient="true"` attribute on `<html>`; CSS drops bubble backgrounds / borders / shadows, adds glowing text shadow so messages feel like whispered text in space. Preference persists in localStorage.
+   - 🖱 **Scroll step slider** (200–1400 px) — writes to `caos_scroll_step_px`. `MessagePane.scrollPageDown` now reads this value first before falling back to `85% viewport`.
+   - ✨ **Bubble transparency slider** (0.08 → 0.85 alpha) — sets `--caos-bubble-opacity` CSS custom property. User, assistant, system bubble backgrounds all derive from this var (with small deltas so assistant reads 0.10 less alpha, system 0.14 less).
+   - 🐙 **GitHub (private repos)** row — shows `Not connected` / `Connected · ghp_…xK2` state. Inline input + Save / Cancel / Rotate / Remove actions backed by the new connectors routes. Masks token on the wire, password-input in the UI, never logged.
+   - All three preferences + ambient mode are re-applied on app boot via a small `useEffect` in `CaosShell.js` so they survive page refresh without opening the drawer.
+
+2. **Admin Dashboard** (`AdminDashboard.js`):
+   - ✅ Auto-refresh every 30 s while dashboard open (skips when tab is backgrounded).
+   - 🧭 New **Engine Timeline** tab: paste a session_id or pick from a "Recent sessions" dropdown → renders a color-block strip (one cell per assistant turn, colored by engine), per-engine distribution cards, and a scrollable list with rank #, engine chip, latency, tools_used chips, and a 140-char preview of the reply. Colors match the existing engine chips (OpenAI green, Claude yellow, Gemini blue, Grok pink).
+   - Uses the existing `caos-engine-chip-*` + `caos-live-web-chip` styles for consistency.
+
+3. **CSS additions** in `AdminDashboard.css` (timeline strip/list/input rows) and `caos-base44-parity.css` (slider row, connector row with action buttons).
+
+### Docs
+
+- **`/app/memory/CONNECTOR_BLUEPRINT.md`** — full design doc for the four L-tier connectors (Gmail Phase A, Gmail compose/send, Google Drive, Google Calendar, Stripe billing). Each section covers UX flow, scopes, new routes, data model, security considerations, playbook references, and an honest credit estimate. Also documents non-goals (MCP client mode, inbound webhooks).
+
+### Verified
+
+- Backend: `/connectors/status`, `PUT /connectors/github`, `DELETE /connectors/github`, `/admin/dashboard/errors`, `/admin/dashboard/engine-timeline/{id}` all return correct payloads via curl.
+- Frontend: smoke screenshot confirmed the 4 new Settings rows + Errors tab with live data + Engine Timeline tab render correctly with all test-IDs present.
+- Lint: backend `ruff` clean, frontend `eslint` clean.
+
+### Not shipped this session (intentional)
+
+- **M5 Gmail compose/send** — blocked on L9 Gmail Phase A; captured in blueprint.
+- **Fernet encryption at rest** for connector tokens — MVP uses plain storage with masked wire format; blueprint section flags this as the upgrade path for multi-tenant SaaS.
+- **Google verification / OAuth for caosos.com** — required before external users can use Gmail/Drive/Calendar connectors; captured in blueprint as a lead-time warning.
+
+### Setup notes for user
+
+- **Enable Resend emails for CAOS Care**: add to `/app/backend/.env` → `RESEND_API_KEY=re_...` and optionally `CARE_ADMIN_EMAIL=alex@caosos.com`. Restart backend. No code changes needed.
+- **GitHub PAT**: users (including you) now paste their own token in Settings → GitHub (private repos) → Connect. Classic PAT with `repo` + optional `read:org` scopes. Aria immediately gets access to those private repos via `github_fetch`.
+
+
