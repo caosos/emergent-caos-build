@@ -17,9 +17,13 @@ from app.routes.memory_workers import router as memory_workers_router
 from app.routes.support import router as support_router
 from app.services.object_storage import init_storage
 from app.startup import ensure_indexes
+from app.middleware.rate_limit import RateLimitMiddleware
 
 # Create the main app without a prefix
 app = FastAPI()
+
+# Add rate limiting middleware (BEFORE CORS)
+app.add_middleware(RateLimitMiddleware)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")

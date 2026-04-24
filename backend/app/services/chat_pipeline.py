@@ -28,6 +28,7 @@ from app.services.memory_worker_service import derive_lane, list_lane_workers, r
 from app.services.prompt_builder import build_prompt_sections, build_system_prompt_from_sections
 from app.services.runtime_service import resolve_chat_runtime, supports_temperature_param
 from app.services.token_meter import build_token_receipt
+from app.services.token_quota import check_and_deduct_tokens, record_token_usage
 from app.services.thread_title_service import build_auto_thread_title, is_generic_session_title
 
 
@@ -48,6 +49,26 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     else:
         profile = UserProfileRecord(**profile_doc)
         is_admin_user = bool(profile_doc.get("is_admin") is True or profile_doc.get("role") == "admin")
+
+    # Check token quota (freemium model) - prevents abuse
+    estimated_tokens = 2000  # Average request tokens
+    quota_check = await check_and_deduct_tokens(payload.user_email, estimated_tokens)
+    
+    if not quota_check["allowed"]:
+        # Return quota exceeded response
+        error_message = quota_check["message"]
+        return ChatResponse(
+            session_id=payload.session_id,
+            content=f"⚠️ **Daily Token Limit Reached**\n\n{error_message}\n\n💡 **Upgrade to Pro** for 500k tokens/day or **Unlimited** for no limits!",
+            role="assistant",
+            provider=payload.provider or "system",
+            model=payload.model or "system",
+            token_receipt={"error": "quota_exceeded", "tokens_remaining": quota_check["tokens_remaining"]},
+            context_stats={},
+            lane=None,
+            subject_bins=[],
+            continuity_packet=None,
+        )
 
     user_message = MessageRecord(session_id=payload.session_id, role="user", content=payload.content)
     user_doc = user_message.model_dump()

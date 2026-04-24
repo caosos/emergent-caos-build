@@ -59,7 +59,86 @@ from app.services.voice_service import generate_tts_base64, transcribe_upload
 
 from app.services.auth_service import require_user
 
+# Security: File upload constraints
+MAX_FILE_SIZE_MB = 50
+MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+
+# Whitelist of safe file extensions and MIME types
+ALLOWED_EXTENSIONS = {
+    # Images
+    ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".heic", ".heif",
+    # Documents
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+    ".txt", ".md", ".csv", ".json", ".xml",
+    # Archives (with caution - not extracted server-side)
+    ".zip",
+}
+
+ALLOWED_MIME_TYPES = {
+    # Images
+    "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
+    "image/heic", "image/heif",
+    # Documents
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "text/plain", "text/markdown", "text/csv",
+    "application/json", "application/xml", "text/xml",
+    # Archives
+    "application/zip",
+}
+
+
+def validate_file_upload(file: UploadFile) -> None:
+    """Validate file size and type for security.
+    
+    Raises HTTPException if file is invalid.
+    """
+    # Check file size
+    file.file.seek(0, 2)  # Seek to end
+    size = file.file.tell()
+    file.file.seek(0)  # Reset to beginning
+    
+    if size > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Maximum size is {MAX_FILE_SIZE_MB}MB. Your file: {size / 1024 / 1024:.1f}MB"
+        )
+    
+    if size == 0:
+        raise HTTPException(status_code=400, detail="File is empty")
+    
+    # Check file extension
+    filename = file.filename or "unknown"
+    extension = Path(filename).suffix.lower()
+    
+    if extension not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=415,
+            detail=f"File type not allowed: {extension}. Allowed types: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+        )
+    
+    # Check MIME type
+    mime_type = file.content_type or ""
+    if mime_type not in ALLOWED_MIME_TYPES:
+        raise HTTPException(
+            status_code=415,
+            detail=f"MIME type not allowed: {mime_type}"
+        )
+
+
 router = APIRouter(prefix="/caos", tags=["caos"], dependencies=[Depends(require_user)])
+
+
+@router.get("/quota/status")
+async def get_quota_status(user: dict = Depends(require_user)):
+    """Get user's current token quota status for freemium model."""
+    from app.services.token_quota import get_user_quota
+    return await get_user_quota(user["email"])
 
 
 async def _require_session_owner(session_id: str, user: dict) -> dict:
@@ -330,6 +409,9 @@ async def upload_file(
     file: UploadFile = File(...),
     user: dict = Depends(require_user),
 ):
+    # Security: Validate file size and type
+    validate_file_upload(file)
+    
     # Use authenticated user's identity, not the client-supplied user_email (IDOR hardening).
     metadata = await save_upload(file, user, session_id)
     metadata["url"] = f"/api/caos/files/{metadata['id']}/download"
