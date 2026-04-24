@@ -75,6 +75,22 @@ async def caos_contract():
         "notes": "Session isolation is canonical. Cross-session memory leakage is forbidden.",
     }
 
+@api_router.post("/caos/grant-admin")
+async def grant_admin(user_email: str):
+    """Emergency endpoint to grant admin privileges to a user."""
+    result = await db.user_profiles.update_one(
+        {"user_email": user_email},
+        {"$set": {"role": "admin", "is_admin": True}},
+        upsert=True
+    )
+    return {
+        "success": True,
+        "user_email": user_email,
+        "matched": result.matched_count,
+        "modified": result.modified_count,
+        "upserted": result.upserted_id is not None
+    }
+
 # Include the router in the main app
 app.include_router(api_router)
 app.include_router(auth_router, prefix="/api")
