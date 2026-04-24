@@ -278,7 +278,10 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     if user_turn_count <= 3 and (session.get("title_source") == "auto" or is_generic_session_title(session.get("title"))):
         title_updates["title"] = build_auto_thread_title(messages, session_lane)
         title_updates["title_source"] = "auto"
-    wcw_budget = 200000
+    # WCW budget tracks the model's actual context window (not a hard-coded
+    # 200 k). Claude Sonnet 4.5 and Gemini 3 are 1 M; GPT-5.2 is 400 k; etc.
+    from app.services.model_catalog import context_window_for, compute_cost_usd
+    wcw_budget = context_window_for(f"{runtime['provider']}:{runtime['model']}")
     prior_receipts = await collection(
         "receipts"
     ).find({"session_id": payload.session_id}, {"_id": 0, "prompt_tokens": 1, "completion_tokens": 1}).to_list(500)
@@ -295,6 +298,32 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     receipt.update(token_receipt)
     receipt["wcw_budget"] = wcw_budget
     receipt["latency_ms"] = latency_ms
+
+    # Persist per-turn spend in a dedicated collection so the dashboard can
+    # answer "how much did I spend on Claude this week?" cheaply.
+    try:
+        cost_usd = compute_cost_usd(
+            f"{runtime['provider']}:{runtime['model']}",
+            token_receipt.get("prompt_tokens", 0),
+            token_receipt.get("completion_tokens", 0),
+        )
+        await collection("engine_usage").insert_one({
+            "id": f"usage_{assistant_message.id}",
+            "session_id": payload.session_id,
+            "message_id": assistant_message.id,
+            "user_email": payload.user_email,
+            "provider": runtime["provider"],
+            "model": runtime["model"],
+            "prompt_tokens": token_receipt.get("prompt_tokens", 0),
+            "completion_tokens": token_receipt.get("completion_tokens", 0),
+            "total_tokens": token_receipt.get("total_tokens", 0),
+            "cost_usd": cost_usd,
+            "latency_ms": latency_ms,
+            "tools_used": tools_used,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception as usage_err:  # pragma: no cover
+        print(f"CAOS engine_usage persist failed: {usage_err}")
     wcw_used_estimate = token_receipt["active_context_tokens"]
     previous_receipt = await collection("receipts").find_one({"session_id": payload.session_id}, {"_id": 0}, sort=[("created_at", -1)])
     previous_summary = await collection("thread_summaries").find_one({"session_id": payload.session_id}, {"_id": 0}, sort=[("created_at", -1)])

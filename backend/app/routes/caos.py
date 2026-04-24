@@ -331,6 +331,57 @@ async def get_runtime_catalog():
     return get_provider_catalog()
 
 
+@router.get("/runtime/model-specs")
+async def get_model_specs():
+    """Public model catalog — context window + pricing per model. Used by the
+    frontend to size the WCW meter against the selected model's actual limit
+    (1 M for Gemini 3 / Claude Sonnet 4.5, 400 k for GPT-5.2, etc.)."""
+    from app.services.model_catalog import public_catalog
+    return {"models": public_catalog()}
+
+
+@router.get("/usage/my-spend")
+async def get_my_spend(user=Depends(require_user), period: str = "week"):
+    """Per-user spend breakdown by engine. period = today|week|month|all."""
+    from datetime import datetime, timezone, timedelta
+    now = datetime.now(timezone.utc)
+    if period == "today":
+        cutoff = datetime(now.year, now.month, now.day, tzinfo=timezone.utc).isoformat()
+    elif period == "week":
+        cutoff = (now - timedelta(days=7)).isoformat()
+    elif period == "month":
+        cutoff = (now - timedelta(days=30)).isoformat()
+    else:
+        cutoff = "1970-01-01T00:00:00+00:00"
+    pipeline = [
+        {"$match": {"user_email": user["email"], "created_at": {"$gte": cutoff}}},
+        {"$group": {
+            "_id": {"provider": "$provider", "model": "$model"},
+            "calls": {"$sum": 1},
+            "prompt_tokens": {"$sum": "$prompt_tokens"},
+            "completion_tokens": {"$sum": "$completion_tokens"},
+            "total_tokens": {"$sum": "$total_tokens"},
+            "cost_usd": {"$sum": "$cost_usd"},
+        }},
+        {"$sort": {"cost_usd": -1}},
+    ]
+    rows = await collection("engine_usage").aggregate(pipeline).to_list(50)
+    totals = {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "cost_usd": 0.0}
+    out = []
+    for row in rows:
+        key = row.pop("_id", {}) or {}
+        row["provider"] = key.get("provider", "unknown")
+        row["model"] = key.get("model", "unknown")
+        totals["calls"] += row.get("calls", 0)
+        totals["prompt_tokens"] += row.get("prompt_tokens", 0)
+        totals["completion_tokens"] += row.get("completion_tokens", 0)
+        totals["total_tokens"] += row.get("total_tokens", 0)
+        totals["cost_usd"] += row.get("cost_usd", 0)
+        out.append(row)
+    totals["cost_usd"] = round(totals["cost_usd"], 4)
+    return {"period": period, "cutoff": cutoff, "rows": out, "totals": totals}
+
+
 @router.get("/runtime/settings/{user_email}", response_model=RuntimeSettingsResponse)
 async def get_runtime_settings(user_email: str):
     profile = await collection("user_profiles").find_one({"user_email": user_email}, {"_id": 0})

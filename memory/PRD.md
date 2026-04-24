@@ -697,3 +697,51 @@ User approved doing S + M tier work in a single tight session and asked for a bl
 - **GitHub PAT**: users (including you) now paste their own token in Settings → GitHub (private repos) → Connect. Classic PAT with `repo` + optional `read:org` scopes. Aria immediately gets access to those private repos via `github_fetch`.
 
 
+
+## Per-Engine Spend Tracking + Dynamic WCW Meter (Apr 24, 2026 — night)
+
+User asked: "I want to see how much is being spent per inference engine + how many tokens per engine, and the WCW meter should reflect the selected model's actual context window (1 M for Gemini/Claude, 400 k for GPT-5.2)."
+
+### Shipped
+
+1. **New `app/services/model_catalog.py`** — single source of truth for:
+   - Context window per model (GPT-5.2: 400 k, Claude Sonnet 4.5: 1 M, Gemini 3 Pro/Flash: 1 M, Gemini 2.5 Pro: 2 M, etc.)
+   - USD price per 1 M input / output tokens
+   - Forgiving lookup: `find("claude-sonnet-4.5-20250927")` resolves via exact → provider-prefixed → substring fallback. Unknown models degrade to (200 k, $2.50/$10.00) so the app never breaks on new model releases.
+   - `context_window_for(id)`, `compute_cost_usd(id, in, out)`, `public_catalog()` helpers.
+
+2. **Chat pipeline** now:
+   - Sets `wcw_budget` on receipt to `context_window_for(provider:model)` — dynamic per turn based on the engine used, replacing hard-coded 200 k.
+   - After every successful turn, writes a row to a new `engine_usage` collection: `{session_id, message_id, user_email, provider, model, prompt_tokens, completion_tokens, total_tokens, cost_usd, latency_ms, tools_used, created_at}`. Persistence is best-effort — logged but never raised.
+
+3. **New backend endpoints**:
+   - Admin: `GET /api/admin/dashboard/spend-by-engine?period=today|week|month|all` — grouped by provider:model with calls, input/output/total tokens, cost_usd, plus totals.
+   - Admin: `GET /api/admin/dashboard/spend-daily?days=14` — 14-day zero-filled daily cost + token series for the sparkline.
+   - User: `GET /api/caos/usage/my-spend?period=…` — per-user (non-admin) spend breakdown so any authenticated user can audit their own spend.
+   - Public-to-authenticated: `GET /api/caos/runtime/model-specs` — returns the full catalog (provider, model, label, context_window, prices) so the frontend can size the WCW meter to the active model.
+
+4. **Frontend dynamic WCW meter** (`CaosShell.js`):
+   - Fetches `/caos/runtime/model-specs` once per mount and caches in state.
+   - Computes `dynamicWcwBudget` from matched spec (provider + model) → falls back to receipt → 200 k default.
+   - Passes `dynamicWcwBudget` to `ShellHeader` and `ThreadExplorer` so the pill now reads `42.1k / 1.0M` for Claude Sonnet 4.5 / Gemini 3 and `42.1k / 400k` for GPT-5.2, instead of always showing `/ 200k`.
+
+5. **Admin Dashboard new 💰 Spend by Engine tab** (`AdminDashboard.js`):
+   - Period toggle (TODAY / WEEK / MONTH / ALL) — the active period button is highlighted green and triggers a scoped reload.
+   - 4 stat cards: Total Spend (green), Input Tokens (blue), Output Tokens (purple), Total Tokens (cyan).
+   - Daily spend sparkline — 14-day green bar chart with hover tooltip `$X.XX · N tokens`.
+   - Per-engine breakdown rows: colored engine chip (OpenAI green / Claude yellow / Gemini blue / Grok pink) + monospace model name + proportional green gradient bar + $ cost, calls, tokens stats column. Proportional bar width driven by max cost in the set.
+   - Empty state: "No LLM calls recorded for this period yet. Send a message and come back — new turns are tracked automatically."
+
+### Verified
+
+- Seeded 21 usage rows (7 days × 3 engines). Switched period to TODAY → went from $1.210 / 21 calls down to $0.132 / 3 calls. WEEK → $1.210. Dashboard auto-refreshes and the period buttons hot-swap the data without a full reload. Screenshot confirmed.
+- Curl-verified all 4 new endpoints return correct shapes with token totals, cost_usd, provider/model groupings.
+- Lint clean (backend ruff + frontend eslint).
+
+### Notes
+
+- `engine_usage` grows unbounded; no TTL index yet. Budget ~1 KB/row, so a busy admin might see ~30 MB/year — fine for now. Add TTL when >100 k rows.
+- `prompt_tokens` / `completion_tokens` come from the LLM response's `usage` block (already exposed via `build_token_receipt`). If a provider returns 0 (rare), cost computes to 0 — expected behavior.
+- Prices embedded in `model_catalog.py` need periodic refresh (prices change every ~3–6 months). Update script: edit the `CATALOG` list, no restart needed for running turns but new turns will use new prices.
+
+

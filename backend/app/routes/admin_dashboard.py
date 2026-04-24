@@ -225,6 +225,80 @@ async def get_recent_errors(user: dict = Depends(require_admin)):
     return {"errors": rows}
 
 
+@router.get("/dashboard/spend-by-engine")
+async def get_spend_by_engine(user: dict = Depends(require_admin), period: str = "week"):
+    """Aggregate spend + token usage grouped by provider:model.
+
+    period: "today" | "week" | "month" | "all"
+    """
+    now = datetime.now(timezone.utc)
+    if period == "today":
+        cutoff = datetime(now.year, now.month, now.day, tzinfo=timezone.utc).isoformat()
+    elif period == "week":
+        cutoff = (now - timedelta(days=7)).isoformat()
+    elif period == "month":
+        cutoff = (now - timedelta(days=30)).isoformat()
+    else:
+        cutoff = "1970-01-01T00:00:00+00:00"
+
+    pipeline = [
+        {"$match": {"created_at": {"$gte": cutoff}}},
+        {"$group": {
+            "_id": {"provider": "$provider", "model": "$model"},
+            "calls": {"$sum": 1},
+            "prompt_tokens": {"$sum": "$prompt_tokens"},
+            "completion_tokens": {"$sum": "$completion_tokens"},
+            "total_tokens": {"$sum": "$total_tokens"},
+            "cost_usd": {"$sum": "$cost_usd"},
+        }},
+        {"$sort": {"cost_usd": -1}},
+    ]
+    rows = await collection("engine_usage").aggregate(pipeline).to_list(50)
+    totals = {
+        "calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "cost_usd": 0.0,
+    }
+    out_rows = []
+    for row in rows:
+        key = row.pop("_id", {}) or {}
+        row["provider"] = key.get("provider", "unknown")
+        row["model"] = key.get("model", "unknown")
+        totals["calls"] += row.get("calls", 0)
+        totals["prompt_tokens"] += row.get("prompt_tokens", 0)
+        totals["completion_tokens"] += row.get("completion_tokens", 0)
+        totals["total_tokens"] += row.get("total_tokens", 0)
+        totals["cost_usd"] += row.get("cost_usd", 0)
+        out_rows.append(row)
+    totals["cost_usd"] = round(totals["cost_usd"], 4)
+    return {"period": period, "cutoff": cutoff, "rows": out_rows, "totals": totals}
+
+
+@router.get("/dashboard/spend-daily")
+async def get_spend_daily(user: dict = Depends(require_admin), days: int = 14):
+    """Daily spend totals for a sparkline chart."""
+    now = datetime.now(timezone.utc)
+    days = max(1, min(days, 90))
+    cutoff = (now - timedelta(days=days - 1)).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    pipeline = [
+        {"$match": {"created_at": {"$gte": cutoff.isoformat()}}},
+        {"$project": {"day": {"$substr": ["$created_at", 0, 10]}, "cost_usd": 1, "total_tokens": 1}},
+        {"$group": {"_id": "$day", "cost_usd": {"$sum": "$cost_usd"}, "tokens": {"$sum": "$total_tokens"}}},
+        {"$sort": {"_id": 1}},
+    ]
+    rows = await collection("engine_usage").aggregate(pipeline).to_list(120)
+    as_map = {r["_id"]: r for r in rows}
+    out = []
+    for i in range(days):
+        d = (cutoff + timedelta(days=i)).date().isoformat()
+        entry = as_map.get(d, {})
+        out.append({
+            "date": d,
+            "cost_usd": round(entry.get("cost_usd", 0), 4),
+            "tokens": entry.get("tokens", 0),
+        })
+    return {"days": out, "period": {"start": out[0]["date"], "end": out[-1]["date"]}}
+
+
 @router.get("/dashboard/engine-timeline/{session_id}")
 async def get_engine_timeline(session_id: str, user: dict = Depends(require_admin)):
     """Per-session audit: which engine answered each assistant turn, in order.

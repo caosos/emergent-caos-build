@@ -16,6 +16,9 @@ export const AdminDashboard = ({ onClose }) => {
   const [dailyUsage, setDailyUsage] = useState(null);
   const [activity14d, setActivity14d] = useState(null);
   const [errors, setErrors] = useState(null);
+  const [spendRows, setSpendRows] = useState(null);
+  const [spendDaily, setSpendDaily] = useState(null);
+  const [spendPeriod, setSpendPeriod] = useState("week");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [activeTab, setActiveTab] = useState("stats");
@@ -24,24 +27,36 @@ export const AdminDashboard = ({ onClose }) => {
     try {
       setLoading(true);
       setLoadError(null);
-      const [m, t, d, a, e] = await Promise.all([
+      const [m, t, d, a, e, sp, sd] = await Promise.all([
         axios.get(`${API}/admin/dashboard/metrics`),
         axios.get(`${API}/admin/dashboard/token-usage`),
         axios.get(`${API}/admin/dashboard/daily-usage`),
         axios.get(`${API}/admin/dashboard/activity-14d`),
         axios.get(`${API}/admin/dashboard/errors`),
+        axios.get(`${API}/admin/dashboard/spend-by-engine?period=${spendPeriod}`),
+        axios.get(`${API}/admin/dashboard/spend-daily?days=14`),
       ]);
       setMetrics(m.data);
       setTokenUsage(t.data);
       setDailyUsage(d.data);
       setActivity14d(a.data);
       setErrors(e.data);
+      setSpendRows(sp.data);
+      setSpendDaily(sd.data);
     } catch (error) {
       console.error("Failed to load dashboard:", error);
       setLoadError(error.response?.data?.detail || error.message || "Failed to load dashboard");
     } finally {
       setLoading(false);
     }
+  };
+
+  const reloadSpendOnly = async (period) => {
+    try {
+      const res = await axios.get(`${API}/admin/dashboard/spend-by-engine?period=${period}`);
+      setSpendRows(res.data);
+      setSpendPeriod(period);
+    } catch { /* silent */ }
   };
 
   useEffect(() => { loadAll(); }, []);
@@ -98,6 +113,7 @@ export const AdminDashboard = ({ onClose }) => {
 
         <div className="admin-tabs">
           <button className={`admin-tab ${activeTab === "stats" ? "active" : ""}`} data-testid="caos-admin-tab-stats" onClick={() => setActiveTab("stats")}>📊 Users & Stats</button>
+          <button className={`admin-tab ${activeTab === "spend" ? "active" : ""}`} data-testid="caos-admin-tab-spend" onClick={() => setActiveTab("spend")}>💰 Spend by Engine</button>
           <button className={`admin-tab ${activeTab === "errors" ? "active" : ""}`} data-testid="caos-admin-tab-errors" onClick={() => setActiveTab("errors")}>⚡ Errors</button>
           <button className={`admin-tab ${activeTab === "timeline" ? "active" : ""}`} data-testid="caos-admin-tab-timeline" onClick={() => setActiveTab("timeline")}>🧭 Engine Timeline</button>
           <button className={`admin-tab ${activeTab === "users" ? "active" : ""}`} data-testid="caos-admin-tab-users" onClick={() => setActiveTab("users")}>👥 Top Users</button>
@@ -106,6 +122,7 @@ export const AdminDashboard = ({ onClose }) => {
 
         <div className="admin-dashboard-content">
           {activeTab === "stats" && <StatsTab metrics={metrics} activity14d={activity14d} onRefresh={loadAll} />}
+          {activeTab === "spend" && <SpendTab spendRows={spendRows} spendDaily={spendDaily} period={spendPeriod} onChangePeriod={reloadSpendOnly} />}
           {activeTab === "errors" && <ErrorsTab errors={errors} />}
           {activeTab === "timeline" && <EngineTimelineTab />}
           {activeTab === "users" && <UsersTab tokenUsage={tokenUsage} tierDistribution={metrics?.users?.by_tier} />}
@@ -359,6 +376,96 @@ const BarList = ({ title, icon, rows }) => (
     </div>
   </div>
 );
+
+// ─── Spend by Engine tab ─────────────────────────────────────────────────────
+
+const fmtUSD = (n) => {
+  const v = Number(n) || 0;
+  if (v >= 1000) return `$${v.toFixed(0)}`;
+  if (v >= 10) return `$${v.toFixed(2)}`;
+  if (v >= 1) return `$${v.toFixed(3)}`;
+  return `$${v.toFixed(4)}`;
+};
+
+const PROVIDER_CHIP_CLASS = { openai: "openai", anthropic: "anthropic", gemini: "gemini", xai: "xai" };
+const PROVIDER_LABEL = { openai: "OpenAI", anthropic: "Claude", gemini: "Gemini", xai: "Grok" };
+
+const SpendTab = ({ spendRows, spendDaily, period, onChangePeriod }) => {
+  if (!spendRows) return <div className="admin-empty-state">Loading spend data…</div>;
+  const totals = spendRows.totals || {};
+  const rows = spendRows.rows || [];
+  const maxCost = Math.max(1, ...rows.map((r) => r.cost_usd || 0));
+  const daily = spendDaily?.days || [];
+  const maxDaily = Math.max(0.0001, ...daily.map((d) => d.cost_usd || 0));
+
+  return (
+    <div className="admin-overview" data-testid="caos-admin-spend">
+      <SectionHeader icon="💰" title="Spend by Engine" rightSlot={
+        <div className="admin-spend-period-picker" data-testid="caos-admin-spend-period-picker">
+          {["today", "week", "month", "all"].map((p) => (
+            <button
+              key={p}
+              className={`admin-spend-period-btn ${period === p ? "active" : ""}`}
+              data-testid={`caos-admin-spend-period-${p}`}
+              onClick={() => onChangePeriod(p)}
+            >{p}</button>
+          ))}
+        </div>
+      } />
+
+      <div className="admin-stat-grid">
+        <StatCard icon="💰" color="#4ade80" label="Total Spend" value={fmtUSD(totals.cost_usd)} sub={`${period} · ${totals.calls || 0} calls`} testId="spend-total" />
+        <StatCard icon="📥" color="#60a5fa" label="Input Tokens" value={totals.prompt_tokens} testId="spend-input" />
+        <StatCard icon="📤" color="#a78bfa" label="Output Tokens" value={totals.completion_tokens} testId="spend-output" />
+        <StatCard icon="Σ" color="#22d3ee" label="Total Tokens" value={totals.total_tokens} testId="spend-tokens" />
+      </div>
+
+      <div className="admin-mini-chart">
+        <div className="admin-mini-chart-title">Daily spend — last 14 days</div>
+        <div className="admin-mini-chart-bars">
+          {daily.map((d, idx) => (
+            <div key={idx} className="admin-mini-chart-bar-wrap" title={`${d.date}: ${fmtUSD(d.cost_usd)} · ${d.tokens.toLocaleString()} tokens`}>
+              <div className="admin-mini-chart-bar" style={{ height: `${((d.cost_usd || 0) / maxDaily) * 100}%`, background: "#4ade80" }} />
+            </div>
+          ))}
+        </div>
+        <div className="admin-mini-chart-footer">
+          <span>{daily[0]?.date?.slice(5) || "—"}</span>
+          <span>Today</span>
+        </div>
+      </div>
+
+      <div className="admin-spend-table" data-testid="caos-admin-spend-table">
+        <h3>Per-engine breakdown</h3>
+        {rows.length === 0 ? (
+          <div className="admin-empty-state">No LLM calls recorded for this period yet. Send a message and come back — new turns are tracked automatically.</div>
+        ) : (
+          <div className="admin-spend-rows">
+            {rows.map((row) => {
+              const pct = ((row.cost_usd || 0) / maxCost) * 100;
+              const providerClass = PROVIDER_CHIP_CLASS[row.provider] || "default";
+              return (
+                <div key={`${row.provider}:${row.model}`} className="admin-spend-row" data-testid={`caos-admin-spend-row-${row.provider}-${row.model}`}>
+                  <div className="admin-spend-row-label">
+                    <span className={`caos-engine-chip caos-engine-chip-${providerClass}`} style={{ minWidth: 74, textAlign: "center" }}>{PROVIDER_LABEL[row.provider] || row.provider}</span>
+                    <strong>{row.model}</strong>
+                  </div>
+                  <div className="admin-spend-row-bar-container">
+                    <div className="admin-spend-row-bar" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="admin-spend-row-stats">
+                    <div><strong>{fmtUSD(row.cost_usd)}</strong><span>{row.calls} calls</span></div>
+                    <div><strong>{(row.total_tokens || 0).toLocaleString()}</strong><span>tokens</span></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 // ─── Engine Timeline tab ─────────────────────────────────────────────────────
 

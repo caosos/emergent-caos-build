@@ -47,6 +47,22 @@ export const CaosShell = ({ authenticatedUser }) => {
       if (opacity > 0) document.documentElement.style.setProperty("--caos-bubble-opacity", String(opacity));
     } catch { /* no-op */ }
   }, []);
+
+  // Fetch model catalog once per session so the WCW meter knows the actual
+  // context window for the active engine (1 M for Claude Sonnet 4.5 / Gemini 3,
+  // 400 k for GPT-5.2, etc.) instead of a hard-coded 200 k.
+  const [modelSpecs, setModelSpecs] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    import("axios").then(({ default: axios }) => {
+      import("@/config/apiBase").then(({ API }) => {
+        axios.get(`${API}/caos/runtime/model-specs`)
+          .then((res) => { if (!cancelled) setModelSpecs(res.data?.models || []); })
+          .catch(() => { /* non-fatal — falls back to 200k */ });
+      });
+    });
+    return () => { cancelled = true; };
+  }, []);
   const {
     artifacts,
     busy,
@@ -129,6 +145,18 @@ export const CaosShell = ({ authenticatedUser }) => {
             : "chat";
   const showCommandToolbar = activeSurface === "chat";
   const showWelcome = !filteredMessages.length && !draft.trim() && !busy;
+
+  // Dynamic WCW budget — find the active model in the catalog. Fall back to
+  // receipt value, then 200 k.
+  const activeModelId = runtimeSettings?.default_model || "";
+  const activeProviderId = runtimeSettings?.default_provider || "";
+  const matchedSpec = (modelSpecs || []).find((s) => s.model === activeModelId && s.provider === activeProviderId)
+    || (modelSpecs || []).find((s) => s.model === activeModelId)
+    || null;
+  const dynamicWcwBudget = matchedSpec?.context_window
+    || latestReceipt?.wcw_budget
+    || lastTurn?.wcw_budget
+    || 200000;
 
   useEffect(() => {
     const handleWheelFallback = (event) => {
@@ -251,7 +279,7 @@ export const CaosShell = ({ authenticatedUser }) => {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         matchCount={(searchQuery || "").trim() ? filteredMessages.reduce((count, m) => count + (String(m.content || "").toLowerCase().split(searchQuery.toLowerCase()).length - 1), 0) : 0}
-        wcwBudget={latestReceipt?.wcw_budget || lastTurn?.wcw_budget || 200000}
+        wcwBudget={dynamicWcwBudget}
         wcwUsed={latestReceipt?.active_context_tokens || lastTurn?.wcw_used_estimate || 0}
       />
 
@@ -296,7 +324,7 @@ export const CaosShell = ({ authenticatedUser }) => {
         onSelectSession={selectSession}
         provider={runtimeSettings?.default_provider}
         sessions={sessions}
-        wcwBudget={latestReceipt?.wcw_budget || lastTurn?.wcw_budget || 200000}
+        wcwBudget={dynamicWcwBudget}
         wcwUsed={latestReceipt?.active_context_tokens || lastTurn?.wcw_used_estimate || 0}
       />
 
