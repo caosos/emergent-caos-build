@@ -114,67 +114,9 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
   };
 
   const stopRecording = () => {
-    // Force stop immediately - don't wait for state check
-    if (recorderRef.current) {
-      try {
-        if (recorderRef.current.state !== "inactive") {
-          recorderRef.current.stop();
-        }
-      } catch (error) {
-        // Force cleanup even if stop() fails
-        console.error("Stop recording error:", error);
-      }
-      // Immediately clean up stream
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
-      setRecording(false);
-      setLiveStatus("");
+    if (recorderRef.current && recorderRef.current.state !== "inactive") {
+      recorderRef.current.stop();
     }
-  };
-
-  // We send a CUMULATIVE audio blob (t=0 → now) on each chunk, so the server
-  // returns the FULL transcript every time. Trust it — never append. Earlier
-  // naive endsWith/startsWith merging caused duplication/triplication when
-  // Whisper drifted punctuation or capitalization between chunks.
-  const mergeLiveChunk = (incoming) => {
-    // Fix: Whisper returns FULL transcript each time (cumulative audio)
-    // We need to detect and strip duplicate prefixes to avoid repetition
-    const nextText = (incoming || "").trim();
-    const prevText = (liveTranscriptRef.current || "").trim();
-    
-    if (!nextText) return prevText;
-    if (!prevText) return nextText;
-    
-    // If incoming starts with previous text, it's cumulative - just use incoming
-    if (nextText.startsWith(prevText)) {
-      return nextText;
-    }
-    
-    // If previous starts with incoming, keep previous (edge case)
-    if (prevText.startsWith(nextText)) {
-      return prevText;
-    }
-    
-    // Otherwise, check for partial overlap at the boundary
-    // Find longest common suffix of prevText that matches prefix of nextText
-    let overlapLen = 0;
-    const minLen = Math.min(prevText.length, nextText.length);
-    for (let len = minLen; len > 20; len--) { // Check overlaps > 20 chars
-      if (prevText.endsWith(nextText.substring(0, len))) {
-        overlapLen = len;
-        break;
-      }
-    }
-    
-    if (overlapLen > 0) {
-      // Merge by removing duplicate overlap
-      return prevText + nextText.substring(overlapLen);
-    }
-    
-    // No overlap detected - just append (shouldn't happen with cumulative audio)
-    return `${prevText} ${nextText}`;
   };
 
   const showStatus = transientStatus
@@ -193,7 +135,14 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
     }
     let stream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Base44 approach: Add audio constraints for better quality
+      stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 16000, // Whisper native sample rate
+        }
+      });
     } catch (error) {
       if (error?.name === "NotAllowedError") {
         toast.error("Microphone permission denied — allow it in browser settings");
@@ -216,57 +165,38 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
     streamRef.current = stream;
     chunksRef.current = [];
     initialDraftRef.current = draft;
-    liveTranscriptRef.current = "";
-    setLiveTranscript("");
-    setLiveStatus(`Listening with ${voiceSettings.stt_primary_model}...`);
     setRecording(true);
     toast.success("Recording — tap mic again to stop", { duration: 2000 });
-    recorder.ondataavailable = async (event) => {
-      if (!event.data?.size) return;
-      chunksRef.current.push(event.data);
-      // WebM chunks aren't independently decodable — send cumulative blob so each
-      // transcription call gets a valid audio stream from t=0 to now.
-      const cumulative = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
-      try {
-        // CRITICAL FIX: Do NOT send previous transcript as prompt - causes Whisper hallucination
-        // Pass empty string instead of liveTranscriptRef to avoid text duplication
-        const response = await onTranscribeChunk(cumulative, "");
-        const merged = mergeLiveChunk(response.text || "");
-        liveTranscriptRef.current = merged;
-        setLiveTranscript(merged);
-        onDraftChange(joinDraft(initialDraftRef.current, merged));
-        // Don't show streaming status - clean UI only
-        setLiveStatus("");
-      } catch {
-        // Silently handle streaming errors - don't show to user
-        setLiveStatus("");
+    
+    // Base44 approach: Collect chunks, transcribe ONCE on stop (no streaming)
+    recorder.ondataavailable = (event) => {
+      if (event.data?.size) {
+        chunksRef.current.push(event.data);
       }
     };
+    
     recorder.onstop = async () => {
       const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
       try {
         const response = await onTranscribe(blob);
-        const text = response.text || liveTranscriptRef.current || "";
-        liveTranscriptRef.current = text;
-        setLiveTranscript(text);
-        onDraftChange(joinDraft(initialDraftRef.current, text));
-        setLiveStatus("");
+        const transcriptText = response.text || "";
+        // Base44 approach: Append to existing draft (if any)
+        const newDraft = initialDraftRef.current 
+          ? `${initialDraftRef.current} ${transcriptText}` 
+          : transcriptText;
+        onDraftChange(newDraft);
       } catch (error) {
-        // Use captured live transcript if final call fails
-        onDraftChange(joinDraft(initialDraftRef.current, liveTranscriptRef.current));
-        setLiveStatus("");
-        if (liveTranscriptRef.current) {
-          toast.info("Using live transcript");
-        } else {
-          toast.error("Transcription failed - please try again");
-        }
+        toast.error("Transcription failed - please try again");
+        console.error("STT error:", error);
       }
       setRecording(false);
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
       recorderRef.current = null;
     };
-    recorder.start(1400);
+    
+    // Base44 approach: Start recording with NO timeslice (single blob on stop)
+    recorder.start();
   };
 
   // Load Chrome's native voices (async on first call) + subscribe to changes.
