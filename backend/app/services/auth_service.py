@@ -51,6 +51,8 @@ async def upsert_user(email: str, name: str, picture: str) -> dict:
 
     Auto-assigns admin role for known admin emails on first login and every
     subsequent login (in case the role was ever stripped).
+    
+    Also syncs admin status to user_profiles collection (used by CAOS tools).
     """
     email = email.lower().strip()
     is_admin = email in ADMIN_EMAILS
@@ -67,6 +69,12 @@ async def upsert_user(email: str, name: str, picture: str) -> dict:
                 "last_login": datetime.now(timezone.utc).isoformat(),
             }},
         )
+        # Sync admin status to user_profiles (for tool execution)
+        await db.user_profiles.update_one(
+            {"user_email": email},
+            {"$set": {"role": role, "is_admin": is_admin}},
+            upsert=True,
+        )
         return {**existing, "name": name, "picture": picture, "role": role, "is_admin": is_admin}
     user_id = f"user_{uuid.uuid4().hex[:12]}"
     doc = {
@@ -80,6 +88,12 @@ async def upsert_user(email: str, name: str, picture: str) -> dict:
         "last_login": datetime.now(timezone.utc).isoformat(),
     }
     await db.users.insert_one(doc)
+    # Sync admin status to user_profiles (for tool execution)
+    await db.user_profiles.update_one(
+        {"user_email": email},
+        {"$set": {"role": role, "is_admin": is_admin}},
+        upsert=True,
+    )
     return {k: v for k, v in doc.items() if k != "_id"}
 
 
