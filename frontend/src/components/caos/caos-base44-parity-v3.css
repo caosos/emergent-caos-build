@@ -563,6 +563,8 @@ body .command-footer,
 .message-pane {
   position: relative;
   isolation: isolate;
+  /* CRITICAL: Transparent so constellation layer shows through */
+  background: transparent !important;
 }
 
 .message-pane-header-curtain {
@@ -572,6 +574,8 @@ body .command-footer,
 .message-scroll {
   position: relative;
   z-index: 1;
+  /* CRITICAL: Transparent so stars show between messages */
+  background: transparent !important;
 }
 
 .scroll-to-bottom-button {

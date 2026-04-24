@@ -600,6 +600,8 @@ body {
     margin: 0;
     position: relative;
     z-index: 1;
+    /* CRITICAL: Transparent so stars show between messages */
+    background: transparent !important;
 }
 
 .rail-header,
