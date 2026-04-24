@@ -413,3 +413,211 @@
     height: 200px;
   }
 }
+
+
+/* ─── Extended sections (Base44 parity) ─────────────────────────── */
+
+.admin-header-sub {
+  margin: 4px 0 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.admin-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 8px;
+  padding-bottom: 4px;
+}
+
+.admin-section-header h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.01em;
+}
+
+.admin-section-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.admin-refresh-btn {
+  background: rgba(139, 92, 246, 0.14);
+  border: 1px solid rgba(139, 92, 246, 0.38);
+  padding: 6px 14px;
+  border-radius: 999px;
+  color: #c4b5fd;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.admin-refresh-btn:hover {
+  background: rgba(139, 92, 246, 0.22);
+  border-color: rgba(139, 92, 246, 0.6);
+  color: #ddd6fe;
+}
+
+.admin-stat-icon {
+  margin-right: 6px;
+}
+
+.admin-dual-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.admin-mini-chart {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-mini-chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.admin-mini-chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 130px;
+  padding: 6px 4px 4px;
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 8px;
+}
+
+.admin-mini-chart-bar-wrap {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 12px;
+  height: 100%;
+}
+
+.admin-mini-chart-bar {
+  width: 100%;
+  min-height: 3px;
+  border-radius: 3px 3px 0 0;
+  box-shadow: 0 0 8px rgba(167, 139, 250, 0.25);
+  transition: height 0.35s ease-out;
+}
+
+.admin-mini-chart-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.admin-error-breakdown {
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.18);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.admin-error-breakdown h3 {
+  margin: 0 0 20px 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: #fca5a5;
+}
+
+.admin-error-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-error-bar-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 80px;
+  gap: 14px;
+  align-items: center;
+}
+
+.admin-error-bar-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.82);
+  text-transform: lowercase;
+}
+
+.admin-error-bar-container {
+  height: 22px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.admin-error-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #dc2626, #ef4444);
+  border-radius: 6px;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
+}
+
+.admin-error-bar-count {
+  text-align: right;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fecaca;
+}
+
+.admin-empty-state {
+  padding: 24px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.admin-cost-reference {
+  margin-top: 8px;
+  padding: 18px 22px;
+  background: rgba(250, 204, 21, 0.06);
+  border: 1px solid rgba(250, 204, 21, 0.25);
+  border-radius: 12px;
+  color: rgba(253, 224, 71, 0.88);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.admin-cost-reference strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #fde047;
+  font-size: 14px;
+}
+
+.admin-cost-reference p {
+  margin: 0;
+  color: rgba(254, 240, 138, 0.8);
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .admin-dual-row { grid-template-columns: 1fr; }
+  .admin-error-bar-row { grid-template-columns: 140px 1fr 60px; }
+}

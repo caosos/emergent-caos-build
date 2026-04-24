@@ -615,3 +615,31 @@ User flagged three tweaks after the first transparency pass:
 - `.caos-main-column` computed `padding-bottom: 70px` confirmed via getComputedStyle.
 - No lint issues.
 
+
+
+## Admin Dashboard — Base44 Parity (Apr 24, 2026 — evening)
+
+User asked: keep the modal-style UX (X-out-able, stays in-app) but add every component from the Base44 admin panel. Shipped in one pass.
+
+### New backend endpoints (admin-gated)
+- `GET /api/admin/dashboard/metrics` — expanded to `live_status` (1h / today / week unique users), `registered_accounts` (total / ever logged in / new this month / new this week / new today), `sessions` (total ever / guest / avg length in minutes via message-timestamp aggregation / total threads + today + this week), `login_methods` (google / guest). Back-compat fields preserved.
+- `GET /api/admin/dashboard/activity-14d` — 14-day zero-filled series for new registrations and new sessions.
+- `GET /api/admin/dashboard/errors` — sourced from support_tickets with category=bug; total / this_week / today / by_type breakdown.
+
+### Frontend — `AdminDashboard.js` rewrite with 4 tabs
+- 📊 Users & Stats: Live Status + Registered Accounts + Sessions + twin 14-day charts + Tier Distribution + Login Methods + Cost Reference yellow callout.
+- ⚡ Errors: 3 count cards + red-bar Error Types Breakdown.
+- 👥 Top Users: existing token-usage-by-user table.
+- 📈 Usage (30d): existing daily chart.
+
+### CSS additions in `AdminDashboard.css`
+Section headers, mini bar charts, red-tinted error panel, yellow cost-reference callout, pill refresh button, mobile-responsive @ 900 px.
+
+### Verified
+4 screenshots across the new sections. All data loads real, modal X-out still works, transparency unchanged.
+
+### Deferrals
+- Top Countries needs geoip at login. Skipped.
+- Real error tracking from chat_pipeline exceptions → own `error_log` collection. ~S task next session.
+- Context Inspector / Repo / Swarm tabs from Base44 are separate features, not dashboard components.
+
