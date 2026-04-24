@@ -39,7 +39,7 @@
   opacity: 1;
   animation: caosStarfieldDrift 180s linear infinite alternate;
 }
-.caos-shell-root > * { position: relative; z-index: 1; }
+.caos-shell-root > *:not([data-testid="caos-constellation-layer"]) { position: relative; z-index: 1; }
 
 [data-testid^="caos-constellation-"] {
   animation: caosConstellationFloat 54s ease-in-out infinite alternate;
