@@ -228,7 +228,9 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
       // transcription call gets a valid audio stream from t=0 to now.
       const cumulative = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
       try {
-        const response = await onTranscribeChunk(cumulative, liveTranscriptRef.current || initialDraftRef.current);
+        // CRITICAL FIX: Do NOT send previous transcript as prompt - causes Whisper hallucination
+        // Pass empty string instead of liveTranscriptRef to avoid text duplication
+        const response = await onTranscribeChunk(cumulative, "");
         const merged = mergeLiveChunk(response.text || "");
         liveTranscriptRef.current = merged;
         setLiveTranscript(merged);
