@@ -139,8 +139,42 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
   // naive endsWith/startsWith merging caused duplication/triplication when
   // Whisper drifted punctuation or capitalization between chunks.
   const mergeLiveChunk = (incoming) => {
+    // Fix: Whisper returns FULL transcript each time (cumulative audio)
+    // We need to detect and strip duplicate prefixes to avoid repetition
     const nextText = (incoming || "").trim();
-    return nextText || liveTranscriptRef.current;
+    const prevText = (liveTranscriptRef.current || "").trim();
+    
+    if (!nextText) return prevText;
+    if (!prevText) return nextText;
+    
+    // If incoming starts with previous text, it's cumulative - just use incoming
+    if (nextText.startsWith(prevText)) {
+      return nextText;
+    }
+    
+    // If previous starts with incoming, keep previous (edge case)
+    if (prevText.startsWith(nextText)) {
+      return prevText;
+    }
+    
+    // Otherwise, check for partial overlap at the boundary
+    // Find longest common suffix of prevText that matches prefix of nextText
+    let overlapLen = 0;
+    const minLen = Math.min(prevText.length, nextText.length);
+    for (let len = minLen; len > 20; len--) { // Check overlaps > 20 chars
+      if (prevText.endsWith(nextText.substring(0, len))) {
+        overlapLen = len;
+        break;
+      }
+    }
+    
+    if (overlapLen > 0) {
+      // Merge by removing duplicate overlap
+      return prevText + nextText.substring(overlapLen);
+    }
+    
+    // No overlap detected - just append (shouldn't happen with cumulative audio)
+    return `${prevText} ${nextText}`;
   };
 
   const showStatus = transientStatus

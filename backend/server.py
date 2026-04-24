@@ -22,9 +22,6 @@ from app.middleware.rate_limit import RateLimitMiddleware
 # Create the main app without a prefix
 app = FastAPI()
 
-# Add rate limiting middleware (BEFORE CORS)
-app.add_middleware(RateLimitMiddleware)
-
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
@@ -100,6 +97,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add rate limiting AFTER CORS (so preflight OPTIONS requests aren't rate-limited)
+app.add_middleware(RateLimitMiddleware)
 
 # Configure logging
 logging.basicConfig(
