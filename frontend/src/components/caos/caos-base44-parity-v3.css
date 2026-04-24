@@ -448,7 +448,7 @@ body .command-footer,
 }
 
 /* Make space at the page bottom so the last message isn't tucked under the floating composer */
-.caos-shell-no-rail .caos-main-column { padding-bottom: 140px; }
+.caos-shell-no-rail .caos-main-column { padding-bottom: 70px; }
 
 .caos-shell-no-rail .message-pane,
 .caos-shell-no-rail .message-scroll {
@@ -1420,26 +1420,30 @@ body .command-footer,
 }
 
 /* =========================================================
-   FIX: Message bubbles — more transparency so starfield shows through
+   FIX: Message bubbles — Base44-level transparency so stars+planets
+   show through clearly. User bubble tint stays for readability but
+   drops to ~0.32 alpha; assistant goes to ~0.22.
    ========================================================= */
 .message-bubble-user {
   background: linear-gradient(135deg,
-    rgba(109, 40, 217, 0.62) 0%,
-    rgba(91, 33, 182, 0.58) 50%,
-    rgba(76, 29, 149, 0.62) 100%) !important;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+    rgba(109, 40, 217, 0.32) 0%,
+    rgba(91, 33, 182, 0.28) 50%,
+    rgba(76, 29, 149, 0.32) 100%) !important;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  border: 1px solid rgba(167, 139, 250, 0.22);
+  box-shadow: 0 4px 18px rgba(109, 40, 217, 0.18) !important;
 }
 .message-bubble-assistant {
-  background: rgba(15, 23, 42, 0.38) !important;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(15, 23, 42, 0.22) !important;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 .message-bubble-system {
-  background: rgba(30, 41, 59, 0.28) !important;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(30, 41, 59, 0.18) !important;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
 /* =========================================================

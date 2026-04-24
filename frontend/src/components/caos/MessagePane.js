@@ -98,6 +98,28 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
 
   const snapToBottom = () => scrollToBottom("auto");
 
+  // Page-by-page scroll (one viewport at a time). Used by the side FAB so a
+  // single click advances gently instead of teleporting to the last message.
+  const scrollPageDown = () => {
+    try {
+      const target = resolveScrollTarget();
+      const node = target.node;
+      const viewport = target.mode === "container" ? node.clientHeight : window.innerHeight;
+      const step = Math.max(240, Math.round(viewport * 0.85));
+      const currentTop = target.mode === "container"
+        ? node.scrollTop
+        : (window.scrollY || document.documentElement.scrollTop || 0);
+      const maxTop = target.mode === "container"
+        ? node.scrollHeight - node.clientHeight
+        : node.scrollHeight - window.innerHeight;
+      const nextTop = Math.min(maxTop, currentTop + step);
+      // If within one step of the bottom, land exactly at the bottom for a clean finish.
+      const dest = (maxTop - nextTop < 40) ? maxTop : nextTop;
+      if (target.mode === "container") node.scrollTo({ top: dest, behavior: "smooth" });
+      else window.scrollTo({ top: dest, behavior: "smooth" });
+    } catch { /* no-op */ }
+  };
+
   useEffect(() => {
     const sessionId = currentSession?.session_id || "";
     const sessionChanged = sessionScrollRef.current !== sessionId;
@@ -209,14 +231,18 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
 
   const scrollButton = (
     <button
-      aria-label="Last message"
+      aria-label="Scroll down one page"
       className="scroll-to-bottom-button"
       data-testid="caos-scroll-to-bottom-button"
       onClick={(event) => {
+        scrollPageDown();
+        event.currentTarget.blur();
+      }}
+      title="Scroll down (one page). Double-click to jump to latest."
+      onDoubleClick={(event) => {
         scrollToBottom();
         event.currentTarget.blur();
       }}
-      title="Last message"
       type="button"
     >
       <ArrowDown size={16} />

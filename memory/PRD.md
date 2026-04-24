@@ -596,3 +596,22 @@ User requested two transparency chips next to the `CAOS` role label on every ass
 - Seeded 3 assistant messages across OpenAI / Claude / Gemini, two of them with `tools_used=["web_fetch"]` / `["github_fetch"]`, one with none. Screenshot: all 3 engine chips rendered with correct colors, both LIVE chips visible with globe icon on the two tool-using replies, none on the plain chat reply. Frontend + backend lint clean.
 
 
+
+
+## Bubble Transparency Pass 2 + Tighter Composer Gap + Scroll-Step Button (Apr 24, 2026 — evening)
+
+User flagged three tweaks after the first transparency pass:
+1. Gap between last bubble and composer still too big → halve it.
+2. Bubbles still too opaque → drop the tint further so planets + constellations show through like Base44.
+3. Scroll-down FAB teleports all the way to the latest message → make it advance one page per click.
+
+### Shipped
+- **Bottom gap halved**: `.caos-shell-no-rail .caos-main-column { padding-bottom }` went from `140px` → `70px`.
+- **Transparency pass 2** in `caos-base44-parity-v3.css`: user bubble alphas `~0.62` → `~0.32` + blur 6 px → 3 px + subtle violet outline; assistant bubble `0.38` → `0.22` + blur 6 px → 3 px; system `0.28` → `0.18`.
+- **Scroll-to-bottom FAB now page-by-page**: single click advances ~85 % viewport height smoothly; if within one step of bottom it lands at the bottom. **Double-click** takes you straight to the newest message. Tooltip explains both behaviors.
+
+### Verified via screenshot
+- Starfield + constellations clearly visible through user and assistant bubbles.
+- `.caos-main-column` computed `padding-bottom: 70px` confirmed via getComputedStyle.
+- No lint issues.
+
