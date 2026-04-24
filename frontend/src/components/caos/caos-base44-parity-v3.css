@@ -448,8 +448,8 @@ body .command-footer,
 }
 
 /* Make space at the page bottom so the last message isn't tucked under the floating composer */
-.caos-shell-no-rail .caos-main-column { padding-bottom: 6px !important; }
-.message-scroll { padding-bottom: 6px !important; }
+.caos-shell-no-rail .caos-main-column { padding-bottom: 4px !important; }
+.message-scroll { padding-bottom: 4px !important; }
 
 .caos-shell-no-rail .message-pane,
 .caos-shell-no-rail .message-scroll {
@@ -1447,21 +1447,21 @@ html, body { overscroll-behavior-y: contain; }
     rgba(109, 40, 217, var(--caos-bubble-opacity)) 0%,
     rgba(91, 33, 182, calc(var(--caos-bubble-opacity) - 0.04)) 50%,
     rgba(76, 29, 149, var(--caos-bubble-opacity)) 100%) !important;
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border: 1px solid rgba(167, 139, 250, 0.22);
   box-shadow: 0 4px 18px rgba(109, 40, 217, 0.18) !important;
 }
 .message-bubble-assistant {
   background: rgba(15, 23, 42, calc(var(--caos-bubble-opacity) - 0.10)) !important;
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 .message-bubble-system {
   background: rgba(30, 41, 59, calc(var(--caos-bubble-opacity) - 0.14)) !important;
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* =========================================================

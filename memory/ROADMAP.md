@@ -31,6 +31,7 @@ Shipped so far (see `PRD.md` for details):
 | H7 | Global thread search (across all sessions, not just current) | S | Backend index exists |
 | H8 | Syntax highlighting in code blocks | XS | Check Markdown renderer |
 | H9 | Error detail drill-down — click Errors bar → see recent rows with stack traces | S | Data in error_log |
+| H10 | **Ambient space cards** — occasional drifting "featured" prompts in the starfield (Create an image, Brainstorm, Talk about your lineage, etc.). Small visual cards with an image or short auto-playing video, appearing sparsely so they never junk up the screen. Purely suggestive — click to inject the prompt into the composer. User-dismissible per-card with a "don't show again" option. | M | Ambient-UX — distinct from bubble content, rendered in the starfield layer |
 
 **Sub-total: ~80 credits**
 
