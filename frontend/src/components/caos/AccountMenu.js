@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, BookOpen, ChevronDown, ChevronRight, FileText, History, Image as ImageIcon, LifeBuoy, Link2, LogOut, Monitor, PlusCircle, Sparkles, UserCircle, Zap, Shield } from "lucide-react";
+import { Bot, BookOpen, ChevronDown, ChevronRight, FileText, History, Image as ImageIcon, LayoutDashboard, LifeBuoy, Link2, LogOut, Monitor, PlusCircle, Sparkles, UserCircle, Zap, Shield } from "lucide-react";
 
 const LABELS = { openai: "OpenAI", anthropic: "Claude", gemini: "Gemini", xai: "Grok" };
 
@@ -181,10 +181,16 @@ export const AccountMenu = ({
             <em style={{ marginLeft: "auto", fontSize: 10, color: "rgba(167, 139, 250, 0.7)" }}>E2B</em>
           </button>
           {isAdmin ? (
-            <button className="inspector-menu-item" data-testid="caos-account-menu-admin-docs" onClick={pick(onOpenAdminDocs)} type="button">
-              <BookOpen size={14} /><span>Admin Docs</span>
-              <em style={{ marginLeft: "auto", fontSize: 10, color: "rgba(250, 204, 21, 0.8)" }}>ADMIN</em>
-            </button>
+            <>
+              <button className="inspector-menu-item" data-testid="caos-account-menu-admin-dashboard" onClick={pick(onOpenAdminDashboard)} type="button">
+                <LayoutDashboard size={14} /><span>Admin Dashboard</span>
+                <em style={{ marginLeft: "auto", fontSize: 10, color: "rgba(250, 204, 21, 0.8)" }}>ADMIN</em>
+              </button>
+              <button className="inspector-menu-item" data-testid="caos-account-menu-admin-docs" onClick={pick(onOpenAdminDocs)} type="button">
+                <BookOpen size={14} /><span>Admin Docs</span>
+                <em style={{ marginLeft: "auto", fontSize: 10, color: "rgba(250, 204, 21, 0.8)" }}>ADMIN</em>
+              </button>
+            </>
           ) : null}
           <button className="inspector-menu-item" data-testid="caos-account-menu-support" onClick={pick(onOpenSupport)} type="button">
             <LifeBuoy size={14} /><span>Support Tickets</span>

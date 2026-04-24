@@ -539,3 +539,36 @@ User reported **messages tripling themselves while dictating** and screenshots s
 - Scroll button stays hidden when already at the bottom / when not needed.
 - In code and runtime logic, the button now appears only when far enough from the bottom and disappears again near the bottom.
 
+
+## UI Emergency Fixes + Web/GitHub Tools + Admin Dashboard Guard Fix (Apr 24, 2026)
+
+### Root causes
+- **Settings drawer appeared at the bottom of the page and Admin Dashboard didn't render at all.** A global rule `.caos-shell-root > * { position: relative; z-index: 1; }` in `caos-base44-parity.css` was beating the `position: fixed` on overlay portals rendered as direct children of the shell. That put the drawer-overlay and admin-dashboard-overlay into normal flow, stacking them underneath all the scrollable message content.
+- **Admin Dashboard menu item was missing from the account menu entirely.** The `onOpenAdminDashboard` prop was wired from `CaosShell → ShellHeader` but `ShellHeader` never forwarded it to `AccountMenu`, and `AccountMenu` had no entry for it.
+- **Admin Dashboard API returned 403 "Admin access required" even for admin-tagged users.** `admin_dashboard.py` was re-querying `user_profiles.is_admin` instead of trusting the already-authenticated user dict (which `auth_service.py` syncs at login time). `admin_docs.py` used the simpler dict check and worked fine — the two guards were inconsistent.
+- **Tier distribution showed impossible percentages (e.g., 857.1%)** because `total_users` came from the `users` collection but `by_tier` came from `user_profiles`, which had far more rows (dangling tool-created profiles).
+
+### Shipped
+- **Overlay portal fix** — Added explicit overrides at the end of `caos-base44-parity-v3.css` so any `.drawer-overlay`, `.admin-dashboard-overlay`, support / swarm / admin-docs / lightbox backdrops rendered inside `.caos-shell-root` stay `position: fixed; inset: 0` with proper z-index (200+).
+- **Header-to-messages gap** — Bumped main column top padding to `calc(--caos-header-height + 56px)` so the conversation area starts ~1.5 in below the fixed header instead of stretching under it.
+- **Message bubble transparency** — User bubble is now a translucent violet gradient (~0.6 alpha with a 6 px backdrop blur), assistant bubble is `rgba(15, 23, 42, 0.38)` with blur, system bubble is `rgba(30, 41, 59, 0.28)`. Starfield + constellations now visible through every bubble.
+- **Admin Dashboard menu item** — Added `Admin Dashboard · ADMIN` entry to `AccountMenu` (admin-only, above Admin Docs). `ShellHeader` now forwards `onOpenAdminDashboard`. Verified click path opens the dashboard overlay.
+- **Admin guard simplified** — `admin_dashboard.py::require_admin` now uses the same lightweight `user.get("is_admin") or user.get("role") == "admin"` check as `admin_docs.py`, trusting the synced user dict from `require_user`. No extra DB lookup.
+- **Tier distribution clamp** — `by_tier` totals are now rescaled (or backfilled as `free`) so they never exceed `total_users`. Percentages always sum to 100 %.
+
+### Aria gains web + GitHub tools (pull-only, SSRF-safe)
+- **`web_fetch` tool**: `[TOOL: web_fetch url=<https_url> mode=auto]` with SSRF guard (blocks `localhost`, `.local`, `.internal`, `metadata.google.internal`, `169.254.*`, plus any DNS-resolved private / loopback / link-local / reserved / multicast IP). HTTPS or HTTP only, 3 redirects max, 15 s timeout, 128 KB body cap. `mode=text` strips HTML to text, `mode=raw` is verbatim, `mode=auto` picks based on content-type (JSON/MD/CSV/XML → raw, HTML → text).
+- **`github_fetch` tool**: `[TOOL: github_fetch repo=<owner>/<name> path=<file> ref=main]` fetches from `raw.githubusercontent.com`. Uses optional `GITHUB_TOKEN` env if present, otherwise public raw fetch. Returns `GITHUB repo=… ref=… path=… bytes=N` header + body.
+- Both tools are wired into the marker parser + `prompt_builder.py` so Aria learns about them in her system prompt. Verified end-to-end in `python -c`: example.com HTML → text works, localhost/127.0.0.1 are blocked, github_fetch on `octocat/Hello-World@master/README` returns `Hello World!`.
+
+### Verified
+- Smoke screenshots: drawer pinned right (`x=1485, y=0, 420×900`), admin dashboard overlay fullscreen with all 4 stat cards + tier bar rendering, starfield visible through user bubble.
+- `GET /api/admin/dashboard/metrics` returns consistent `total=14, by_tier={"free":14}` (sum matches).
+- Backend lint + frontend lint clean.
+
+### Next Action Items (for user)
+- Click **Re-deploy changes** on `caosos.com` so the fixes land on the custom domain.
+- Verify the 4 UI fixes + Admin Dashboard button visually.
+- Ask Aria to test: "Fetch https://example.com and summarize it" or "Read README from facebook/react on GitHub" — confirm the new tools respond.
+
+

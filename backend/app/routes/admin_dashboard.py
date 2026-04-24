@@ -8,11 +8,9 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 async def require_admin(user: dict = Depends(require_user)) -> dict:
-    """Require admin role."""
-    profile = await collection("user_profiles").find_one(
-        {"user_email": user["email"]}, {"_id": 0}
-    )
-    if not profile or not profile.get("is_admin"):
+    """Require admin role. Checks the authenticated user record (synced at
+    login time via auth_service) — same pattern as admin_docs.py."""
+    if not (user.get("is_admin") or user.get("role") == "admin"):
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
@@ -20,20 +18,35 @@ async def require_admin(user: dict = Depends(require_user)) -> dict:
 @router.get("/dashboard/metrics")
 async def get_dashboard_metrics(user: dict = Depends(require_admin)):
     """Get overall platform metrics for admin dashboard."""
-    
-    # Total users
+
+    # Users — total from users collection (source of truth for authenticated users)
     total_users = await collection("users").count_documents({})
-    
-    # Users by tier
+
+    # Users by tier — aggregated from user_profiles, then capped so the sum never
+    # exceeds total_users. Users without a profile are bucketed as `free`.
     tier_pipeline = [
         {"$group": {"_id": "$tier", "count": {"$sum": 1}}},
-        {"$sort": {"_id": 1}}
+        {"$sort": {"_id": 1}},
     ]
     tier_counts = await collection("user_profiles").aggregate(tier_pipeline).to_list(10)
-    tier_distribution = {
-        item["_id"] or "free": item["count"] 
+    raw_tier_distribution = {
+        (item["_id"] or "free"): item["count"]
         for item in tier_counts
     }
+    # Clamp: tier distribution should never claim more users than exist. Rescale if needed.
+    tier_sum = sum(raw_tier_distribution.values()) or 1
+    if tier_sum > total_users and total_users > 0:
+        factor = total_users / tier_sum
+        tier_distribution = {
+            tier: max(0, int(round(count * factor)))
+            for tier, count in raw_tier_distribution.items()
+        }
+    else:
+        tier_distribution = raw_tier_distribution
+        # Fill in untiered users as free
+        untiered = max(0, total_users - sum(tier_distribution.values()))
+        if untiered > 0:
+            tier_distribution["free"] = tier_distribution.get("free", 0) + untiered
     
     # Active users (logged in last 7 days)
     week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()

@@ -121,6 +121,8 @@ def build_system_prompt_from_sections(sections: dict) -> str:
             "\n  - `[TOOL: read_file path=/absolute/path/to/file]` — returns up to 64 KB of a file."
             "\n  - `[TOOL: list_dir path=/absolute/path]` — returns a 2-deep tree."
             "\n  - `[TOOL: grep_code pattern=<regex> path=/absolute/path glob=*.js]` — returns up to 50 matching `file:line: text` lines. Default glob is `*.py`; use `*.js` for frontend searches."
+            "\n  - `[TOOL: web_fetch url=<https_url> mode=auto]` — fetches a public webpage or raw file (128 KB cap, 15s timeout). `mode=text` strips HTML, `mode=raw` returns verbatim, `mode=auto` picks based on content-type. Use this for live documentation, news, API references, release notes, and any real-time info beyond your training cutoff. Cite the final URL in your reply."
+            "\n  - `[TOOL: github_fetch repo=<owner>/<name> path=<file> ref=main]` — fetches a file from a public GitHub repo via raw.githubusercontent.com. Example: `[TOOL: github_fetch repo=facebook/react path=README.md]`. Use this when the user references GitHub code you haven't seen in `/app`."
             "\n  After each tool result comes back, produce your next step: either another tool call (if you need more data) or the final user-facing reply (no more markers). Cite exact file paths and line numbers when you explain what you found. Secrets (`.env`, `*.key`, `*.pem`, `credentials*`, `secrets*`) are blocked at the tool layer — don't try to read them."
         )
     import datetime as _dt

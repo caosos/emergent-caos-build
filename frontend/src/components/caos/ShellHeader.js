@@ -26,6 +26,7 @@ export const ShellHeader = ({
   matchCount,
   onLogOut,
   onNewThread,
+  onOpenAdminDashboard,
   onOpenAdminDocs,
   onOpenFiles,
   onOpenProfile,
@@ -77,6 +78,7 @@ export const ShellHeader = ({
           isAdmin={isAdmin}
           onLogOut={onLogOut}
           onNewThread={onNewThread}
+          onOpenAdminDashboard={onOpenAdminDashboard}
           onOpenAdminDocs={onOpenAdminDocs}
           onOpenFiles={onOpenFiles}
           onOpenProfile={onOpenProfile}

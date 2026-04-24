@@ -1378,3 +1378,66 @@ body .command-footer,
   }
 }
 
+
+
+/* =========================================================
+   FIX: Overlay portals rendered inside .caos-shell-root must
+   NOT inherit `position: relative; z-index: 1` from the global
+   `.caos-shell-root > *` rule. Force them fixed above content.
+   ========================================================= */
+.caos-shell-root > .drawer-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 200 !important;
+}
+.caos-shell-root > .drawer-overlay > .drawer-shell {
+  position: relative;
+  margin-left: auto;
+  height: 100vh;
+  max-height: 100vh;
+}
+.caos-shell-root > .admin-dashboard-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 300 !important;
+}
+/* Same for any child-rendered support/swarm/admin-docs modals */
+.caos-shell-root > .support-tickets-backdrop,
+.caos-shell-root > .swarm-panel-backdrop,
+.caos-shell-root > .admin-docs-backdrop,
+.caos-shell-root > .image-lightbox-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 210 !important;
+}
+
+/* =========================================================
+   FIX: Main message column should start ~1.5in below the header
+   ========================================================= */
+.caos-shell-no-rail .caos-shell-grid,
+.caos-shell-grid-no-rail {
+  padding-top: calc(var(--caos-header-height, 84px) + 56px) !important;
+}
+
+/* =========================================================
+   FIX: Message bubbles — more transparency so starfield shows through
+   ========================================================= */
+.message-bubble-user {
+  background: linear-gradient(135deg,
+    rgba(109, 40, 217, 0.62) 0%,
+    rgba(91, 33, 182, 0.58) 50%,
+    rgba(76, 29, 149, 0.62) 100%) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.message-bubble-assistant {
+  background: rgba(15, 23, 42, 0.38) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.message-bubble-system {
+  background: rgba(30, 41, 59, 0.28) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
