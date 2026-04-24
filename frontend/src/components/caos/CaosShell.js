@@ -16,6 +16,7 @@ import { SearchDrawer } from "@/components/caos/SearchDrawer";
 import { ShellHeader } from "@/components/caos/ShellHeader";
 import { SupportTicketsDrawer } from "@/components/caos/SupportTicketsDrawer";
 import { WelcomeHero } from "@/components/caos/WelcomeHero";
+import { VoiceFirstMode } from "@/components/caos/VoiceFirstMode";
 import { useCaosShell } from "@/components/caos/useCaosShell";
 import "./caos-redesign.css";
 import "./caos-redesign-shell.css";
@@ -36,6 +37,7 @@ export const CaosShell = ({ authenticatedUser }) => {
   const [showSearch, setShowSearch] = useState(false);
   const [showSwarm, setShowSwarm] = useState(false);
   const [showThreadExplorer, setShowThreadExplorer] = useState(false);
+  const [showVoiceFirst, setShowVoiceFirst] = useState(false);
 
   // Apply user preferences (ambient mode + bubble opacity) on boot so the
   // setting survives refresh without needing to open the Settings drawer.
@@ -361,6 +363,17 @@ export const CaosShell = ({ authenticatedUser }) => {
               <span>Multi-Agent</span>
               <strong data-testid="caos-multi-agent-toggle-state">{multiAgentMode ? "ON" : "OFF"}</strong>
             </button>
+            <button
+              className="full-voice-chip"
+              data-testid="caos-full-voice-button"
+              onClick={() => setShowVoiceFirst(true)}
+              title="Full Voice Mode — hands-free conversation with Aria"
+              type="button"
+              aria-label="Enter Full Voice Mode"
+            >
+              <span role="img" aria-hidden="true" style={{ marginRight: 6 }}>🎙</span>
+              <span>Full Voice</span>
+            </button>
           </div>
         </div>
       </div>
@@ -421,6 +434,16 @@ export const CaosShell = ({ authenticatedUser }) => {
       />
       {showAdminDashboard && (
         <AdminDashboard onClose={() => setShowAdminDashboard(false)} />
+      )}
+      {showVoiceFirst && (
+        <VoiceFirstMode
+          onClose={() => setShowVoiceFirst(false)}
+          onSendMessage={sendMessage}
+          speakText={speakText}
+          transcribeAudio={transcribeAudio}
+          lastAssistantMessage={messages.filter((m) => m.role === "assistant").slice(-1)[0]}
+          busy={status === "thinking" || status === "sending"}
+        />
       )}
       <SupportTicketsDrawer
         isAdmin={isAdmin}

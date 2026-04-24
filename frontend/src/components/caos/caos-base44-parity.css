@@ -673,6 +673,27 @@
   background: rgba(250, 204, 21, 0.4); color: #0b0b12;
 }
 
+.full-voice-chip {
+  display: inline-flex; align-items: center;
+  padding: 5px 12px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+  border: 1px solid rgba(74, 222, 128, 0.38);
+  background: rgba(74, 222, 128, 0.08);
+  color: #86efac;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.full-voice-chip:hover {
+  background: rgba(74, 222, 128, 0.18);
+  border-color: rgba(74, 222, 128, 0.6);
+  color: #bbf7d0;
+  box-shadow: 0 0 14px rgba(74, 222, 128, 0.3);
+}
+.full-voice-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.45);
+}
+
 /* ---------------- Multi-Agent message group (3-column) ---------------- */
 .multi-agent-group {
   max-width: 100%; margin: 16px auto;
