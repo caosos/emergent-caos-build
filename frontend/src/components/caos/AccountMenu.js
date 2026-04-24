@@ -181,16 +181,10 @@ export const AccountMenu = ({
             <em style={{ marginLeft: "auto", fontSize: 10, color: "rgba(167, 139, 250, 0.7)" }}>E2B</em>
           </button>
           {isAdmin ? (
-            <>
-              <button className="inspector-menu-item" data-testid="caos-account-menu-admin-dashboard" onClick={pick(onOpenAdminDashboard)} type="button">
-                <Shield size={14} /><span>Admin Dashboard</span>
-                <em style={{ marginLeft: "auto", fontSize: 10, color: "rgba(139, 92, 246, 0.8)" }}>ADMIN</em>
-              </button>
-              <button className="inspector-menu-item" data-testid="caos-account-menu-admin-docs" onClick={pick(onOpenAdminDocs)} type="button">
-                <BookOpen size={14} /><span>Admin Docs</span>
-                <em style={{ marginLeft: "auto", fontSize: 10, color: "rgba(250, 204, 21, 0.8)" }}>ADMIN</em>
-              </button>
-            </>
+            <button className="inspector-menu-item" data-testid="caos-account-menu-admin-docs" onClick={pick(onOpenAdminDocs)} type="button">
+              <BookOpen size={14} /><span>Admin Docs</span>
+              <em style={{ marginLeft: "auto", fontSize: 10, color: "rgba(250, 204, 21, 0.8)" }}>ADMIN</em>
+            </button>
           ) : null}
           <button className="inspector-menu-item" data-testid="caos-account-menu-support" onClick={pick(onOpenSupport)} type="button">
             <LifeBuoy size={14} /><span>Support Tickets</span>
