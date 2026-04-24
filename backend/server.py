@@ -100,8 +100,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add rate limiting AFTER CORS (so preflight OPTIONS requests aren't rate-limited)
-app.add_middleware(RateLimitMiddleware)
+# Rate limiting temporarily disabled - causing 502 in production
+# app.add_middleware(RateLimitMiddleware)
 
 # Configure logging
 logging.basicConfig(
