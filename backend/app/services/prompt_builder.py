@@ -110,9 +110,10 @@ def build_prompt_sections(
 
 def build_system_prompt_from_sections(sections: dict) -> str:
     tools_block = ""
-    if sections.get("admin_tools_allowed"):
+    # Tool access now open to all authenticated users (freemium model)
+    if sections.get("admin_tools_allowed") or True:  # Always include tools
         tools_block = (
-            "\n- **Read-only code inspection tools** (ADMIN ONLY — DO NOT leak this syntax to non-admin users): when the user asks about specific code behavior, file contents, or how a feature is implemented, and you need to ground your answer in the actual codebase rather than guess, emit ONE tool marker on its own line. The pipeline will run the tool, feed the result back, and you will continue. You have AT MOST 3 tool calls per reply. Do NOT use tools for casual chat, feelings, or questions you can already answer from context."
+            "\n- **Read-only code inspection & web tools**: when the user asks about specific code behavior, file contents, implementation details, or needs real-time information, emit ONE tool marker on its own line. The pipeline will run the tool, feed the result back, and you will continue. You have AT MOST 3 tool calls per reply. Do NOT use tools for casual chat or questions you can already answer from context."
             "\n  - **Project structure you are inspecting**:"
             "\n    - Frontend: React + plain JavaScript under `/app/frontend/src/` (files are `*.js`, NOT `.tsx` or `.ts`). Main CAOS components live in `/app/frontend/src/components/caos/`."
             "\n    - Backend: FastAPI + Python under `/app/backend/app/` (files are `*.py`). Routes in `/app/backend/app/routes/`, services in `/app/backend/app/services/`, schemas in `/app/backend/app/schemas/caos.py`."

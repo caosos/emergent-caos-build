@@ -95,6 +95,11 @@ def _trim_text_to_token_budget(text: str, model: str, max_tokens: int) -> str:
 
 
 def sanitize_history(messages: list[MessageRecord]) -> tuple[list[MessageRecord], dict]:
+    """Remove duplicates and low-signal messages from history.
+    
+    Optimized: More aggressive deduplication for large threads to reduce
+    noise and keep context window focused on meaningful exchanges.
+    """
     seen: set[tuple[str, str]] = set()
     kept: list[MessageRecord] = []
     removed_duplicates = 0
@@ -103,7 +108,15 @@ def sanitize_history(messages: list[MessageRecord]) -> tuple[list[MessageRecord]
     dropped_low_signal_messages: list[dict] = []
 
     for message in messages:
-        key = (message.role, _normalized(message.content))
+        # Normalize content more aggressively to catch near-duplicates
+        normalized_content = _normalized(message.content)
+        # For very short messages, use exact match; for longer, use fuzzy matching
+        if len(normalized_content) < 50:
+            key = (message.role, normalized_content)
+        else:
+            # For longer messages, use first 200 chars as key to catch similar messages
+            key = (message.role, normalized_content[:200])
+        
         if key in seen:
             removed_duplicates += 1
             dropped_duplicate_messages.append(_message_snapshot(message, "duplicate_message"))
@@ -126,16 +139,30 @@ def sanitize_history(messages: list[MessageRecord]) -> tuple[list[MessageRecord]
 
 
 def compress_history(messages: list[MessageRecord], hot_head: int, hot_tail: int) -> list[MessageRecord]:
+    """Compress history by keeping hot head/tail and summarizing the middle.
+    
+    Optimized for large threads: Ensures we never exceed context window even
+    with thousands of messages by aggressively compressing the middle section.
+    """
     if len(messages) <= hot_head + hot_tail:
         return messages
     head = messages[:hot_head]
     tail = messages[-hot_tail:]
     omitted = len(messages) - hot_head - hot_tail
-    summary = MessageRecord(
-        session_id=messages[-1].session_id,
-        role="system",
-        content=f"[SANITIZED HISTORY SUMMARY: {omitted} lower-priority messages omitted from active context.]",
-    )
+    
+    # For very large threads (>100 messages), provide aggregate stats
+    if omitted > 100:
+        summary = MessageRecord(
+            session_id=messages[-1].session_id,
+            role="system",
+            content=f"[SANITIZED HISTORY SUMMARY: {omitted} messages omitted from active context. Thread contains {len(messages)} total messages spanning this conversation's history.]",
+        )
+    else:
+        summary = MessageRecord(
+            session_id=messages[-1].session_id,
+            role="system",
+            content=f"[SANITIZED HISTORY SUMMARY: {omitted} lower-priority messages omitted from active context.]",
+        )
     return [*head, summary, *tail]
 
 

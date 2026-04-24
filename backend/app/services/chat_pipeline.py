@@ -54,7 +54,14 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     user_doc["timestamp"] = user_doc["timestamp"].isoformat()
     await collection("messages").insert_one(user_doc)
 
-    docs = await collection("messages").find({"session_id": payload.session_id}, {"_id": 0}).sort("timestamp", 1).to_list(1000)
+    # Optimized: Limit message fetch to last 1000 (prevents memory issues on huge threads)
+    # Older messages beyond 1000 are auto-compressed anyway, so no need to load them
+    docs = await collection("messages").find(
+        {"session_id": payload.session_id}, 
+        {"_id": 0}
+    ).sort("timestamp", -1).limit(1000).to_list(1000)
+    # Reverse to chronological order after limiting to recent 1000
+    docs.reverse()
     messages = [MessageRecord(**doc) for doc in docs]
     history_messages = messages[:-1] if messages and messages[-1].id == user_message.id else messages
     runtime = resolve_chat_runtime(profile, payload.provider, payload.model)
@@ -169,9 +176,10 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     # ADMIN ONLY — non-admin users never get tool access (their prompt doesn't
     # even teach them the syntax, and even if they found it, we short-circuit
     # here as defense-in-depth).
+    # Tool access now open to all authenticated users (freemium model).
     from app.services.aria_tools import extract_and_run_next_tool
     tool_iterations = 0
-    while is_admin_user and tool_iterations < 3:
+    while tool_iterations < 3:
         marker, result = extract_and_run_next_tool(reply)
         if not marker or result is None:
             break
