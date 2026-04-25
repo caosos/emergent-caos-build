@@ -75,20 +75,44 @@ async def logout(
     response: Response,
     session_token: str | None = Cookie(default=None, alias="session_token"),
 ):
-    """Delete the current session from DB and clear the cookie.
+    """Delete ALL sessions for the current user and clear the cookie.
 
     Intentionally does NOT require an authenticated user — a half-expired or
     mismatched session must still be able to log out cleanly. Otherwise the
     frontend gets a 401 here and the cookie never gets cleared, creating an
     "I click logout and it logs me right back in" loop.
+
+    Nukes ALL sessions for the user (not just the one in the cookie) because
+    OAuth handoffs sometimes create multiple rows; deleting only the cookie
+    one can leave stragglers that re-authenticate the user via a residual
+    session_token still in the browser cookie jar.
     """
     if session_token:
-        await delete_session(session_token)
+        from app.services.auth_service import resolve_user_from_token
+        from app.db import collection
+        user = await resolve_user_from_token(session_token)
+        if user:
+            # Delete every session row tied to this user
+            await collection("user_sessions").delete_many({"user_id": user["user_id"]})
+        else:
+            # No user resolved — at minimum delete the row matching the token
+            await delete_session(session_token)
     # Cookie attributes MUST match the ones used in set_cookie above (httponly,
-    # secure, samesite). If any attribute differs the browser silently keeps the
-    # original cookie and the user appears to never log out.
+    # secure, samesite). If any attribute differs the browser silently keeps
+    # the original cookie and the user appears to never log out.
     response.delete_cookie(
         key="session_token",
+        path="/",
+        httponly=True,
+        secure=True,
+        samesite="none",
+    )
+    # Belt-and-suspenders: also send an explicit expired cookie header. Some
+    # Starlette versions don't include all attrs in delete_cookie consistently.
+    response.set_cookie(
+        key="session_token",
+        value="",
+        max_age=0,
         path="/",
         httponly=True,
         secure=True,
