@@ -483,13 +483,30 @@ export const useCaosShell = (authenticatedUser = null) => {
       try {
         const foundSessions = await loadSessions();
         await Promise.all([loadProfile(), loadRuntimeSettings(), loadFiles()]);
-        if (foundSessions[0]) {
-          setCurrentSession(foundSessions[0]);
-          await loadMessages(foundSessions[0].session_id);
-          await loadArtifacts(foundSessions[0].session_id);
-          await loadContinuity(foundSessions[0].session_id);
-          await loadSessionLinks(foundSessions[0].session_id);
-          setStatus(`Loaded ${foundSessions.length} saved sessions.`);
+        if (foundSessions.length) {
+          // Prefer the most-recent NON-EMPTY session. The user complaint:
+          // "login routes to empty thread instead of resuming last conversation".
+          // Root cause was that "New Thread" creates a session with updated_at=now
+          // but zero messages — that empty stub became position [0] and we
+          // auto-loaded it. Now we walk the list (already sorted by updated_at
+          // desc on the backend) and pick the first one with a populated
+          // `last_message_preview`. Fall back to [0] only if every session is
+          // empty (truly first-time user state).
+          const populated = foundSessions.find((session) => {
+            const preview = (session.last_message_preview || "").trim();
+            return preview.length > 0;
+          });
+          const target = populated || foundSessions[0];
+          setCurrentSession(target);
+          await loadMessages(target.session_id);
+          await loadArtifacts(target.session_id);
+          await loadContinuity(target.session_id);
+          await loadSessionLinks(target.session_id);
+          if (populated) {
+            setStatus(`Resumed your last conversation: ${target.title}.`);
+          } else {
+            setStatus(`Loaded ${foundSessions.length} saved sessions.`);
+          }
         } else {
           setMessages([]);
           setLinks([]);

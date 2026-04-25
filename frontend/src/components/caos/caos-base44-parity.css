@@ -39,7 +39,21 @@
   opacity: 1;
   animation: caosStarfieldDrift 180s linear infinite alternate;
 }
-.caos-shell-root > *:not([data-testid="caos-constellation-layer"]) { position: relative; z-index: 1; }
+/* Force every direct child of the shell root into the document flow at z-index:1
+   so they layer above the constellation backdrop. Panels that need `position:
+   fixed` (search drawer, inspector, profile, etc.) are excluded so their
+   viewport-anchored positioning is honored. The constellation layer is also
+   excluded so it stays at its declared z-index:0 behind everything.
+
+   IMPORTANT: when adding a new fixed panel as a direct child of
+   `.caos-shell-root`, also exclude it from this selector — otherwise it will
+   be silently re-anchored to the document flow (e.g. dumped at bottom-left
+   instead of top-right). The thread-search-panel was hit by this and its
+   `right: 20px` was being ignored. */
+.caos-shell-root > *:not([data-testid="caos-constellation-layer"]):not(.thread-search-panel):not(.inspector-panel):not(.previous-threads-panel):not(.drawer-overlay):not(.command-footer):not(.admin-dashboard-overlay) {
+  position: relative;
+  z-index: 1;
+}
 
 [data-testid^="caos-constellation-"] {
   animation: caosConstellationFloat 54s ease-in-out infinite alternate;

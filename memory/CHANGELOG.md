@@ -1,6 +1,20 @@
 # CAOS Changelog
 
-## 2026-04-25 — Tier 1 critical bug sweep
+## 2026-04-25 (round 2) — Login routing + search drawer position (verified live)
+
+### 🔴 Bugs fixed (verified end-to-end on the live preview URL with a seeded test session)
+
+- **[LOGIN-01]** Login no longer routes to a blank "New Thread" stub. Root cause: `useCaosShell.js` hydrate effect picked `foundSessions[0]` blindly. When the user (or anyone) clicks "New Thread" but doesn't send a message, that empty stub becomes the most-recent-by-`updated_at` and was the auto-loaded session on next login. **Fix:** walk the (already-sorted-desc) list and pick the first session with a non-empty `last_message_preview`. Fall back to `[0]` only if every session is empty (truly first-time user). Status banner now reads "Resumed your last conversation: <title>." *Files: `useCaosShell.js`*. **Verified:** seeded a test user with 1 empty "New Thread" (most recent) + 1 "Real conversation" (older with 6 messages); the shell correctly loaded the populated thread with all 6 bubbles visible. ✅
+
+- **[SEARCH-DRAWER-01]** "Search this thread" results were appearing on the **left, bottom of the screen** (`x=-4, y=968`), under the AccountMenu, instead of the top-right next to the search input. Root cause: `caos-base44-parity.css:42` set `position: relative; z-index: 1` on every direct child of `.caos-shell-root` except the constellation, which silently overrode the `position: fixed` declared on `.thread-search-panel` (a direct child of the shell). **Fix:** broadened the `:not(...)` exclusion list to also exclude `.thread-search-panel`, `.inspector-panel`, `.previous-threads-panel`, `.drawer-overlay`, `.command-footer`, and `.admin-dashboard-overlay`. Added a comment in the CSS explaining the trap so future fixed panels added as direct children get added to the exclusion list. *Files: `caos-base44-parity.css`*. **Verified:** the search drawer now reports `x=1545, y=88, w=340` after typing — exactly top-right where the search input is, with all hits visible in a properly-positioned panel. ✅
+
+### ✅ Verified working in the same test pass
+- Engine chip in bottom strip displays the user-selected engine (OpenAI default).
+- Per-message engine chips on existing assistant messages display correctly ("Claude" badge next to timestamp).
+- Constellation drifts behind the welcome screen and the shell.
+- 6 messages loaded from a 6-message session correctly (no truncation, no empty render).
+
+## 2026-04-25 (round 1) — Tier 1 critical bug sweep
 
 ### 🔴 Bug fixes (P0 / P1)
 - **[ENGINE-01]** Removed silent auto-override that hijacked the user's engine choice to Gemini whenever the session had any image attachments. The user-selected engine (Claude / GPT / Gemini) is now respected on every turn. When the session has images and a non-Gemini engine is active, a one-line hint is shown in the status row instead of forcing a switch. *Files: `useCaosShell.js`*
