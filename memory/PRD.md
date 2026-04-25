@@ -1,5 +1,7 @@
 # CAOS — Emergent Replatform PRD (LIVE)
 
+> **Latest changes:** see `/app/memory/CHANGELOG.md` (Tier 1 critical bug sweep, Apr 25 2026 — engine-toggle override, sanitizer dedup, error UI, STT latency, constellation, error boundary, search labels).
+
 ## Original Problem Statement
 Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergent. Preserve behaviors, governance, and UX from the Base44 live build. Aria = persona, CAOS = platform.
 

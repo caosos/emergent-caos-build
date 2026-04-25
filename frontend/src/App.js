@@ -5,6 +5,8 @@ import { Toaster } from "sonner";
 
 import { AuthCallback } from "@/components/caos/AuthCallback";
 import { AuthGate } from "@/components/caos/AuthGate";
+import { CaosErrorBoundary } from "@/components/caos/CaosErrorBoundary";
+import { ConstellationLayer } from "@/components/caos/ConstellationLayer";
 
 // Every request carries the session_token cookie — auth gate depends on it.
 axios.defaults.withCredentials = true;
@@ -32,12 +34,17 @@ axios.interceptors.response.use(
 function App() {
   return (
     <div className="App" data-testid="app-root">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<AuthGate />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-        </Routes>
-      </BrowserRouter>
+      {/* Constellation renders globally — visible behind login screen AND shell.
+          Mounted here so it's not gated on auth. z-index:0 keeps it behind UI. */}
+      <ConstellationLayer />
+      <CaosErrorBoundary>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<AuthGate />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+          </Routes>
+        </BrowserRouter>
+      </CaosErrorBoundary>
       <Toaster position="bottom-right" theme="dark" richColors closeButton />
     </div>
   );

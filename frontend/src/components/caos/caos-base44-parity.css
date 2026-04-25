@@ -812,6 +812,15 @@
   color: #fecaca;
   font-size: 12px;
   line-height: 1.5;
+  /* Defense in depth: cap height + ellipsis so any escaped error text from
+     the engine (Pydantic dumps, stack traces, etc.) cannot fill the screen.
+     Backend + frontend both sanitize first; this is the last guardrail. */
+  max-height: 7.5em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
 }
 @keyframes pendingBubbleIn {
   from { opacity: 0; transform: translateY(6px); }

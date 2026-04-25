@@ -653,7 +653,22 @@ async def chat_stream(input: ChatRequest, user=Depends(require_user)):
                 )
             except Exception:
                 pass
-            yield f"event: error\ndata: {json.dumps({'error': str(error), 'code': 'pipeline_failed'})}\n\n"
+            # Sanitize the error before sending to client — never leak Pydantic
+            # validation stack traces or internal details into the chat bubble.
+            # The full error is logged server-side; the user gets a short label.
+            err_text = str(error) or "engine_unavailable"
+            short = err_text.splitlines()[0][:160] if err_text else "engine_unavailable"
+            # Detect common patterns and map to friendly hints
+            lower = err_text.lower()
+            if "validation error" in lower or "field required" in lower:
+                short = "Engine returned an unexpected response shape. Try again or switch engines."
+            elif "rate limit" in lower or "429" in lower:
+                short = "Engine rate-limited. Wait a moment and retry, or switch engines."
+            elif "timeout" in lower or "timed out" in lower:
+                short = "Engine timed out. Try again or switch engines."
+            elif "api key" in lower or "unauthorized" in lower or "401" in lower:
+                short = "Engine credentials issue. Switch engines or contact admin."
+            yield f"event: error\ndata: {json.dumps({'error': short, 'code': 'engine_failed'})}\n\n"
             return
 
         meta = {

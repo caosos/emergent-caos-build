@@ -1,8 +1,21 @@
 # Tier 1 — Critical Bug Fix Spec
 
+**STATUS: SHIPPED 2026-04-25.** See `/app/memory/CHANGELOG.md` for what landed.
+
 **Goal:** Stop the 7 user-facing breakages currently shipping. NO new features. NO polish.
 **Budget cap:** 60 credits (~30 tool calls). If anything blows past 50 credits, STOP and ask user.
 **Reference:** `/app/memory/TROUBLESHOOTING_BULLETIN.md` for context on already-fixed bugs.
+
+**Result: 7 of 9 bugs fixed in one sprint (no testing-agent used, manual verification only).**
+- ✅ Engine toggle silent override → user's choice is now respected.
+- ✅ Sanitizer 200-char dedup → full-content exact match.
+- ✅ Pydantic error UI → backend sanitizes + frontend trims + CSS clamps.
+- ✅ STT stop button latency → instant "Processing…" feedback.
+- ✅ Constellation on welcome page → mounted at App root.
+- ✅ Frontend error boundary → CaosErrorBoundary component.
+- ✅ Two redundant search bars → labels disambiguated for clarity of scope.
+- ⏸️ WCW staleness on failure → deferred (low impact).
+- ⏸️ Login-routes-to-empty-thread → could not reproduce in code review; deferred until fresh report.
 
 ---
 

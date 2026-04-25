@@ -108,15 +108,16 @@ def sanitize_history(messages: list[MessageRecord]) -> tuple[list[MessageRecord]
     dropped_low_signal_messages: list[dict] = []
 
     for message in messages:
-        # Normalize content more aggressively to catch near-duplicates
+        # Use FULL normalized content as the dedup key — exact match only.
+        # The previous 200-char prefix key produced false positives (two
+        # divergent messages that started with the same 200 chars were
+        # collapsed into one, silently deleting real history). Aria flagged
+        # this in her bug ticket. We accept that exact-match dedup catches
+        # fewer near-duplicates; that is the correct trade-off because
+        # information loss is worse than minor redundancy.
         normalized_content = _normalized(message.content)
-        # For very short messages, use exact match; for longer, use fuzzy matching
-        if len(normalized_content) < 50:
-            key = (message.role, normalized_content)
-        else:
-            # For longer messages, use first 200 chars as key to catch similar messages
-            key = (message.role, normalized_content[:200])
-        
+        key = (message.role, normalized_content)
+
         if key in seen:
             removed_duplicates += 1
             dropped_duplicate_messages.append(_message_snapshot(message, "duplicate_message"))

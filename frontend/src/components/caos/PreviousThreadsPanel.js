@@ -100,7 +100,7 @@ export const PreviousThreadsPanel = ({
       <label className="previous-threads-search" data-testid="caos-previous-threads-search-row">
         <input
           data-testid="caos-previous-threads-search-input"
-          placeholder="Search all messages..."
+          placeholder="Search across all threads…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />

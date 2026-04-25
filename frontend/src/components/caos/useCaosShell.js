@@ -308,13 +308,13 @@ export const useCaosShell = (authenticatedUser = null) => {
         return;
       }
 
-      // Auto-route to Gemini when images are attached on Claude/GPT (Gemini is the
-      // only provider whose binary attachments are supported by emergentintegrations).
+      // Respect the user's engine choice. We DO NOT silently override to Gemini
+      // when the session has attachments — that previously hijacked the toggle
+      // (Claude → Gemini behind the user's back). If the user wants Gemini's
+      // image vision, they can switch manually. We surface a hint instead.
       const sessionImages = files.filter((f) => f.session_id === session.session_id && (f.mime_type || "").startsWith("image/"));
       if (sessionImages.length > 0 && effectiveProvider !== "gemini") {
-        effectiveProvider = "gemini";
-        effectiveModel = "gemini-3-flash-preview";
-        setStatus(`Auto-routed to Gemini so it can see your ${sessionImages.length} image${sessionImages.length === 1 ? "" : "s"}.`);
+        setStatus(`Heads up: only Gemini can see image contents. ${effectiveProvider} sees just filenames in this turn.`);
       }
 
       // Multi-agent branch: fan out to Claude/OpenAI/Gemini + Synthesizer. Replace
@@ -414,9 +414,18 @@ export const useCaosShell = (authenticatedUser = null) => {
       setStatus("CAOS replied with session-scoped context.");
     } catch (issue) {
       const rawMessage = issue?.response?.data?.detail || issue?.message || "Sending message failed.";
-      const message = rawMessage.startsWith("stream_unavailable_")
-        ? "This engine did not answer in time. Your draft is preserved below so you can retry or switch engines."
-        : rawMessage;
+      // Sanitize: never render raw Pydantic / Python tracebacks in the chat bubble.
+      // Backend already maps known error codes to friendly text, but defense in depth.
+      let message;
+      if (rawMessage.startsWith("stream_unavailable_")) {
+        message = "This engine did not answer in time. Your draft is preserved below so you can retry or switch engines.";
+      } else if (/validation error|field required|pydantic/i.test(rawMessage)) {
+        message = "Engine returned an unexpected response. Try again or switch engines.";
+      } else if (rawMessage.length > 200) {
+        message = `${rawMessage.slice(0, 180)}…`;
+      } else {
+        message = rawMessage;
+      }
       setError(message);
       let syncedMessages = null;
       if (session?.session_id) {

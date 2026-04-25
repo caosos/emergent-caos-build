@@ -115,6 +115,11 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
 
   const stopRecording = () => {
     if (recorderRef.current && recorderRef.current.state !== "inactive") {
+      // Immediately reflect "stopping/processing" in the UI before the async
+      // recorder.stop() round-trip + transcription network call. Without this
+      // the user clicked the stop button and saw ~half a second of dead air.
+      setRecording(false);
+      setTransientStatus("Processing transcription…");
       recorderRef.current.stop();
     }
   };
