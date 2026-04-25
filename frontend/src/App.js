@@ -7,6 +7,7 @@ import { AuthCallback } from "@/components/caos/AuthCallback";
 import { AuthGate } from "@/components/caos/AuthGate";
 import { CaosErrorBoundary } from "@/components/caos/CaosErrorBoundary";
 import { ConstellationLayer } from "@/components/caos/ConstellationLayer";
+import { GoogleConnectorsCallback } from "@/components/caos/GoogleConnectorsCallback";
 
 // Every request carries the session_token cookie — auth gate depends on it.
 axios.defaults.withCredentials = true;
@@ -42,6 +43,7 @@ function App() {
           <Routes>
             <Route path="/" element={<AuthGate />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/auth/google-connectors-callback" element={<GoogleConnectorsCallback />} />
           </Routes>
         </BrowserRouter>
       </CaosErrorBoundary>

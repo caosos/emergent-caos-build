@@ -217,33 +217,92 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     llm_response = await chat._execute_completion(pending_messages)
     reply = await chat._extract_response_text(llm_response)
     # Agent loop: let Aria call read-only inspection tools up to 3 times.
-    # ADMIN ONLY — non-admin users never get tool access (their prompt doesn't
-    # even teach them the syntax, and even if they found it, we short-circuit
-    # here as defense-in-depth).
     # Tool access now open to all authenticated users (freemium model).
-    from app.services.aria_tools import extract_and_run_next_tool
-    from app.routes.connectors import get_github_token_for
-    _tool_context = {"github_token": await get_github_token_for(payload.user_email)}
+    from app.services.aria_tools import extract_and_run_next_tool_async
+    from app.routes.connectors import (
+        get_github_token_for, is_google_connected, is_obsidian_connected,
+    )
+    from app.services.mcp_client import (
+        get_active_servers, render_mcp_prompt, dispatch_mcp_call, McpError,
+    )
+    google_connected = await is_google_connected(payload.user_email)
+    obsidian_connected = await is_obsidian_connected(payload.user_email)
+    mcp_servers = await get_active_servers(payload.user_email)
+    _tool_context = {
+        "github_token": await get_github_token_for(payload.user_email),
+        "user_email": payload.user_email,
+    }
+    # If Google is connected, append the Google tools manual to the existing
+    # system message in the running chat so Aria knows the new tool surface
+    # for this turn. Done as an extra user-role primer (the SDK doesn't expose
+    # a "patch system prompt" hook mid-conversation cleanly).
+    extra_prompt_chunks: list[str] = []
+    if google_connected:
+        from app.services.aria_tools_google import GOOGLE_TOOL_PROMPT
+        extra_prompt_chunks.append(GOOGLE_TOOL_PROMPT)
+    if obsidian_connected:
+        from app.services.aria_tools_obsidian import OBSIDIAN_TOOL_PROMPT
+        extra_prompt_chunks.append(OBSIDIAN_TOOL_PROMPT)
+    if mcp_servers:
+        mcp_section = render_mcp_prompt(mcp_servers)
+        if mcp_section:
+            extra_prompt_chunks.append(mcp_section)
+    if extra_prompt_chunks:
+        await chat._add_user_message(
+            pending_messages,
+            UserMessage(text="\n\n".join(extra_prompt_chunks)),
+        )
+        # Rerun the LLM so this turn's reply already knows about new tools.
+        llm_response = await chat._execute_completion(pending_messages)
+        reply = await chat._extract_response_text(llm_response)
     tool_iterations = 0
     tools_used: list[str] = []
     _TOOL_NAME_RX = __import__("re").compile(r"\[TOOL:\s*(\w+)")
-    while tool_iterations < 3:
-        marker, result = extract_and_run_next_tool(reply, context=_tool_context)
-        if not marker or result is None:
-            break
-        tool_iterations += 1
-        name_match = _TOOL_NAME_RX.search(marker)
-        if name_match:
-            tools_used.append(name_match.group(1))
-        # Persist Aria's partial (tool-requesting) reply into the chat history
-        # so the next turn has context of what she asked for.
-        await chat._add_assistant_message(pending_messages, reply)
-        await chat._add_user_message(
-            pending_messages,
-            UserMessage(text=f"[TOOL_RESULT for {marker}]\n{result[:60000]}"),
-        )
-        llm_response = await chat._execute_completion(pending_messages)
-        reply = await chat._extract_response_text(llm_response)
+    _MCP_CALL_RX = __import__("re").compile(
+        r"\[MCP_CALL:\s*([\w-]+):([\w\.\-]+)\s+(\{.*?\})\s*\]",
+        __import__("re").DOTALL,
+    )
+    while tool_iterations < 4:
+        # First pass: a built-in [TOOL:...] marker.
+        marker, result = await extract_and_run_next_tool_async(reply, context=_tool_context)
+        if marker and result is not None:
+            tool_iterations += 1
+            name_match = _TOOL_NAME_RX.search(marker)
+            if name_match:
+                tools_used.append(name_match.group(1))
+            await chat._add_assistant_message(pending_messages, reply)
+            await chat._add_user_message(
+                pending_messages,
+                UserMessage(text=f"[TOOL_RESULT for {marker}]\n{result[:60000]}"),
+            )
+            llm_response = await chat._execute_completion(pending_messages)
+            reply = await chat._extract_response_text(llm_response)
+            continue
+        # Second pass: an [MCP_CALL: server_id:tool_name {json}] marker.
+        mcp_match = _MCP_CALL_RX.search(reply) if mcp_servers else None
+        if mcp_match:
+            tool_iterations += 1
+            server_id, tool_name, args_json = mcp_match.group(1), mcp_match.group(2), mcp_match.group(3)
+            try:
+                import json as _json
+                parsed_args = _json.loads(args_json)
+            except Exception as parse_err:
+                mcp_result = f"ERROR: MCP_CALL args not valid JSON — {str(parse_err)[:120]}"
+            else:
+                try:
+                    mcp_result = await dispatch_mcp_call(payload.user_email, server_id, tool_name, parsed_args)
+                except McpError as me:
+                    mcp_result = f"ERROR: MCP — {str(me)[:200]}"
+            tools_used.append(f"mcp:{tool_name}")
+            await chat._add_assistant_message(pending_messages, reply)
+            await chat._add_user_message(
+                pending_messages,
+                UserMessage(text=f"[MCP_RESULT for {server_id}:{tool_name}]\n{mcp_result[:60000]}"),
+            )
+            llm_response = await chat._execute_completion(pending_messages)
+            reply = await chat._extract_response_text(llm_response)
+            continue
+        break
     latency_ms = int((time.perf_counter() - _llm_start) * 1000)
     # Parse Aria's FILE_TICKET marker and create a ticket, stripping it from the
     # user-facing reply. Format: [FILE_TICKET: category=..., title=..., description=...]

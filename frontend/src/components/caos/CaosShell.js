@@ -13,6 +13,7 @@ import { InspectorPanel } from "@/components/caos/InspectorPanel";
 import { MessagePane } from "@/components/caos/MessagePane";
 import { PreviousThreadsPanel } from "@/components/caos/PreviousThreadsPanel";
 import { ProfileDrawer } from "@/components/caos/ProfileDrawer";
+import { ConnectorsDrawer } from "@/components/caos/ConnectorsDrawer";
 import { SwarmPanel } from "@/components/caos/SwarmPanel";
 import { SearchDrawer } from "@/components/caos/SearchDrawer";
 import { ShellHeader } from "@/components/caos/ShellHeader";
@@ -36,6 +37,7 @@ export const CaosShell = ({ authenticatedUser }) => {
   const [artifactsFilter, setArtifactsFilter] = useState("files");
   const [showInspector, setShowInspector] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showConnectors, setShowConnectors] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showSwarm, setShowSwarm] = useState(false);
   const [showThreadExplorer, setShowThreadExplorer] = useState(false);
@@ -438,6 +440,7 @@ export const CaosShell = ({ authenticatedUser }) => {
         isOpen={showProfile}
         memoryCount={profile?.structured_memory?.length || 0}
         onClose={() => setShowProfile(false)}
+        onOpenConnectors={() => { setShowProfile(false); setShowConnectors(true); }}
         deleteMemory={deleteMemory}
         onSpeak={speakText}
         profile={profile}
@@ -449,6 +452,10 @@ export const CaosShell = ({ authenticatedUser }) => {
         updateVoiceSettings={updateVoiceSettings}
         userEmail={userEmail}
         voiceSettings={voiceSettings}
+      />
+      <ConnectorsDrawer
+        isOpen={showConnectors}
+        onClose={() => setShowConnectors(false)}
       />
       <ArtifactsDrawer
         artifacts={artifacts}

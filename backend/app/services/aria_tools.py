@@ -317,7 +317,13 @@ def github_fetch(repo: str, path: str, ref: str = "main", user_token: str | None
 
 
 # ---- Marker parser -----------------------------------------------------------
-_TOOL_RX = re.compile(r"\[TOOL:\s*(read_file|list_dir|grep_code|web_fetch|github_fetch)\s+(.*?)\]", re.DOTALL)
+_TOOL_RX = re.compile(
+    r"\[TOOL:\s*(read_file|list_dir|grep_code|web_fetch|github_fetch|"
+    r"gmail_search|gmail_get_message|drive_search|drive_read_file|"
+    r"docs_get_document|calendar_list_events|calendar_freebusy|"
+    r"obsidian_search|obsidian_get_note|obsidian_list_tags|obsidian_backlinks)\s+(.*?)\]",
+    re.DOTALL,
+)
 _KV_RX = re.compile(r"(\w+)\s*=\s*\"?([^\"\n]+?)\"?(?:\s+(?=\w+=)|$)")
 
 
@@ -328,12 +334,20 @@ def _parse_args(body: str) -> dict:
     return args
 
 
+# Google tools require an event loop (they use async google-api-python-client
+# wrappers). The dispatcher below resolves them via asyncio.run when invoked
+# from a sync context — but our caller in chat_pipeline already has an event
+# loop, so we expose an async variant.
+import asyncio as _asyncio
+
+
 def extract_and_run_next_tool(text: str, context: dict | None = None) -> tuple[str | None, str | None]:
     """Find the FIRST tool marker in `text`, run it, return (marker, result).
 
     Args:
         text: Aria's reply to scan.
-        context: optional dict — supports `github_token` (per-user PAT).
+        context: optional dict — supports `github_token` (per-user PAT) and
+            `user_email` (required for any Google tool).
 
     Returns (None, None) if no marker found.
     """
@@ -367,6 +381,85 @@ def extract_and_run_next_tool(text: str, context: dict | None = None) -> tuple[s
                 ref=args.get("ref", "main"),
                 user_token=ctx.get("github_token"),
             )
+        elif tool in {
+            "gmail_search", "gmail_get_message", "drive_search",
+            "drive_read_file", "docs_get_document",
+            "calendar_list_events", "calendar_freebusy",
+        }:
+            user_email = ctx.get("user_email") or ""
+            from app.services.aria_tools_google import run_google_tool
+            # We are inside a sync wrapper called from an async pipeline. Use
+            # asyncio.get_event_loop().run_until_complete only if not already
+            # in a running loop. The simplest path: schedule on the running loop.
+            try:
+                loop = _asyncio.get_event_loop()
+                if loop.is_running():
+                    # Re-enter via a new task and wait.
+                    future = _asyncio.run_coroutine_threadsafe(
+                        run_google_tool(tool, user_email, args), loop
+                    )
+                    result = future.result(timeout=30)
+                else:
+                    result = loop.run_until_complete(run_google_tool(tool, user_email, args))
+            except RuntimeError:
+                # No loop — make one.
+                result = _asyncio.run(run_google_tool(tool, user_email, args))
+        else:
+            result = f"ERROR: unknown tool '{tool}'"
+    except Exception as error:
+        result = f"ERROR: tool crashed — {str(error)[:160]}"
+    return match.group(0), result
+
+
+async def extract_and_run_next_tool_async(
+    text: str, context: dict | None = None
+) -> tuple[str | None, str | None]:
+    """Async variant — preferred when the caller already has an event loop.
+
+    Same contract as `extract_and_run_next_tool` but `await`-friendly so we
+    don't have to play games with `run_coroutine_threadsafe` from inside the
+    chat pipeline.
+    """
+    match = _TOOL_RX.search(text)
+    if not match:
+        return None, None
+    tool = match.group(1)
+    body = match.group(2)
+    args = _parse_args(body)
+    ctx = context or {}
+    try:
+        if tool == "read_file":
+            result = safe_read_file(args.get("path", ""))
+        elif tool == "list_dir":
+            result = list_dir(args.get("path", ""))
+        elif tool == "grep_code":
+            result = grep_code(
+                pattern=args.get("pattern", ""),
+                path=args.get("path", "/app/backend/app"),
+                glob=args.get("glob", "*.py"),
+            )
+        elif tool == "web_fetch":
+            result = web_fetch(url=args.get("url", ""), mode=args.get("mode", "auto"))
+        elif tool == "github_fetch":
+            result = github_fetch(
+                repo=args.get("repo", ""),
+                path=args.get("path", ""),
+                ref=args.get("ref", "main"),
+                user_token=ctx.get("github_token"),
+            )
+        elif tool in {
+            "gmail_search", "gmail_get_message", "drive_search",
+            "drive_read_file", "docs_get_document",
+            "calendar_list_events", "calendar_freebusy",
+        }:
+            from app.services.aria_tools_google import run_google_tool
+            result = await run_google_tool(tool, ctx.get("user_email") or "", args)
+        elif tool in {
+            "obsidian_search", "obsidian_get_note",
+            "obsidian_list_tags", "obsidian_backlinks",
+        }:
+            from app.services.aria_tools_obsidian import run_obsidian_tool
+            result = await run_obsidian_tool(tool, ctx.get("user_email") or "", args)
         else:
             result = f"ERROR: unknown tool '{tool}'"
     except Exception as error:
