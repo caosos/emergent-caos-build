@@ -228,6 +228,9 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     google_connected = await is_google_connected(payload.user_email)
     obsidian_connected = await is_obsidian_connected(payload.user_email)
     mcp_servers = await get_active_servers(payload.user_email)
+    from app.routes.connectors import is_slack_connected, is_messaging_connected
+    slack_connected = await is_slack_connected(payload.user_email)
+    messaging_state = await is_messaging_connected(payload.user_email)
     _tool_context = {
         "github_token": await get_github_token_for(payload.user_email),
         "user_email": payload.user_email,
@@ -243,6 +246,18 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     if obsidian_connected:
         from app.services.aria_tools_obsidian import OBSIDIAN_TOOL_PROMPT
         extra_prompt_chunks.append(OBSIDIAN_TOOL_PROMPT)
+    if slack_connected:
+        from app.services.aria_tools_slack import SLACK_TOOL_PROMPT
+        extra_prompt_chunks.append(SLACK_TOOL_PROMPT)
+    if messaging_state["twilio"] or messaging_state["telegram"]:
+        from app.services.aria_tools_messaging import MESSAGING_TOOL_PROMPT
+        # Trim to only the half the user has connected.
+        prompt = MESSAGING_TOOL_PROMPT
+        if not messaging_state["twilio"]:
+            prompt = "\n".join(line for line in prompt.splitlines() if "sms_" not in line)
+        if not messaging_state["telegram"]:
+            prompt = "\n".join(line for line in prompt.splitlines() if "telegram_" not in line)
+        extra_prompt_chunks.append(prompt)
     if mcp_servers:
         mcp_section = render_mcp_prompt(mcp_servers)
         if mcp_section:

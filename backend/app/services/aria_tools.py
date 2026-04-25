@@ -321,7 +321,9 @@ _TOOL_RX = re.compile(
     r"\[TOOL:\s*(read_file|list_dir|grep_code|web_fetch|github_fetch|"
     r"gmail_search|gmail_get_message|drive_search|drive_read_file|"
     r"docs_get_document|calendar_list_events|calendar_freebusy|"
-    r"obsidian_search|obsidian_get_note|obsidian_list_tags|obsidian_backlinks)\s+(.*?)\]",
+    r"obsidian_search|obsidian_get_note|obsidian_list_tags|obsidian_backlinks|"
+    r"slack_list_channels|slack_search_messages|slack_post_message|"
+    r"sms_send|sms_inbox_list|telegram_send_message|telegram_inbox_list)\s+(.*?)\]",
     re.DOTALL,
 )
 _KV_RX = re.compile(r"(\w+)\s*=\s*\"?([^\"\n]+?)\"?(?:\s+(?=\w+=)|$)")
@@ -460,6 +462,17 @@ async def extract_and_run_next_tool_async(
         }:
             from app.services.aria_tools_obsidian import run_obsidian_tool
             result = await run_obsidian_tool(tool, ctx.get("user_email") or "", args)
+        elif tool in {
+            "slack_list_channels", "slack_search_messages", "slack_post_message",
+        }:
+            from app.services.aria_tools_slack import run_slack_tool
+            result = await run_slack_tool(tool, ctx.get("user_email") or "", args)
+        elif tool in {
+            "sms_send", "sms_inbox_list",
+            "telegram_send_message", "telegram_inbox_list",
+        }:
+            from app.services.aria_tools_messaging import run_messaging_tool
+            result = await run_messaging_tool(tool, ctx.get("user_email") or "", args)
         else:
             result = f"ERROR: unknown tool '{tool}'"
     except Exception as error:

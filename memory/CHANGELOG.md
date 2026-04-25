@@ -1,8 +1,99 @@
 # CAOS Changelog
 
+## 2026-04-25 (round 5) — Connectors Sprint 3 (Stripe billing + Slack + Twilio + Telegram)
+
+### 🟢 Stripe billing wired to the tier system (END-TO-END VERIFIED)
+
+- **Test key in pod env** (`STRIPE_API_KEY=sk_test_emergent`). Used `emergentintegrations.payments.stripe.checkout.StripeCheckout` per the verified playbook — one-time Checkout sessions, NOT subscriptions. Each upgrade buys a 30-day pass at the chosen tier. Days stack on re-up.
+- **Backend route**: `app/routes/billing.py`
+  - `POST /api/billing/checkout` → creates Stripe session, returns hosted URL + session_id. Tier price comes server-side from `TIERS[tier_id].price_monthly`. Frontend NEVER sends an amount.
+  - `GET /api/billing/status/<session_id>` → polls Stripe; on first `paid` read, atomically grants tier upgrade with idempotency on the `payment_transactions.applied` flag.
+  - `POST /api/webhook/stripe` → mirrors the same idempotent grant. Whichever fires first (poll or webhook) wins; the other is a no-op.
+  - `GET /api/billing/me` → current tier + all 6 available tiers for the Pricing drawer.
+- **Token quota expiry-aware** (`token_quota.py`) — when `tier_expires_at` < now, the user silently falls back to free quotas without needing a cron job. `tier` field stays as-is for re-up convenience.
+- **Pricing drawer UI** (`PricingDrawer.js`) — 6 tier cards, current-tier badge, daily-token chips, Stripe redirect on click. Stripe Checkout cannot live in an iframe so we hard-redirect.
+- **Post-checkout polling** (`CaosShell.js` useEffect) — when Stripe redirects to `/?caos_billing=success&session_id=…`, polls `/billing/status/<sid>` every 2s for up to 30s. Toasts on success, cleans URL params.
+- **Verified end-to-end live**: seeded test user, hit `/billing/checkout`, got back real `cs_test_…` URL pointing at `checkout.stripe.com`. All 6 tier cards rendered correctly. Free tier shows "CURRENT" badge. Backend ruff + frontend ESLint clean.
+
+### 🟢 Slack (bot-token PAT, simpler than per-user OAuth)
+
+- **Backend**: `services/aria_tools_slack.py` — 3 tools: `slack_list_channels`, `slack_search_messages` (xoxp- only), `slack_post_message` (write — `requires_approval=True` flag in dispatch table).
+- **Storage**: same shape as GitHub PAT (`user_profiles.connectors.slack.token`). Reused `LEGACY_PAT_SERVICES` set + existing `PUT/DELETE /connectors/{service}` routes.
+- **Frontend**: `<SlackCard />` in ConnectorsDrawer with paste-token UX matching the GitHub card.
+- **Aria prompt**: `SLACK_TOOL_PROMPT` injected into system prompt only when the user has connected. Marks `slack_post_message` as "REQUIRES USER APPROVAL" (soft approval — Aria asks before firing; hard SSE-based approval gate is in Sprint 4 backlog).
+
+### 🟢 Twilio SMS (multi-field credentials)
+
+- **Backend**: `services/aria_tools_messaging.py` — `sms_send` (write), `sms_inbox_list` (reads `messaging_inbox` collection — empty until inbound webhook is wired in a future sprint).
+- **Storage**: `user_profiles.connectors.twilio.{account_sid, auth_token, from_number}`. New `PUT /connectors/twilio` endpoint with multi-field validator.
+- **Frontend**: `<TwilioCard />` with three input fields (SID + Auth Token + From-number).
+
+### 🟢 Telegram bot (single bot_token field)
+
+- **Backend**: same `aria_tools_messaging.py` — `telegram_send_message` (write), `telegram_inbox_list`.
+- **Storage**: `user_profiles.connectors.telegram.bot_token`. New `PUT /connectors/telegram` endpoint.
+- **Frontend**: `<TelegramCard />` with bot-token paste UX.
+
+### 🟢 Connectors drawer extended
+
+- New section **COMMUNICATIONS** holds Slack, Twilio, Telegram cards.
+- All 7 cards now visible: Google · Obsidian · GitHub · Slack · Twilio · Telegram · MCP.
+- ProfileDrawer gets a new **"Pricing & Tiers →"** button alongside Connectors.
+
+### 🟡 Per-action approval (soft for now, hard gate is Sprint 4)
+
+- The MVP soft approval is prompt-side: Aria's tool docs say "REQUIRES USER APPROVAL" for write tools. Aria is instructed to ask the user before firing.
+- Hard approval (SSE-pause + UI button) is documented in `ROADMAP.md` for the next sprint. It needs frontend SSE-stream interception + backend pause/resume — meatier work, not blocking today.
+
+### 🧪 Verification
+
+- Backend ruff: clean (billing.py, aria_tools_slack.py, aria_tools_messaging.py, connectors.py, chat_pipeline.py).
+- Frontend ESLint: clean (PricingDrawer.js, ConnectorsDrawer.js, CaosShell.js, ProfileDrawer.js).
+- `/api/connectors/list` returns 7 cards correctly.
+- `/api/billing/me` returns current tier + 6 available tiers.
+- `/api/billing/checkout` returns real Stripe Checkout URL with session_id.
+- Live UI screenshots: Connectors drawer (7 cards in 5 sections) + Pricing drawer (6 tier cards with daily-token chips). Both render cleanly.
+- *No `testing_agent_v3_fork` invoked. Manual curl + screenshot only.*
+
+### 🟡 What's left for Sprint 4
+
+- **Hard per-action approval gate** — SSE intercept + UI confirmation button before write actions fire.
+- **Slack search via xoxp- user token path** — currently bot-token-only.
+- **Inbound webhooks** for Twilio SMS + Telegram (live two-way comms).
+- **Audit log per-connector** — every fetch/write timestamped, surfaced in the connector card's "Recent activity" section.
+- **Stripe Customer Portal link** — let users self-manage payment methods + cancel.
+
+### ⚠️ For user, before next session
+
+To turn on each connector live:
+- **Slack**: Create app at https://api.slack.com/apps → Install to Workspace → copy the Bot User OAuth Token (xoxb-…) → paste in Slack card.
+- **Twilio**: From https://console.twilio.com → grab Account SID + Auth Token + buy/use an SMS-enabled phone number → paste in Twilio card.
+- **Telegram**: Talk to `@BotFather` on Telegram → create bot → get token → paste in Telegram card.
+- **Stripe upgrade**: in test mode, use card `4242 4242 4242 4242` with any future expiry + any CVC.
+
+---
+
 ## 2026-04-25 (round 4) — Connectors Sprint 1 + Sprint 2 (verified live)
 
 ### 🟢 Sprint 1: Foundation + Google Workspace (read-only)
+
+- OAuth scaffolding (token_vault.py, connector_oauth, google_client). 7 Aria tools (gmail_search, gmail_get_message, drive_search, drive_read_file, docs_get_document, calendar_list_events, calendar_freebusy). Connectors hub UI replaces the legacy GitHub-only PAT row.
+
+### 🟢 Sprint 2: MCP client + Obsidian (verified live)
+
+- Minimal JSON-RPC HTTP MCP client (skipped the `mcp` PyPI package — starlette conflict). Obsidian vault upload with backlink resolution. 4 Obsidian Aria tools.
+
+## 2026-04-25 (round 3) — Logout actually logs you out
+
+- Z-index fix (.caos-header to z-index 60) + missing `import { API }` + static axios + belt-and-suspenders client cleanup. DB session row actually destroyed.
+
+## 2026-04-25 (round 2) — Login routing + search drawer position
+
+- Login resumes most-recent populated session (skips empty stubs). Search drawer fixed at top-right (was bottom-left due to CSS exclusion list).
+
+## 2026-04-25 (round 1) — Tier 1 critical bug sweep
+
+- 7 P0/P1/P2 fixes: engine override, sanitizer dedup, error UI sanitization, STT latency, constellation mount, error boundary, search labels.
 
 - **OAuth scaffolding** — generic state-cached Authorization Code flow.
   Files: `services/token_vault.py` (Fernet at-rest encryption + on-demand

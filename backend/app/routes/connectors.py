@@ -45,9 +45,13 @@ from app.services.auth_service import require_user
 router = APIRouter(prefix="/connectors", tags=["connectors"])
 
 
-# ---- legacy GitHub PAT (unchanged from original implementation) ------------
+# ---- legacy GitHub PAT (extended for Slack / Twilio / Telegram) ----------
 
-LEGACY_PAT_SERVICES = {"github"}
+# All of these use simple credential storage in `user_profiles.connectors.<key>`
+# (no OAuth dance). Slack uses a single bot token (xoxb-…). Twilio uses
+# {account_sid, auth_token, from_number}. Telegram uses a bot_token.
+LEGACY_PAT_SERVICES = {"github", "slack"}
+MESSAGING_SERVICES = {"twilio", "telegram"}
 
 
 class ConnectorStatus(BaseModel):
@@ -139,13 +143,87 @@ async def set_connector_token(
 async def delete_legacy_connector_token(
     service: str, user: dict = Depends(require_user)
 ) -> ConnectorStatus:
-    if service not in LEGACY_PAT_SERVICES:
+    if service not in LEGACY_PAT_SERVICES and service not in MESSAGING_SERVICES:
         raise HTTPException(status_code=400, detail=f"unsupported service: {service}")
     await collection("user_profiles").update_one(
         {"user_email": user["email"]},
         {"$unset": {f"connectors.{service}": ""}},
     )
     return ConnectorStatus(service=service, connected=False)
+
+
+# ---- Twilio (multi-field credentials) -------------------------------------
+
+class TwilioConfig(BaseModel):
+    account_sid: str = Field(..., min_length=10, max_length=200)
+    auth_token: str = Field(..., min_length=10, max_length=200)
+    from_number: str = Field(..., min_length=4, max_length=30)
+
+
+@router.put("/twilio", response_model=ConnectorStatus)
+async def set_twilio_config(
+    body: TwilioConfig, user: dict = Depends(require_user),
+) -> ConnectorStatus:
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await _get_profile_for_write(user)
+    await collection("user_profiles").update_one(
+        {"user_email": user["email"]},
+        {"$set": {
+            "connectors.twilio.account_sid": body.account_sid.strip(),
+            "connectors.twilio.auth_token": body.auth_token.strip(),
+            "connectors.twilio.from_number": body.from_number.strip(),
+            "connectors.twilio.updated_at": now_iso,
+        }},
+    )
+    return ConnectorStatus(service="twilio", connected=True, masked=body.from_number, updated_at=now_iso)
+
+
+# ---- Telegram (single bot_token field) ------------------------------------
+
+class TelegramConfig(BaseModel):
+    bot_token: str = Field(..., min_length=10, max_length=300)
+
+
+@router.put("/telegram", response_model=ConnectorStatus)
+async def set_telegram_config(
+    body: TelegramConfig, user: dict = Depends(require_user),
+) -> ConnectorStatus:
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await _get_profile_for_write(user)
+    await collection("user_profiles").update_one(
+        {"user_email": user["email"]},
+        {"$set": {
+            "connectors.telegram.bot_token": body.bot_token.strip(),
+            "connectors.telegram.updated_at": now_iso,
+        }},
+    )
+    return ConnectorStatus(service="telegram", connected=True, masked=_mask(body.bot_token), updated_at=now_iso)
+
+
+# ---- Connection helpers used by chat_pipeline -----------------------------
+
+async def is_slack_connected(user_email: str) -> bool:
+    if not user_email:
+        return False
+    profile = await collection("user_profiles").find_one(
+        {"user_email": user_email}, {"_id": 0, "connectors": 1},
+    ) or {}
+    return bool(((profile.get("connectors") or {}).get("slack") or {}).get("token"))
+
+
+async def is_messaging_connected(user_email: str) -> dict[str, bool]:
+    if not user_email:
+        return {"twilio": False, "telegram": False}
+    profile = await collection("user_profiles").find_one(
+        {"user_email": user_email}, {"_id": 0, "connectors": 1},
+    ) or {}
+    cfg = profile.get("connectors") or {}
+    tw = cfg.get("twilio") or {}
+    tg = cfg.get("telegram") or {}
+    return {
+        "twilio": bool(tw.get("account_sid") and tw.get("auth_token") and tw.get("from_number")),
+        "telegram": bool(tg.get("bot_token")),
+    }
 
 
 # ---- unified hub list ------------------------------------------------------
@@ -162,7 +240,8 @@ async def list_all_connectors(user: dict = Depends(require_user)) -> list[Connec
     profile = await collection("user_profiles").find_one(
         {"user_email": email}, {"_id": 0, "connectors": 1}
     ) or {}
-    gh = ((profile.get("connectors") or {}).get("github") or {})
+    connectors_doc = profile.get("connectors") or {}
+    gh = connectors_doc.get("github") or {}
     states.append(ConnectorState(
         provider="github",
         label="GitHub",
@@ -170,6 +249,40 @@ async def list_all_connectors(user: dict = Depends(require_user)) -> list[Connec
         masked_identity=_mask(gh.get("token") or ""),
         scopes=["repo:read"] if gh.get("token") else [],
         updated_at=gh.get("updated_at"),
+    ))
+
+    # Slack (bot token, PAT-style)
+    sl = connectors_doc.get("slack") or {}
+    states.append(ConnectorState(
+        provider="slack",
+        label="Slack",
+        connected=bool(sl.get("token")),
+        masked_identity=_mask(sl.get("token") or ""),
+        scopes=["channels:read", "channels:history", "chat:write"] if sl.get("token") else [],
+        updated_at=sl.get("updated_at"),
+    ))
+
+    # Twilio (account sid + auth token + from number)
+    tw = connectors_doc.get("twilio") or {}
+    tw_connected = bool(tw.get("account_sid") and tw.get("auth_token") and tw.get("from_number"))
+    states.append(ConnectorState(
+        provider="twilio",
+        label="Twilio SMS",
+        connected=tw_connected,
+        masked_identity=tw.get("from_number") if tw_connected else None,
+        scopes=["sms.send", "sms.read"] if tw_connected else [],
+        updated_at=tw.get("updated_at"),
+    ))
+
+    # Telegram (bot token)
+    tg = connectors_doc.get("telegram") or {}
+    states.append(ConnectorState(
+        provider="telegram",
+        label="Telegram",
+        connected=bool(tg.get("bot_token")),
+        masked_identity=_mask(tg.get("bot_token") or ""),
+        scopes=["bot.send", "bot.read"] if tg.get("bot_token") else [],
+        updated_at=tg.get("updated_at"),
     ))
 
     # Google (OAuth)

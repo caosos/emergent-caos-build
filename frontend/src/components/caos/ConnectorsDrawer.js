@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import axios from "axios";
-import { Github, X, Mail, FolderOpen, FileText, Calendar, Sparkles, Upload, BookOpen, Plus, Trash2 } from "lucide-react";
+import { Github, X, Mail, FolderOpen, FileText, Calendar, Sparkles, Upload, BookOpen, Plus, Trash2, MessageSquare, Phone, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { API } from "@/config/apiBase";
@@ -51,6 +51,28 @@ const PROVIDER_VISUALS = {
     capabilities: [
       { icon: <BookOpen size={11} />, label: "Notes" },
       { icon: <FileText size={11} />, label: "Backlinks" },
+    ],
+  },
+  slack: {
+    icon: <MessageSquare size={18} />,
+    blurb: "Paste a Slack bot token (xoxb-…). Aria can list channels, search messages (xoxp- only), and post with your approval.",
+    capabilities: [
+      { icon: <MessageSquare size={11} />, label: "Channels" },
+      { icon: <Send size={11} />, label: "Post (gated)" },
+    ],
+  },
+  twilio: {
+    icon: <Phone size={18} />,
+    blurb: "Wire Twilio for outbound SMS. Need Account SID + Auth Token + an SMS-enabled From-number from your Twilio console.",
+    capabilities: [
+      { icon: <Phone size={11} />, label: "SMS send (gated)" },
+    ],
+  },
+  telegram: {
+    icon: <Send size={18} />,
+    blurb: "Paste your Telegram bot token (from @BotFather). Aria can send messages to any chat the bot has access to (with your approval).",
+    capabilities: [
+      { icon: <Send size={11} />, label: "Bot send (gated)" },
     ],
   },
 };
@@ -377,6 +399,234 @@ const ObsidianCard = ({ state, onChanged }) => {
   );
 };
 
+// ── Slack card (bot-token PAT) ─────────────────────────────────────────────
+
+const SlackCard = ({ state, onChanged }) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const visuals = PROVIDER_VISUALS.slack;
+
+  const save = async () => {
+    const token = draft.trim();
+    if (!token.startsWith("xoxb-") && !token.startsWith("xoxp-")) {
+      toast.error("Token should start with xoxb- (bot) or xoxp- (user)."); return;
+    }
+    setBusy(true);
+    try {
+      await axios.put(`${API}/connectors/slack`, { token }, { withCredentials: true });
+      toast.success("Slack token saved");
+      setEditing(false); setDraft("");
+      onChanged?.();
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || err?.message || "Save failed");
+    } finally { setBusy(false); }
+  };
+
+  const remove = async () => {
+    if (!window.confirm("Remove Slack token? Aria loses access.")) return;
+    setBusy(true);
+    try {
+      await axios.delete(`${API}/connectors/slack`, { withCredentials: true });
+      toast.success("Slack disconnected");
+      onChanged?.();
+    } catch (err) { toast.error(err?.message || "Remove failed"); }
+    finally { setBusy(false); }
+  };
+
+  const cardState = state.connected ? "connected" : "not-connected";
+  return (
+    <div className="connector-card" data-state={cardState} data-testid="caos-connector-card-slack">
+      <div className="connector-card-head">
+        <div className="connector-card-icon">{visuals.icon}</div>
+        <div className="connector-card-meta">
+          <div className="connector-card-name">Slack</div>
+          <StatusPill state={state} />
+        </div>
+      </div>
+      <div className="connector-card-body">{visuals.blurb}</div>
+      <div className="connector-card-actions">
+        {!editing ? (
+          <>
+            <button
+              className="connector-action-btn"
+              data-variant={state.connected ? "ghost" : "primary"}
+              data-testid="caos-connector-card-slack-toggle"
+              disabled={busy}
+              onClick={() => { setDraft(""); setEditing(true); }}
+              type="button"
+            >{state.connected ? "Rotate token" : "Connect Slack"}</button>
+            {state.connected ? (
+              <button className="connector-action-btn" data-variant="danger" data-testid="caos-connector-card-slack-remove" disabled={busy} onClick={remove} type="button">
+                {busy ? "Removing…" : "Disconnect"}
+              </button>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <input
+              autoFocus
+              className="connector-pat-input"
+              data-testid="caos-connector-card-slack-input"
+              type="password"
+              placeholder="xoxb-… or xoxp-…"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") { setEditing(false); setDraft(""); } }}
+            />
+            <button className="connector-action-btn" data-variant="primary" disabled={busy} onClick={save} type="button">{busy ? "Saving…" : "Save"}</button>
+            <button className="connector-action-btn" data-variant="ghost" onClick={() => { setEditing(false); setDraft(""); }} type="button">Cancel</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Twilio card (multi-field) ──────────────────────────────────────────────
+
+const TwilioCard = ({ state, onChanged }) => {
+  const [editing, setEditing] = useState(false);
+  const [sid, setSid] = useState("");
+  const [auth, setAuth] = useState("");
+  const [from, setFrom] = useState("");
+  const [busy, setBusy] = useState(false);
+  const visuals = PROVIDER_VISUALS.twilio;
+
+  const save = async () => {
+    if (!sid.trim() || !auth.trim() || !from.trim()) { toast.error("All three fields required"); return; }
+    setBusy(true);
+    try {
+      await axios.put(
+        `${API}/connectors/twilio`,
+        { account_sid: sid.trim(), auth_token: auth.trim(), from_number: from.trim() },
+        { withCredentials: true },
+      );
+      toast.success("Twilio connected");
+      setEditing(false); setSid(""); setAuth(""); setFrom("");
+      onChanged?.();
+    } catch (err) { toast.error(err?.response?.data?.detail || err?.message || "Save failed"); }
+    finally { setBusy(false); }
+  };
+
+  const remove = async () => {
+    if (!window.confirm("Remove Twilio credentials?")) return;
+    try {
+      await axios.delete(`${API}/connectors/twilio`, { withCredentials: true });
+      toast.success("Twilio disconnected");
+      onChanged?.();
+    } catch (err) { toast.error(err?.message || "Remove failed"); }
+  };
+
+  const cardState = state.connected ? "connected" : "not-connected";
+  return (
+    <div className="connector-card" data-state={cardState} data-testid="caos-connector-card-twilio">
+      <div className="connector-card-head">
+        <div className="connector-card-icon">{visuals.icon}</div>
+        <div className="connector-card-meta">
+          <div className="connector-card-name">Twilio SMS</div>
+          <StatusPill state={state} />
+        </div>
+      </div>
+      <div className="connector-card-body">{visuals.blurb}</div>
+      <div className="connector-card-actions">
+        {!editing ? (
+          <>
+            <button className="connector-action-btn" data-variant={state.connected ? "ghost" : "primary"} data-testid="caos-connector-card-twilio-toggle" disabled={busy} onClick={() => setEditing(true)} type="button">
+              {state.connected ? "Update credentials" : "Connect Twilio"}
+            </button>
+            {state.connected ? (
+              <button className="connector-action-btn" data-variant="danger" onClick={remove} type="button">Disconnect</button>
+            ) : null}
+          </>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
+            <input className="connector-pat-input" data-testid="caos-connector-card-twilio-sid" placeholder="Account SID (AC…)" value={sid} onChange={(e) => setSid(e.target.value)} />
+            <input className="connector-pat-input" data-testid="caos-connector-card-twilio-auth" type="password" placeholder="Auth Token" value={auth} onChange={(e) => setAuth(e.target.value)} />
+            <input className="connector-pat-input" data-testid="caos-connector-card-twilio-from" placeholder="From-number (e.g. +15551234567)" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="connector-action-btn" data-variant="primary" disabled={busy} onClick={save} type="button">{busy ? "Saving…" : "Save"}</button>
+              <button className="connector-action-btn" data-variant="ghost" onClick={() => { setEditing(false); setSid(""); setAuth(""); setFrom(""); }} type="button">Cancel</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Telegram card (single bot_token field) ─────────────────────────────────
+
+const TelegramCard = ({ state, onChanged }) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const visuals = PROVIDER_VISUALS.telegram;
+
+  const save = async () => {
+    const token = draft.trim();
+    if (!token.includes(":")) { toast.error("Telegram bot tokens look like 12345:abc…"); return; }
+    setBusy(true);
+    try {
+      await axios.put(`${API}/connectors/telegram`, { bot_token: token }, { withCredentials: true });
+      toast.success("Telegram bot connected");
+      setEditing(false); setDraft("");
+      onChanged?.();
+    } catch (err) { toast.error(err?.response?.data?.detail || err?.message || "Save failed"); }
+    finally { setBusy(false); }
+  };
+
+  const remove = async () => {
+    if (!window.confirm("Remove Telegram bot token?")) return;
+    try {
+      await axios.delete(`${API}/connectors/telegram`, { withCredentials: true });
+      toast.success("Telegram disconnected");
+      onChanged?.();
+    } catch (err) { toast.error(err?.message || "Remove failed"); }
+  };
+
+  const cardState = state.connected ? "connected" : "not-connected";
+  return (
+    <div className="connector-card" data-state={cardState} data-testid="caos-connector-card-telegram">
+      <div className="connector-card-head">
+        <div className="connector-card-icon">{visuals.icon}</div>
+        <div className="connector-card-meta">
+          <div className="connector-card-name">Telegram</div>
+          <StatusPill state={state} />
+        </div>
+      </div>
+      <div className="connector-card-body">{visuals.blurb}</div>
+      <div className="connector-card-actions">
+        {!editing ? (
+          <>
+            <button className="connector-action-btn" data-variant={state.connected ? "ghost" : "primary"} data-testid="caos-connector-card-telegram-toggle" disabled={busy} onClick={() => { setDraft(""); setEditing(true); }} type="button">
+              {state.connected ? "Rotate token" : "Connect Telegram"}
+            </button>
+            {state.connected ? (
+              <button className="connector-action-btn" data-variant="danger" onClick={remove} type="button">Disconnect</button>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <input
+              autoFocus
+              className="connector-pat-input"
+              data-testid="caos-connector-card-telegram-input"
+              type="password"
+              placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") { setEditing(false); setDraft(""); } }}
+            />
+            <button className="connector-action-btn" data-variant="primary" disabled={busy} onClick={save} type="button">{busy ? "Saving…" : "Save"}</button>
+            <button className="connector-action-btn" data-variant="ghost" onClick={() => { setEditing(false); setDraft(""); }} type="button">Cancel</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ── MCP card (server registry, real CRUD) ──────────────────────────────────
 
 const McpCard = ({ state, onChanged }) => {
@@ -616,6 +866,11 @@ export const ConnectorsDrawer = ({ isOpen, onClose }) => {
 
           <div className="connectors-section-label">Code</div>
           <GitHubCard state={byProvider("github")} onChanged={refresh} />
+
+          <div className="connectors-section-label">Communications</div>
+          <SlackCard state={byProvider("slack")} onChanged={refresh} />
+          <TwilioCard state={byProvider("twilio")} onChanged={refresh} />
+          <TelegramCard state={byProvider("telegram")} onChanged={refresh} />
 
           <div className="connectors-section-label">Universal</div>
           <McpCard state={byProvider("mcp")} onChanged={refresh} />

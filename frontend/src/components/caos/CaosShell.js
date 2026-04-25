@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 
 import { API } from "@/config/apiBase";
 
@@ -14,6 +15,7 @@ import { MessagePane } from "@/components/caos/MessagePane";
 import { PreviousThreadsPanel } from "@/components/caos/PreviousThreadsPanel";
 import { ProfileDrawer } from "@/components/caos/ProfileDrawer";
 import { ConnectorsDrawer } from "@/components/caos/ConnectorsDrawer";
+import { PricingDrawer } from "@/components/caos/PricingDrawer";
 import { SwarmPanel } from "@/components/caos/SwarmPanel";
 import { SearchDrawer } from "@/components/caos/SearchDrawer";
 import { ShellHeader } from "@/components/caos/ShellHeader";
@@ -38,10 +40,63 @@ export const CaosShell = ({ authenticatedUser }) => {
   const [showInspector, setShowInspector] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showConnectors, setShowConnectors] = useState(false);
+  const [showPricing, setShowPricing] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showSwarm, setShowSwarm] = useState(false);
   const [showThreadExplorer, setShowThreadExplorer] = useState(false);
   const [showVoiceFirst, setShowVoiceFirst] = useState(false);
+
+  // Post-Stripe-checkout poller: when Stripe redirects back to /?caos_billing=
+  // success&session_id=…, poll /billing/status/<sid> until paid, then toast +
+  // refresh /billing/me. Cleans up the URL params once done so a refresh
+  // doesn't re-trigger.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const billing = params.get("caos_billing");
+    const sessionId = params.get("session_id");
+    if (!billing || !sessionId) return;
+    if (billing === "cancel") {
+      toast.error("Checkout cancelled.");
+      params.delete("caos_billing"); params.delete("session_id");
+      const newUrl = `${window.location.pathname}${params.toString() ? "?" + params.toString() : ""}`;
+      window.history.replaceState({}, "", newUrl);
+      return;
+    }
+    if (billing !== "success") return;
+    let cancelled = false;
+    const startedAt = Date.now();
+    const TIMEOUT_MS = 30_000;
+    const poll = async () => {
+      try {
+        const resp = await axios.get(`${API}/billing/status/${sessionId}`, { withCredentials: true });
+        if (cancelled) return;
+        if (resp.data?.status === "paid" || resp.data?.status === "already_processed") {
+          toast.success(`Welcome to ${(resp.data?.tier_id || "your new tier").toUpperCase()} — pass active until ${new Date(resp.data?.tier_expires_at || Date.now()).toLocaleDateString()}`);
+          params.delete("caos_billing"); params.delete("session_id");
+          const newUrl = `${window.location.pathname}${params.toString() ? "?" + params.toString() : ""}`;
+          window.history.replaceState({}, "", newUrl);
+          return;
+        }
+        if (resp.data?.status === "expired" || resp.data?.status === "cancelled") {
+          toast.error("Checkout session " + resp.data.status + ".");
+          params.delete("caos_billing"); params.delete("session_id");
+          window.history.replaceState({}, "", `${window.location.pathname}${params.toString() ? "?" + params.toString() : ""}`);
+          return;
+        }
+        if (Date.now() - startedAt > TIMEOUT_MS) {
+          toast.error("Still processing your upgrade — refresh in a moment.");
+          return;
+        }
+        setTimeout(poll, 2000);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("[CAOS] billing status poll failed:", err?.message);
+      }
+    };
+    poll();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Apply user preferences (ambient mode + bubble opacity) on boot so the
   // setting survives refresh without needing to open the Settings drawer.
@@ -441,6 +496,7 @@ export const CaosShell = ({ authenticatedUser }) => {
         memoryCount={profile?.structured_memory?.length || 0}
         onClose={() => setShowProfile(false)}
         onOpenConnectors={() => { setShowProfile(false); setShowConnectors(true); }}
+        onOpenPricing={() => { setShowProfile(false); setShowPricing(true); }}
         deleteMemory={deleteMemory}
         onSpeak={speakText}
         profile={profile}
@@ -456,6 +512,10 @@ export const CaosShell = ({ authenticatedUser }) => {
       <ConnectorsDrawer
         isOpen={showConnectors}
         onClose={() => setShowConnectors(false)}
+      />
+      <PricingDrawer
+        isOpen={showPricing}
+        onClose={() => setShowPricing(false)}
       />
       <ArtifactsDrawer
         artifacts={artifacts}

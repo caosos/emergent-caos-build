@@ -11,6 +11,7 @@ from app.db import client, db
 from app.routes.auth import router as auth_router
 from app.routes.admin_docs import router as admin_docs_router
 from app.routes.admin_dashboard import router as admin_dashboard_router
+from app.routes.billing import router as billing_router, webhook_router as billing_webhook_router
 from app.routes.connectors import router as connectors_router
 from app.routes.caos import router as caos_router
 from app.routes.health import router as health_router
@@ -86,6 +87,8 @@ app.include_router(caos_router, prefix="/api")
 app.include_router(admin_docs_router, prefix="/api")
 app.include_router(admin_dashboard_router, prefix="/api")
 app.include_router(connectors_router, prefix="/api")
+app.include_router(billing_router, prefix="/api")
+app.include_router(billing_webhook_router, prefix="/api")
 app.include_router(memory_profile_router, prefix="/api")
 app.include_router(memory_workers_router, prefix="/api")
 app.include_router(support_router, prefix="/api")

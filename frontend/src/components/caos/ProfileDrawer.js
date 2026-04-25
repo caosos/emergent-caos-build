@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Activity, AlertTriangle, Bot, Brain, Cake, Calendar, FileText, Gamepad2, Github, Image as ImageIcon, Lock, Mail, Moon, MousePointer2, Plug, Shield, Sparkles, Terminal, Trash2, Unlock, Volume2, X } from "lucide-react";
+import { Activity, AlertTriangle, Bot, Brain, Cake, Calendar, Crown, FileText, Gamepad2, Github, Image as ImageIcon, Lock, Mail, Moon, MousePointer2, Plug, Shield, Sparkles, Terminal, Trash2, Unlock, Volume2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Switch } from "@/components/ui/switch";
@@ -49,7 +49,7 @@ const applyBubbleOpacity = (opacity) => {
   document.documentElement.style.setProperty("--caos-bubble-opacity", String(pct));
 };
 
-export const ProfileDrawer = ({ authenticatedUser, deleteMemory, isOpen, memoryCount, onClose, onOpenConnectors, onSpeak, profile, runtimeSettings, saveMemory, sessionsCount, updateMemory, updateProfile, updateVoiceSettings, userEmail, voiceSettings }) => {
+export const ProfileDrawer = ({ authenticatedUser, deleteMemory, isOpen, memoryCount, onClose, onOpenConnectors, onOpenPricing, onSpeak, profile, runtimeSettings, saveMemory, sessionsCount, updateMemory, updateProfile, updateVoiceSettings, userEmail, voiceSettings }) => {
   const [activeView, setActiveView] = useState("profile");
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
@@ -428,7 +428,25 @@ export const ProfileDrawer = ({ authenticatedUser, deleteMemory, isOpen, memoryC
           <div style={{ flex: 1, minWidth: 0 }}>
             <span>Connectors</span>
             <strong data-testid="caos-profile-connectors-summary">
-              Gmail · Drive · Docs · Calendar · GitHub · MCP →
+              Gmail · Drive · Docs · Calendar · GitHub · Slack · Twilio · Telegram · MCP →
+            </strong>
+          </div>
+          <span className="profile-connector-action" style={{ pointerEvents: "none" }}>Open</span>
+        </button>
+
+        {/* Pricing & tier upgrade */}
+        <button
+          className="profile-connector-row"
+          data-testid="caos-profile-open-pricing"
+          onClick={() => { try { onClose?.(); } catch {} onOpenPricing?.(); }}
+          type="button"
+          style={{ width: "100%", cursor: "pointer", textAlign: "left", background: "transparent", border: "none", padding: 0 }}
+        >
+          <Crown size={14} className="profile-info-icon" />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span>Pricing & Tiers</span>
+            <strong data-testid="caos-profile-pricing-summary">
+              Upgrade for more daily tokens · 30-day passes →
             </strong>
           </div>
           <span className="profile-connector-action" style={{ pointerEvents: "none" }}>Open</span>

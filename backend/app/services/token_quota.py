@@ -74,12 +74,25 @@ async def get_user_quota(user_email: str) -> dict:
         }
         await collection("token_usage").insert_one(usage_doc)
     
-    # Get user's tier (default to free)
+    # Get user's tier (default to free). Honors `tier_expires_at`: a user
+    # with an expired pass silently falls back to "free" so quota enforcement
+    # still works without a cron job. Their `tier` field is NOT auto-rewritten
+    # — that happens lazily on next upgrade or admin tooling.
     profile = await collection("user_profiles").find_one(
         {"user_email": user_email},
-        {"tier": 1, "_id": 0}
+        {"tier": 1, "tier_expires_at": 1, "_id": 0}
     )
     tier = profile.get("tier", "free") if profile else "free"
+    expires_at_iso = (profile or {}).get("tier_expires_at")
+    if tier != "free" and expires_at_iso:
+        try:
+            expires_at = datetime.fromisoformat(expires_at_iso)
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
+            if expires_at < datetime.now(timezone.utc):
+                tier = "free"
+        except Exception:
+            tier = "free"
     tier_config = TIERS.get(tier, TIERS["free"])
     
     tokens_used = usage_doc.get("tokens_used", 0)
