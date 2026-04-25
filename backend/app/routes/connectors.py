@@ -397,7 +397,13 @@ async def start_google_oauth(
         "response_type": "code",
         "scope": " ".join(GOOGLE_SCOPES),
         "access_type": "offline",  # we want a refresh_token
-        "prompt": "consent",  # force consent so a refresh_token is always issued
+        # `select_account` forces Google to show the account picker instead
+        # of silently using whatever account the browser is currently signed
+        # into. `consent` forces re-consent so a refresh_token is always
+        # issued (Google only returns refresh_tokens on first consent unless
+        # consent is forced). Both must be space-separated in a single
+        # `prompt` param per Google's spec.
+        "prompt": "select_account consent",
         "state": state,
         "include_granted_scopes": "true",
     }
