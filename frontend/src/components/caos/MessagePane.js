@@ -418,9 +418,10 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
                       className="message-action-button"
                       data-testid={`caos-message-receipt-${message.id}`}
                       onClick={() => updateMeta(message.id, (state) => ({ ...state, showReceipt: !state.showReceipt }))}
+                      title="Why did Aria say this? — show memories injected into this reply"
                     >
                       <FileSearch size={14} />
-                      <span>Context</span>
+                      <span>Why?</span>
                     </button>
                   ) : null}
                 </div>
@@ -474,15 +475,32 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
 
                 {meta.showReceipt && linkedReceipt ? (
                   <div className="receipt-inline" data-testid={`caos-message-inline-receipt-${message.id}`}>
-                    <strong>Context Diagnostics · lineage {linkedReceipt.lineage_depth}</strong>
+                    <strong>Why did Aria say this? · lineage {linkedReceipt.lineage_depth}</strong>
                     <span>Runtime: {linkedReceipt.provider} · {linkedReceipt.model}</span>
-                    <span>Terms: {linkedReceipt.retrieval_terms.join(", ") || "none"}</span>
+                    <span>Terms: {linkedReceipt.retrieval_terms?.join(", ") || "none"}</span>
                     <span>Bins: {linkedReceipt.subject_bins?.join(", ") || "none"}</span>
+                    {Array.isArray(linkedReceipt.reused_memories) && linkedReceipt.reused_memories.length ? (
+                      <div className="receipt-inline-memories" data-testid={`caos-message-receipt-memories-${message.id}`}>
+                        <strong className="receipt-inline-section-title">Memories injected ({linkedReceipt.reused_memories.length})</strong>
+                        {linkedReceipt.reused_memories.map((m, idx) => {
+                          const sm = (m.source_mode || "USER_EXPLICIT").toUpperCase();
+                          const tone = sm === "USER_EXPLICIT" ? "memory-source-user"
+                            : sm === "OBSERVED" ? "memory-source-observed"
+                            : sm === "DERIVED" ? "memory-source-derived" : "memory-source-system";
+                          return (
+                            <div className="receipt-inline-memory-row" data-testid={`caos-message-receipt-memory-${message.id}-${idx}`} key={`${message.id}-mem-${idx}`}>
+                              <span className={`memory-source-pill ${tone}`}>{(m.bin_name || "GENERAL").toUpperCase().slice(0, 18)}</span>
+                              <span className="receipt-inline-memory-content">{m.content || m.summary || "—"}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <span style={{ opacity: 0.6, fontStyle: "italic" }}>No long-term memories were injected for this reply.</span>
+                    )}
                     <span>Continuity packets: {(linkedReceipt.selected_summary_ids?.length || 0) + (linkedReceipt.selected_seed_ids?.length || 0)}</span>
                     <span>Reduction: {Math.round((linkedReceipt.reduction_ratio || 0) * 100)}%</span>
                     <span>Kept/Dropped/Compressed/Trimmed: {linkedReceipt.retained_message_count || 0}/{linkedReceipt.dropped_message_count || 0}/{linkedReceipt.compressed_message_count || 0}/{linkedReceipt.budget_trimmed_count || 0}</span>
-                    <span>Global cache: {linkedReceipt.global_cache_count || 0} ({linkedReceipt.global_bin_status || "empty"})</span>
-                    <span>{linkedReceipt.retention_explanation?.[0] || "Retention reasoning pending."}</span>
                   </div>
                 ) : null}
               </article>

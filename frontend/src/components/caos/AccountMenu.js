@@ -201,8 +201,18 @@ export const AccountMenu = ({
             <LifeBuoy size={14} /><span>Support Tickets</span>
           </button>
           <div className="inspector-menu-divider" />
-          <button className="inspector-menu-item inspector-menu-item-danger" data-testid="caos-account-menu-logout" onClick={pick(onLogOut)} type="button">
-            <LogOut size={14} /><span>Log Out</span>
+          <button
+            className="inspector-menu-item inspector-menu-item-danger"
+            data-testid="caos-account-menu-logout"
+            onClick={() => {
+              if (window.confirm("Sign out of CAOS on every device, including this one? You'll need to log back in everywhere.")) {
+                pick(onLogOut)();
+              }
+            }}
+            type="button"
+            title="Wipes every session on every browser/device"
+          >
+            <LogOut size={14} /><span>Log out everywhere</span>
           </button>
         </div>
       ) : null}

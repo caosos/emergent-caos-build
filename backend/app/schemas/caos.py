@@ -69,6 +69,15 @@ class MemoryEntry(BaseModel):
     priority: int = 50
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
+    # Phase-1 Memory Provenance Layer additions (additive, safe defaults so
+    # existing rows parse cleanly). Read by `rank_memories` for the Phase-3
+    # bin-aware relevance scoring (evidence + user_confirmed influence rank).
+    summary: str | None = None
+    confidence: float = 1.0
+    user_confirmed: bool = True
+    source_mode: str = "USER_EXPLICIT"
+    evidence_count: int = 0
+    status: str = "active"
 
 
 class MemorySaveRequest(BaseModel):

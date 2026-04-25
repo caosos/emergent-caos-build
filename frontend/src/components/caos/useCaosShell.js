@@ -464,6 +464,10 @@ export const useCaosShell = (authenticatedUser = null) => {
         message = rawMessage;
       }
       setError(message);
+      // OPEN-03 fix: clear the stale receipt so the WCW meter doesn't freeze
+      // on the previous turn's token count when the engine fails. The meter
+      // gracefully falls back to the dynamic budget default until next reply.
+      setLastTurn(null);
       let syncedMessages = null;
       if (session?.session_id) {
         try {

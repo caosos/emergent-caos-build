@@ -61,11 +61,17 @@ def _is_compression_summary(message: MessageRecord) -> bool:
 
 
 def _memory_snapshot(memory: MemoryEntry) -> dict:
+    """Compact dict the receipt embeds for the 'Why did you say that?' UI."""
     return {
         "id": memory.id,
         "bin_name": memory.bin_name,
         "reason": "retrieved_structured_memory",
         "excerpt": memory.content[:160],
+        "content": memory.content[:400],  # full-ish content for the popover
+        "summary": getattr(memory, "summary", None),
+        "source_mode": getattr(memory, "source_mode", "USER_EXPLICIT"),
+        "confidence": float(getattr(memory, "confidence", 1.0) or 1.0),
+        "user_confirmed": bool(getattr(memory, "user_confirmed", True)),
     }
 
 
@@ -220,30 +226,77 @@ def rank_memories(
     limit: int,
     subject_bins: list[str] | None = None,
 ) -> tuple[list[MemoryEntry], list[str]]:
+    """Phase 3: bin-aware relevance scoring + recency decay + evidence boost.
+
+    Score formula (per atom):
+      base       = term-overlap with query+recent context (∈ [0, ~10])
+      bin_prio   = BIN_REGISTRY default_priority / 25  (IDENTITY=3.8, GOV=4.0, RISK=1.6)
+      bin_match  = +2 if atom's bin is in the turn's subject_bins
+      legacy     = +3 if legacy `personal_facts` bin (back-compat)
+      personal_q = +4 if query reads as personal AND bin is identity-class
+      evidence   = +1 if atom has 2+ evidence anchors (cumulative signal)
+      confirmed  = +1 if user_confirmed (USER_EXPLICIT wins ties over DERIVED)
+      recency    = max 0..2 based on updated_at age (24h=2, 7d=1, older=0)
+
+    Atoms with score 0 are dropped. Top-`limit` returned, sorted by total
+    score then bin_priority then updated_at desc.
+    """
+    from datetime import datetime, timezone
+    try:
+        from app.schemas.memory import BIN_REGISTRY, migrate_legacy_bin
+    except ImportError:  # pragma: no cover — defensive on circular imports
+        BIN_REGISTRY, migrate_legacy_bin = {}, lambda x: x
     retrieval_terms = tokenize(query)
-    personal_query = any(term in retrieval_terms for term in ["prefer", "preference", "favorite", "usually", "always", "myself"])
+    personal_query = any(term in retrieval_terms for term in ["prefer", "preference", "favorite", "usually", "always", "myself", "i", "me", "my"])
     bin_terms = {item.split(":", 1)[-1] for item in (subject_bins or [])}
     for message in recent_messages[-5:]:
         for token in tokenize(message.content):
             if token not in retrieval_terms:
                 retrieval_terms.append(token)
-    scores: list[tuple[int, MemoryEntry]] = []
+    now = datetime.now(timezone.utc)
+    scores: list[tuple[float, MemoryEntry]] = []
     for memory in memories:
         haystack = set(tokenize(memory.content))
         haystack.update(memory.tags)
         haystack.update(tokenize(memory.bin_name))
-        overlap = sum(1 for term in retrieval_terms if term in haystack)
-        bin_bonus = 2 if memory.bin_name in bin_terms else 0
-        fact_bonus = 3 if memory.bin_name == "personal_facts" else 0
-        if memory.bin_name == "personal_facts" and personal_query:
-            fact_bonus += 4
-        if overlap or bin_bonus or (memory.bin_name == "personal_facts" and personal_query):
-            score = overlap + bin_bonus + fact_bonus + (max(0, min(memory.priority, 100)) // 25)
+        # Legacy bin name → typed enum (so IDENTITY_FACT matches identity)
+        typed_bin = migrate_legacy_bin(memory.bin_name) if BIN_REGISTRY else memory.bin_name
+        base = sum(1 for term in retrieval_terms if term in haystack)
+        bin_prio = (BIN_REGISTRY.get(typed_bin, {}).get("default_priority", 50) / 25) if BIN_REGISTRY else 0
+        bin_match = 2 if (memory.bin_name in bin_terms or typed_bin.lower() in bin_terms) else 0
+        legacy = 3 if memory.bin_name == "personal_facts" else 0
+        personal_q = 4 if (personal_query and typed_bin in {"IDENTITY_FACT", "OPERATING_PREFERENCE", "RELATIONSHIP_BOUNDARY"}) else 0
+        # Phase-2 atom fields default safely on legacy MemoryEntry instances.
+        evidence = 1 if int(getattr(memory, "evidence_count", 0) or 0) >= 2 else 0
+        confirmed = 1 if bool(getattr(memory, "user_confirmed", True)) else 0
+        # Recency decay (read updated_at if datetime, else 0).
+        recency = 0
+        try:
+            updated = memory.updated_at
+            if updated and isinstance(updated, datetime):
+                age_hours = (now - updated).total_seconds() / 3600
+                if age_hours < 24:
+                    recency = 2
+                elif age_hours < 24 * 7:
+                    recency = 1
+        except Exception:  # pragma: no cover
+            pass
+        priority_bump = max(0, min(memory.priority, 100)) // 25
+        score = base + bin_prio + bin_match + legacy + personal_q + evidence + confirmed + recency + priority_bump
+        # Threshold: must have at least query-match OR be high-priority bin OR
+        # personal-query identity boost, otherwise it's noise.
+        if base or bin_match or legacy or personal_q or bin_prio >= 3.6:
             scores.append((score, memory))
     ranked = [
         memory for _, memory in sorted(
             scores,
-            key=lambda item: (item[0], item[1].bin_name == "personal_facts", item[1].priority),
+            key=lambda item: (
+                item[0],
+                # Tie-breakers: confirmed atoms win, then high priority, then recent.
+                bool(getattr(item[1], "user_confirmed", True)),
+                item[1].priority,
+                getattr(item[1], "updated_at", now),
+            ),
             reverse=True,
         )[:limit]
     ]

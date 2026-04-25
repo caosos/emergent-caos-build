@@ -1,5 +1,81 @@
 # CAOS Changelog
 
+## 2026-04-25 (round 8) — Memory Phase 3 + Phase 5 lite + WCW + Logout-everywhere
+
+### 🟢 Phase 3 — Bin-aware relevance scoring + recency decay
+
+Aria now selects WHICH atoms to inject into each prompt using the typed-bin
+priority shelf, not a flat term-overlap score. Big win because:
+
+- Personal queries about preferences pull `OPERATING_PREFERENCE` atoms first
+  (instead of getting drowned out by lexical noise).
+- Identity queries lock onto `IDENTITY_FACT` even with low term overlap.
+- `GOVERNANCE_RULE` atoms ride a high bin-priority floor and are pulled
+  even when the user doesn't lexically match — so "never auto-send email"
+  rules survive even on tangential turns.
+- DERIVED candidates are slightly down-weighted vs USER_EXPLICIT atoms in
+  ties (avoids autonomous extractor proposals overshadowing user-stated
+  facts).
+- Recency decay (24h=+2, 7d=+1, older=0) so newly-confirmed atoms surface.
+- Evidence boost: 2+ evidence anchors = +1 (compounding signal wins).
+
+Score formula (per atom):
+  `base + bin_prio + bin_match + legacy + personal_q + evidence + confirmed + recency + priority`
+
+Threshold drops noise atoms (no query match AND no high bin priority).
+Tests cover all four scenarios — passing.
+
+### 🟢 Phase 5 lite — "Why did Aria say this?" inline popover
+
+Renamed the existing `Context` button on every assistant message to
+**`Why?`** and extended its inline panel with a new "Memories injected"
+section that lists each atom with:
+- Source-mode color pill (USER-STATED green / OBSERVED blue / DERIVED purple)
+- Bin label
+- Full content (up to 400 chars)
+
+Backed by extending `_memory_snapshot` in the receipt builder to carry
+`source_mode`, `confidence`, `user_confirmed`, and a longer content slice.
+If the turn injected zero atoms, an italic "No long-term memories were
+injected for this reply" message renders so it's clear nothing fed in.
+
+### 🟢 WCW staleness on engine failure (OPEN-03)
+
+`useCaosShell.sendMessage` now calls `setLastTurn(null)` at the top of the
+catch block, so the WCW meter doesn't freeze on the prior turn's token
+count when the engine fails. Meter falls back gracefully to the dynamic
+budget default until the next successful reply.
+
+### 🟢 "Log out everywhere" UI clarity (OPEN-08)
+
+Backend `/api/auth/logout` already nuked all sessions for the user — the
+roadmap asked for the UI to reflect that. Renamed the AccountMenu item
+from `Log Out` → `Log out everywhere`, added a confirmation prompt
+("Sign out of CAOS on every device, including this one?"), and a tooltip
+documenting the wipe. No backend change — the existing endpoint already
+does the cascade.
+
+### 🧪 Verification
+
+- Backend ruff lint: clean.
+- Frontend ESLint: clean (4 files touched).
+- Phase 3 ranker unit tests: 4/4 PASS — personal-pref bin wins, identity
+  query wins, gardening noise filtered, governance floor active.
+- Live smoke screenshot: app loads, AccountMenu shows "Log out everywhere"
+  + "Memory Console · NEW", drawer opens cleanly.
+- `MemoryEntry` schema extended with Phase-1 additive fields (summary,
+  confidence, user_confirmed, source_mode, evidence_count, status) so
+  `rank_memories` can read them without re-parsing.
+
+### 🟡 Phase 4 deferred (intentional)
+
+Counterevidence + derived-trait engine would need real production data
+from Phase 3's autonomous extraction to know which contradictions
+actually fire. Better to wait until you've used the system for a week
+and we have signal on which atoms compete in the wild.
+
+---
+
 ## 2026-04-25 (round 7) — Memory Pulse (user-requested follow-up)
 
 ### 🟢 "Aria saved N new memories" — visible autonomous learning

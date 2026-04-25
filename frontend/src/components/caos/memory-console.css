@@ -413,3 +413,39 @@
   .memory-console-bin-tab { width: auto; padding: 6px 10px; font-size: 11px; }
   .memory-evidence-panel { width: 100%; }
 }
+
+/* Phase 5 lite — "Why did you say that?" memory rows inside the inline
+   receipt panel under each assistant message. */
+.receipt-inline-memories {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 0 4px;
+  padding: 8px 10px;
+  border: 1px solid rgba(167, 139, 250, 0.18);
+  background: rgba(167, 139, 250, 0.06);
+  border-radius: 8px;
+}
+
+.receipt-inline-section-title {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(196, 181, 253, 0.95);
+  margin-bottom: 2px;
+}
+
+.receipt-inline-memory-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.receipt-inline-memory-content {
+  color: rgba(226, 228, 240, 0.85);
+  flex: 1;
+  word-break: break-word;
+}
