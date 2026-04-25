@@ -73,11 +73,25 @@ async def whoami(user: dict = Depends(require_user)):
 @router.post("/logout")
 async def logout(
     response: Response,
-    user: dict = Depends(require_user),
     session_token: str | None = Cookie(default=None, alias="session_token"),
 ):
-    """Delete the current session from DB and clear the cookie."""
+    """Delete the current session from DB and clear the cookie.
+
+    Intentionally does NOT require an authenticated user — a half-expired or
+    mismatched session must still be able to log out cleanly. Otherwise the
+    frontend gets a 401 here and the cookie never gets cleared, creating an
+    "I click logout and it logs me right back in" loop.
+    """
     if session_token:
         await delete_session(session_token)
-    response.delete_cookie(key="session_token", path="/", secure=True, samesite="none")
+    # Cookie attributes MUST match the ones used in set_cookie above (httponly,
+    # secure, samesite). If any attribute differs the browser silently keeps the
+    # original cookie and the user appears to never log out.
+    response.delete_cookie(
+        key="session_token",
+        path="/",
+        httponly=True,
+        secure=True,
+        samesite="none",
+    )
     return {"ok": True}
