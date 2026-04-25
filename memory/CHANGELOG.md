@@ -1,5 +1,24 @@
 # CAOS Changelog
 
+## 2026-04-25 (round 3) — Logout actually logs you out (server-side too)
+
+### 🔴 Bug fixed (verified end-to-end on the live preview URL with a seeded test session)
+
+- **[LOGOUT-02]** Clicking "Log Out" left the user logged in (frontend + backend). Two stacked bugs:
+  1. **Z-index war** — `caos-base44-parity.css:42` set `position: relative; z-index: 1` on every direct child of `.caos-shell-root`, including `.caos-header`. That made the header sit at the same stacking level as `.caos-shell-grid` (the chat area), and source order (grid is later) painted the WelcomeHero cards over the AccountMenu dropdown's lower half. Even though the menu was visually visible, pointer events at "Log Out"'s coordinates resolved to the WelcomeHero card behind it. The click landed on a card, the menu's `mousedown` outside-click handler closed the menu, and the user saw "the menu blinked closed and nothing happened."
+  2. **`onLogOut` was silently broken** — the handler used `await (await import("axios")).default.post(\`${API}/auth/logout\`...)` inside a `try { } catch {}`. But `API` was *never imported* into `CaosShell.js` — the URL evaluated to `"undefined/auth/logout"`, axios threw immediately on the malformed URL, the empty catch swallowed the error, and the code never reached `localStorage.removeItem` or `window.location.replace("/")` either. Even when the click DID land (e.g. via JS), nothing actually happened. The cookie + DB session stayed alive, the user's next interaction's `/auth/me` re-authenticated, and they appeared "logged right back in."
+  
+  **Fix:**
+  - Bumped `.caos-header` to `z-index: 60` so the dropdown's stacking context sits above `.caos-shell-grid` (z-index:1). Pointer events now resolve to the dropdown items as expected.
+  - Imported `API` into `CaosShell.js` so the logout URL is correctly constructed.
+  - Replaced the dynamic `await import("axios")` with the statically-imported `axios` so there's no chunk-load failure path.
+  - Added belt-and-suspenders client-side cleanup: even if `/auth/logout` fails (network drop, etc.), the handler now wipes `caos_*` localStorage keys, clears `document.cookie='session_token=...'` from the browser side, logs the failure to the console, and *always* redirects to `/`. The user is never stuck.
+  - Added a `console.error` so future regressions are visible during development.
+  
+  *Files: `caos-base44-parity.css` (header z-index + exclusion list comment), `CaosShell.js` (imports + handler).*
+  
+  **Verified:** seeded a test session token, opened the AccountMenu, clicked Log Out via the real onClick path. Network capture confirmed `/api/auth/logout` fired. Browser cookies for `session_token` went from 1 to 0. Page navigated to `/` (the LoginScreen — "Sign In" + "Continue as Guest"). DB query confirmed `user_sessions.count_documents({token})` = 0 AND `user_sessions.count_documents({user_id})` = 0 (the backend's nuke-all-sessions-for-user logic ran). ✅
+
 ## 2026-04-25 (round 2) — Login routing + search drawer position (verified live)
 
 ### 🔴 Bugs fixed (verified end-to-end on the live preview URL with a seeded test session)

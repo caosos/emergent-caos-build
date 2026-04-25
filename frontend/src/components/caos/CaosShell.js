@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
 import { AlertTriangle } from "lucide-react";
+
+import { API } from "@/config/apiBase";
 
 import { AdminDocsDrawer } from "@/components/caos/AdminDocsDrawer";
 import { AdminDashboard } from "@/components/caos/AdminDashboard";
@@ -260,10 +263,45 @@ export const CaosShell = ({ authenticatedUser }) => {
         displayName={profile?.preferred_name || authenticatedUser?.name || userEmail?.split("@")[0] || "Michael"}
         isAdmin={isAdmin}
         onLogOut={async () => {
+          // The previous implementation used `await import("axios")` inside
+          // a try/catch that silently swallowed every failure. When the user
+          // clicked Log Out, the dynamic chunk fetch sometimes failed (slow
+          // network, code-split race during navigation, or a midnight CDN
+          // hiccup) and the catch ate the error — meaning the logout API
+          // call NEVER fired AND the redirect line below was unreachable
+          // because the await above never resolved nor rejected. The user
+          // saw the menu close, nothing else happened, and on next
+          // interaction the still-valid session_token cookie auto-restored
+          // their session — i.e. "I logged out and got logged right back in."
+          //
+          // Fix: use the statically-imported axios + always reach the
+          // redirect even if the API call fails. Worst-case the user lands
+          // on the login screen and AuthGate's /auth/me probe drives the
+          // final auth state. The cookie also gets a frontend-side wipe
+          // (best-effort) before redirect so even if the backend Set-Cookie
+          // header is lost in transit, the in-browser cookie is dead.
+          let logoutOk = false;
           try {
-            await (await import("axios")).default.post(`${API}/auth/logout`, {}, { withCredentials: true });
-          } catch {}
-          try { localStorage.removeItem("caos_guest_mode"); } catch {}
+            const resp = await axios.post(`${API}/auth/logout`, {}, { withCredentials: true });
+            logoutOk = resp.status === 200;
+          } catch (err) {
+            // eslint-disable-next-line no-console
+            console.error("[CAOS] /auth/logout call failed; forcing client-side sign-out anyway.", err);
+          }
+          try { localStorage.removeItem("caos_guest_mode"); } catch { /* noop */ }
+          try { localStorage.removeItem("caos_assistant_named"); } catch { /* noop */ }
+          // Belt-and-suspenders: nuke the cookie from the browser side too.
+          // If the Set-Cookie header from the backend is dropped by an
+          // intermediate proxy, this still kills the session_token locally.
+          try {
+            document.cookie = "session_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=None; Secure";
+          } catch { /* noop */ }
+          // Force a full reload (replace, not assign) so React state is
+          // wiped and AuthGate's /auth/me probe fires fresh.
+          if (!logoutOk) {
+            // eslint-disable-next-line no-console
+            console.warn("[CAOS] Logout API failed but redirecting anyway.");
+          }
           window.location.replace("/");
         }}
         onNewThread={() => { createSession("New Thread"); }}

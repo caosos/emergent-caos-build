@@ -50,9 +50,24 @@
    be silently re-anchored to the document flow (e.g. dumped at bottom-left
    instead of top-right). The thread-search-panel was hit by this and its
    `right: 20px` was being ignored. */
-.caos-shell-root > *:not([data-testid="caos-constellation-layer"]):not(.thread-search-panel):not(.inspector-panel):not(.previous-threads-panel):not(.drawer-overlay):not(.command-footer):not(.admin-dashboard-overlay) {
+.caos-shell-root > *:not([data-testid="caos-constellation-layer"]):not(.thread-search-panel):not(.inspector-panel):not(.previous-threads-panel):not(.drawer-overlay):not(.command-footer):not(.admin-dashboard-overlay):not(.caos-header) {
   position: relative;
   z-index: 1;
+}
+
+/* The header MUST stack above the chat grid so the AccountMenu dropdown
+   (which is `position: absolute` inside the header) can extend below the
+   header's bounding box and still receive pointer events. Without this,
+   `.caos-shell-grid` (later sibling, same z-index:1) painted over the
+   dropdown's lower half — the menu was visually visible but clicks passed
+   through to whatever WelcomeHero card was beneath. The "log out → I'm
+   logged right back in" loop the user reported was actually "log out click
+   hit the WelcomeHero card behind the menu, dropdown closed via the
+   click-outside handler, the request never fired, and the cookie stayed".
+   z-index:60 keeps the header above content but below modals (z-index:200+). */
+.caos-shell-root > .caos-header {
+  position: relative;
+  z-index: 60;
 }
 
 [data-testid^="caos-constellation-"] {
