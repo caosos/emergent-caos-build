@@ -112,6 +112,14 @@ export const CaosShell = ({ authenticatedUser }) => {
     } catch { /* no-op */ }
   }, []);
 
+  // Memory Pulse — useCaosShell dispatches `caos:open-memory-console` from
+  // the toast action button so we open the console without prop-drilling.
+  useEffect(() => {
+    const handler = () => setShowMemoryConsole(true);
+    window.addEventListener("caos:open-memory-console", handler);
+    return () => window.removeEventListener("caos:open-memory-console", handler);
+  }, []);
+
   // Fetch model catalog once per session so the WCW meter knows the actual
   // context window for the active engine (1 M for Claude Sonnet 4.5 / Gemini 3,
   // 400 k for GPT-5.2, etc.) instead of a hard-coded 200 k.

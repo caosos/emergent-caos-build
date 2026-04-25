@@ -1,5 +1,31 @@
 # CAOS Changelog
 
+## 2026-04-25 (round 7) — Memory Pulse (user-requested follow-up)
+
+### 🟢 "Aria saved N new memories" — visible autonomous learning
+
+User asked for delightful visibility into the autonomous extractor without
+having to open the console every turn. Shipped:
+
+- **Pulse trigger** in `useCaosShell`: after every successful chat turn
+  (single-agent OR multi-agent), schedule a 3.5 s delayed re-fetch of
+  `GET /caos/memory/atoms` and diff against the prev-turn count. Diff > 0
+  → sonner `toast.success` with action button "View".
+- **Click → opens Memory Console**: toast dispatches a custom DOM event
+  `caos:open-memory-console`; CaosShell's `useEffect` listener flips
+  `showMemoryConsole` true. No prop drilling.
+- **Boot baseline seeding**: on shell hydrate, seed `prevAtomCountRef`
+  with the current total so the FIRST chat turn after login produces an
+  accurate diff (instead of toasting "saved N" on every login because
+  prev was null).
+- **Non-fatal everywhere**: pulse fetch failure is silently swallowed —
+  it's a courtesy chip, never a blocker.
+
+Cost per turn: ~1 GET request (≈100 bytes). No LLM cost beyond the
+already-paid extractor pass.
+
+---
+
 ## 2026-04-25 (round 6) — Memory Scaffolding Phase 1 + 2 (Console + Autonomous Extraction)
 
 ### 🟢 Phase 1: Memory Console — read-only audit view

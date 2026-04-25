@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
+import { toast } from "sonner";
 
 import { useVoiceIO } from "@/components/caos/useVoiceIO";
 import { useMemoryCrud } from "@/components/caos/useMemoryCrud";
@@ -41,6 +42,39 @@ export const useCaosShell = (authenticatedUser = null) => {
   const [error, setError] = useState("");
   const [multiAgentMode, setMultiAgentModeState] = useState(() => localStorage.getItem("caos_multi_agent_mode") === "true");
   const voiceSettings = profile?.voice_preferences || DEFAULT_VOICE;
+
+  // Memory Pulse — after every successful chat turn, the autonomous extractor
+  // runs in the background. ~3.5s later we re-check the user's atom count;
+  // if it grew, surface a tiny celebratory toast so the user feels Aria
+  // learning. The toast's action opens the Memory Console drawer via a
+  // custom DOM event (CaosShell listens for it).
+  const prevAtomCountRef = useRef(null);
+  const fireMemoryPulse = useCallback(async () => {
+    if (!userEmail) return;
+    try {
+      const resp = await axios.get(`${API}/caos/memory/atoms`, {
+        params: { user_email: userEmail },
+      });
+      const total = resp.data?.total || 0;
+      const prev = prevAtomCountRef.current;
+      prevAtomCountRef.current = total;
+      if (prev != null && total > prev) {
+        const delta = total - prev;
+        toast.success(`Aria saved ${delta} new memor${delta === 1 ? "y" : "ies"}`, {
+          description: "Click View to inspect what changed.",
+          duration: 6000,
+          action: {
+            label: "View",
+            onClick: () => {
+              window.dispatchEvent(new CustomEvent("caos:open-memory-console"));
+            },
+          },
+        });
+      }
+    } catch {
+      /* non-fatal — pulse is a courtesy */
+    }
+  }, [userEmail]);
 
   const setMultiAgentMode = useCallback((value) => {
     localStorage.setItem("caos_multi_agent_mode", String(value));
@@ -346,6 +380,7 @@ export const useCaosShell = (authenticatedUser = null) => {
           await loadProfile();
           const synthOk = multiResponse.data.synthesis?.ok ? " · synthesized" : "";
           setStatus(`Multi-agent · ${multiResponse.data.ok_count}/${multiResponse.data.agents.length} succeeded${synthOk}`);
+          setTimeout(() => { fireMemoryPulse(); }, 3500);
           return;
         } catch (multiError) {
           setMessages((prev) => prev.filter((m) => m.id !== pendingAssistantId));
@@ -411,6 +446,8 @@ export const useCaosShell = (authenticatedUser = null) => {
       await loadSessionLinks(session.session_id);
       await loadProfile();
       await loadFiles();
+      // Memory Pulse — extractor runs ~1–3s after chat. Wait ~3.5s then diff.
+      setTimeout(() => { fireMemoryPulse(); }, 3500);
       setStatus("CAOS replied with session-scoped context.");
     } catch (issue) {
       const rawMessage = issue?.response?.data?.detail || issue?.message || "Sending message failed.";
@@ -475,7 +512,7 @@ export const useCaosShell = (authenticatedUser = null) => {
     } finally {
       setBusy(false);
     }
-  }, [createSession, currentSession, files, loadArtifacts, loadContinuity, loadFiles, loadMessages, loadProfile, loadSessionLinks, loadSessions, multiAgentMode, runtimeSettings.default_model, runtimeSettings.default_provider, userEmail]);
+  }, [createSession, currentSession, files, fireMemoryPulse, loadArtifacts, loadContinuity, loadFiles, loadMessages, loadProfile, loadSessionLinks, loadSessions, multiAgentMode, runtimeSettings.default_model, runtimeSettings.default_provider, userEmail]);
 
   useEffect(() => {
     const hydrate = async () => {
@@ -483,6 +520,14 @@ export const useCaosShell = (authenticatedUser = null) => {
       try {
         const foundSessions = await loadSessions();
         await Promise.all([loadProfile(), loadRuntimeSettings(), loadFiles()]);
+        // Seed the memory-pulse baseline so the FIRST chat turn doesn't
+        // toast against a null prev count and miss the diff.
+        try {
+          const memResp = await axios.get(`${API}/caos/memory/atoms`, {
+            params: { user_email: userEmail },
+          });
+          prevAtomCountRef.current = memResp.data?.total || 0;
+        } catch { /* non-fatal */ }
         if (foundSessions.length) {
           // Prefer the most-recent NON-EMPTY session. The user complaint:
           // "login routes to empty thread instead of resuming last conversation".
