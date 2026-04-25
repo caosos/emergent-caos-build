@@ -1,5 +1,134 @@
 # CAOS Changelog
 
+## 2026-04-25 (round 6) — Memory Scaffolding Phase 1 + 2 (Console + Autonomous Extraction)
+
+### 🟢 Phase 1: Memory Console — read-only audit view
+
+The user's "auditable cognition" blueprint, made visible. Aria's brain is no
+longer a black box — every long-term fact she remembers is now visible,
+classified, and overridable.
+
+- **13 typed memory bins** (`/app/backend/app/schemas/memory.py`):
+  IDENTITY_FACT, ACTIVE_PROJECT, GOVERNANCE_RULE, OPERATING_PREFERENCE,
+  RELATIONSHIP_BOUNDARY, DOMAIN_CONTEXT, TECHNICAL_STATE, BEHAVIORAL_PATTERN,
+  DERIVED_TRAIT, LEARNING_PROFILE, REAL_WORLD_CONTEXT, RISK_SIGNAL,
+  COUNTEREVIDENCE, GENERAL (legacy fallback). Each bin carries a default
+  injection priority + governance rules (allows_inference,
+  requires_user_confirmation, sensitivity).
+- **MemoryAtom schema** — extends the legacy `MemoryEntry` shape with
+  Phase-1 additions (summary, confidence, source_mode, sensitivity,
+  mutation_policy, evidence_count, status, derived_from, counters).
+  Backward compatible — existing `user_profiles.structured_memory` rows
+  parse cleanly via `hydrate_atom`.
+- **MemoryEvidence schema** — separate `memory_evidence` collection so
+  one atom can accumulate evidence anchors over time without bloating the
+  user_profile document.
+- **`/api/caos/memory/atoms` route** (NEW, owner-gated):
+  - `GET /atoms?user_email=…` → hydrated atom list + per-bin counts +
+    full bin registry. Counts always reflect the FULL set so bin tabs
+    stay accurate when filtered.
+  - `GET /atoms/{id}/evidence` → list evidence anchors for one atom.
+  - `POST /atoms/{id}/evidence` → append a new evidence anchor.
+  - `PATCH /atoms/{id}` → reclassify (change `bin_name`), edit content, or
+    bump priority (0–100 clamped).
+  - `POST /atoms/{id}/confirm` → promote a DERIVED candidate to
+    user-confirmed (locks mutation_policy, bumps confidence to 1.0).
+  - `DELETE /atoms/{id}` → user-override "forget this memory" (cascades
+    into `memory_evidence`).
+- **MemoryConsoleDrawer.js** (NEW, ~330 lines) — opens from the account
+  menu's new `Memory Console · NEW` item. Layout:
+  - Left nav: 14 bin tabs with live counters, ordered by Tier 1 → Tier 4.
+  - Right pane: bin description + atom cards.
+  - Per-card: source-mode pill (USER-STATED green / OBSERVED blue /
+    DERIVED purple / SYSTEM grey), confidence %, evidence count
+    (clickable → side panel), sensitivity (HIGH / MED / NORMAL),
+    priority chip, last-updated date.
+  - Per-card actions: `Confirm` (only on DERIVED candidates), `Reclassify`
+    dropdown (12 typed bins, GENERAL excluded), `Forget` (with confirm
+    prompt). All wire to live API.
+  - Evidence side-panel slides in from the right edge of the drawer.
+- **Z-index fix** — `.memory-console-backdrop` added to the
+  `.caos-shell-root > *:not(...)` exclusion list AND to the explicit
+  `position: fixed; z-index: 220` override block (otherwise the global
+  `.caos-shell-root > * { z-index: 1 }` rule traps the modal behind the
+  chat grid, same bug class that bit the Logout button last week).
+
+### 🟢 Phase 2: Autonomous Memory Extraction — Aria classifies herself
+
+After every chat turn, a silent background task asks Gemini 3 Flash
+($0.075 / $0.30 per 1M tokens — fractions of a cent per turn) to inspect
+the (user_message, assistant_reply) exchange and propose new typed atoms.
+
+- **`memory_extractor.py`** (NEW) — fire-and-forget extractor:
+  - Sees the last 40 existing atoms (so it can dedupe before proposing).
+  - Hard-cap of 5 new atoms per turn (chatty model can't flood memory).
+  - Output is strict JSON with bin classification + confidence +
+    direct quote evidence anchor.
+  - Robust JSON parse — tolerates ```json``` fences, prose preamble,
+    junk replies. Invalid bins discarded; GENERAL excluded.
+  - Non-fatal: any failure is logged, never blocks the chat reply.
+- **`profile_memory_service.insert_extracted_atom`** — auto-write path:
+  - Dedupes against existing structured_memory by exact lower-cased
+    content match. On dedup, bumps existing atom's `evidence_count`,
+    refreshes `last_validated_at`, and STILL appends a new evidence
+    anchor for this turn (so accumulating signal compounds).
+  - New atoms land as `DERIVED` + `mutation_policy=CANDIDATE_REVIEW` +
+    `user_confirmed=False`. They show up in the console with a yellow
+    border + Confirm button so the user sees what Aria proposed and
+    promotes (or deletes) at their leisure.
+  - Default priority comes from the bin registry (e.g. IDENTITY_FACT
+    → 95, BEHAVIORAL_PATTERN → 70, RISK_SIGNAL → 40).
+- **`chat_pipeline.run_chat_turn`** hook — fires
+  `schedule_extraction(...)` via `asyncio.create_task` AFTER the
+  receipt/summary/seed/lane-rebuild block, so the chat turn is fully
+  persisted before extraction runs in the background.
+
+### 🧪 Verification (manual, NO testing_agent_v3_fork per user budget rules)
+
+- Backend ruff lint: clean across 4 new/modified files.
+- Frontend ESLint: clean across MemoryConsoleDrawer.js, AccountMenu.js,
+  ShellHeader.js, CaosShell.js.
+- `python -c` unit tests on the extractor JSON parser: 7 passed
+  (clean JSON / fenced JSON / invalid bins discarded / GENERAL excluded
+  / empty atoms / junk reply rejected / 5-atom hard cap / prompt covers
+  all 13 bins).
+- End-to-end DB write verified via direct service call: candidate atom
+  written with `source_mode=DERIVED`, `mutation_policy=CANDIDATE_REVIEW`;
+  dedup blocks second insert and bumps existing evidence; total atom
+  count incremented correctly.
+- Live curl: `GET /api/caos/memory/atoms` returns hydrated atoms with
+  legacy bin names auto-migrated (`identity` → `IDENTITY_FACT`,
+  `preferences` → `OPERATING_PREFERENCE`, `project` → `ACTIVE_PROJECT`).
+  Bin counts include all 14 bins (zero-filled).
+- Live UI screenshots: drawer opens with proper layout, 4 atoms render
+  across Identity / Projects / Preferences / Behavioral bins, DERIVED
+  candidate shows yellow border + Confirm button, Reclassify dropdown
+  exposes 12 bins, Forget button red-tinted.
+
+### 🔒 Privacy & Governance
+
+- Owner-only access — every route enforces
+  `requested_email == authenticated_email` (403 otherwise).
+- DELETE cascades into `memory_evidence` — no dangling provenance rows.
+- Bin registry's `requires_user_confirmation: True` bins (governance,
+  identity, preferences, relationship) cannot be touched by the
+  autonomous extractor's CANDIDATE_REVIEW policy without an explicit
+  Confirm click.
+- LLM-based extractor classification is constrained: model NEVER
+  outputs GENERAL, always picks one of the 13 typed bins.
+
+### 🟡 Deferred to Phase 3+
+
+- **Phase 3 (relevance scoring + injection pack builder)** — pull only
+  the relevant atoms into each turn's prompt automatically.
+- **Phase 4 (counterevidence + derived-trait engine)** — second-order
+  pattern recognition + automatic contradiction detection.
+- **Phase 5 ("why did you say that?" full audit popover)** — click any
+  reply, see the atoms that fed into it.
+- Bulk operations on candidates (Confirm-all-in-bin, Forget-all-DERIVED).
+
+---
+
 ## 2026-04-25 (round 5) — Connectors Sprint 3 (Stripe billing + Slack + Twilio + Telegram)
 
 ### 🟢 Stripe billing wired to the tier system (END-TO-END VERIFIED)

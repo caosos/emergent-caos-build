@@ -30,6 +30,7 @@ export const ShellHeader = ({
   onOpenAdminDocs,
   onOpenFiles,
   onOpenInspector,
+  onOpenMemory,
   onOpenProfile,
   onOpenSupport,
   onOpenSwarm,
@@ -82,6 +83,7 @@ export const ShellHeader = ({
           onOpenAdminDashboard={onOpenAdminDashboard}
           onOpenAdminDocs={onOpenAdminDocs}
           onOpenFiles={onOpenFiles}
+          onOpenMemory={onOpenMemory}
           onOpenProfile={onOpenProfile}
           onOpenSupport={onOpenSupport}
           onOpenSwarm={onOpenSwarm}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, BookOpen, ChevronDown, ChevronRight, FileText, History, Image as ImageIcon, LayoutDashboard, LifeBuoy, Link2, LogOut, Monitor, PlusCircle, Sparkles, UserCircle, Zap, Shield } from "lucide-react";
+import { Bot, BookOpen, Brain, ChevronDown, ChevronRight, FileText, History, Image as ImageIcon, LayoutDashboard, LifeBuoy, Link2, LogOut, Monitor, PlusCircle, Sparkles, UserCircle, Zap, Shield } from "lucide-react";
 
 const LABELS = { openai: "OpenAI", anthropic: "Claude", gemini: "Gemini", xai: "Grok" };
 
@@ -28,6 +28,7 @@ export const AccountMenu = ({
   onOpenAdminDashboard,
   onOpenAdminDocs,
   onOpenFiles,
+  onOpenMemory,
   onOpenProfile,
   onOpenSupport,
   onOpenSwarm,
@@ -136,6 +137,10 @@ export const AccountMenu = ({
           </button>
           <button className="inspector-menu-item" data-testid="caos-account-menu-profile" onClick={pick(onOpenProfile)} type="button">
             <UserCircle size={14} /><span>Settings</span>
+          </button>
+          <button className="inspector-menu-item" data-testid="caos-account-menu-memory" onClick={pick(onOpenMemory)} type="button">
+            <Brain size={14} /><span>Memory Console</span>
+            <em style={{ marginLeft: "auto", fontSize: 10, color: "rgba(167, 139, 250, 0.85)" }}>NEW</em>
           </button>
           <div className="inspector-menu-engine-row" data-testid="caos-account-menu-engine-row">
             <button

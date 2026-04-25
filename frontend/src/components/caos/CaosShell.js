@@ -15,6 +15,7 @@ import { MessagePane } from "@/components/caos/MessagePane";
 import { PreviousThreadsPanel } from "@/components/caos/PreviousThreadsPanel";
 import { ProfileDrawer } from "@/components/caos/ProfileDrawer";
 import { ConnectorsDrawer } from "@/components/caos/ConnectorsDrawer";
+import { MemoryConsoleDrawer } from "@/components/caos/MemoryConsoleDrawer";
 import { PricingDrawer } from "@/components/caos/PricingDrawer";
 import { SwarmPanel } from "@/components/caos/SwarmPanel";
 import { SearchDrawer } from "@/components/caos/SearchDrawer";
@@ -28,6 +29,7 @@ import "./caos-redesign-shell.css";
 import "./caos-base44-parity.css";
 import "./caos-base44-parity-v2.css";
 import "./caos-base44-parity-v3.css";
+import "./memory-console.css";
 
 
 export const CaosShell = ({ authenticatedUser }) => {
@@ -40,6 +42,7 @@ export const CaosShell = ({ authenticatedUser }) => {
   const [showInspector, setShowInspector] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showConnectors, setShowConnectors] = useState(false);
+  const [showMemoryConsole, setShowMemoryConsole] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showSwarm, setShowSwarm] = useState(false);
@@ -366,6 +369,7 @@ export const CaosShell = ({ authenticatedUser }) => {
         onOpenAdminDocs={openAdminDocs}
         onOpenFiles={(filter) => { setArtifactsFilter(filter || "files"); setShowArtifacts(true); }}
         onOpenInspector={() => setShowInspector(true)}
+        onOpenMemory={() => setShowMemoryConsole(true)}
         onOpenProfile={openProfile}
         onOpenSupport={() => setShowSupport(true)}
         onOpenSwarm={() => setShowSwarm(true)}
@@ -512,6 +516,11 @@ export const CaosShell = ({ authenticatedUser }) => {
       <ConnectorsDrawer
         isOpen={showConnectors}
         onClose={() => setShowConnectors(false)}
+      />
+      <MemoryConsoleDrawer
+        isOpen={showMemoryConsole}
+        onClose={() => setShowMemoryConsole(false)}
+        userEmail={userEmail}
       />
       <PricingDrawer
         isOpen={showPricing}

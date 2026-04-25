@@ -492,6 +492,23 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     )
     await rebuild_lane_workers(payload.user_email)
 
+    # Phase 2: Autonomous Memory Extraction.
+    # Fire-and-forget — never blocks the chat reply. The extractor inspects
+    # the (user_message, assistant_reply) exchange, classifies new facts into
+    # the 13 typed bins, and writes provenance evidence linking back to this
+    # turn's user message. Errors are swallowed inside the extractor.
+    try:
+        from app.services.memory_extractor import schedule_extraction
+        schedule_extraction(
+            user_email=payload.user_email,
+            session_id=payload.session_id,
+            user_message=payload.content,
+            assistant_reply=reply,
+            user_message_id=user_message.id,
+        )
+    except Exception as extractor_err:  # pragma: no cover
+        print(f"CAOS extractor scheduling failed: {extractor_err}")
+
     return ChatResponse(
         session_id=payload.session_id,
         reply=reply,

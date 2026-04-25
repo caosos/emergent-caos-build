@@ -15,6 +15,7 @@ from app.routes.billing import router as billing_router, webhook_router as billi
 from app.routes.connectors import router as connectors_router
 from app.routes.caos import router as caos_router
 from app.routes.health import router as health_router
+from app.routes.memory_atoms import router as memory_atoms_router
 from app.routes.memory_profile import router as memory_profile_router
 from app.routes.memory_workers import router as memory_workers_router
 from app.routes.support import router as support_router
@@ -90,6 +91,7 @@ app.include_router(connectors_router, prefix="/api")
 app.include_router(billing_router, prefix="/api")
 app.include_router(billing_webhook_router, prefix="/api")
 app.include_router(memory_profile_router, prefix="/api")
+app.include_router(memory_atoms_router, prefix="/api")
 app.include_router(memory_workers_router, prefix="/api")
 app.include_router(support_router, prefix="/api")
 
