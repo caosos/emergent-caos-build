@@ -50,24 +50,40 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         profile = UserProfileRecord(**profile_doc)
         is_admin_user = bool(profile_doc.get("is_admin") is True or profile_doc.get("role") == "admin")
 
-    # Check token quota (freemium model) - prevents abuse
+    # Check token quota (freemium model) - prevents abuse. Admin users get unlimited.
     estimated_tokens = 2000  # Average request tokens
-    quota_check = await check_and_deduct_tokens(payload.user_email, estimated_tokens)
-    
+    if not is_admin_user:
+        quota_check = await check_and_deduct_tokens(payload.user_email, estimated_tokens)
+    else:
+        quota_check = {"allowed": True, "tokens_remaining": 999999, "message": ""}
+
     if not quota_check["allowed"]:
-        # Return quota exceeded response
+        # Return quota exceeded response — use the REAL ChatResponse schema fields
+        # (reply / assistant_message / sanitized_history / etc.). The previous
+        # implementation used wrong field names, producing 8 Pydantic validation
+        # errors instead of the friendly quota-reached message.
+        from app.schemas.caos import MessageRecord as _MR
         error_message = quota_check["message"]
+        quota_text = f"⚠️ **Daily Token Limit Reached**\n\n{error_message}\n\n💡 **Upgrade to Pro** for 5M tokens/day, or wait for the daily reset."
+        quota_msg = _MR(
+            session_id=payload.session_id,
+            role="assistant",
+            content=quota_text,
+            metadata_tags=["QUOTA_BLOCKED"],
+        )
         return ChatResponse(
             session_id=payload.session_id,
-            content=f"⚠️ **Daily Token Limit Reached**\n\n{error_message}\n\n💡 **Upgrade to Pro** for 500k tokens/day or **Unlimited** for no limits!",
-            role="assistant",
+            reply=quota_text,
+            assistant_message=quota_msg,
+            sanitized_history=[],
+            injected_memories=[],
+            receipt={"error": "quota_exceeded", "tokens_remaining": quota_check["tokens_remaining"]},
             provider=payload.provider or "system",
             model=payload.model or "system",
-            token_receipt={"error": "quota_exceeded", "tokens_remaining": quota_check["tokens_remaining"]},
-            context_stats={},
-            lane=None,
+            lane="general",
             subject_bins=[],
-            continuity_packet=None,
+            wcw_used_estimate=0,
+            wcw_budget=0,
         )
 
     user_message = MessageRecord(session_id=payload.session_id, role="user", content=payload.content)
@@ -86,9 +102,16 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     messages = [MessageRecord(**doc) for doc in docs]
     history_messages = messages[:-1] if messages and messages[-1].id == user_message.id else messages
     runtime = resolve_chat_runtime(profile, payload.provider, payload.model)
+    # Dynamic history budget — Aria flagged the hardcoded ~2200 token cap
+    # contradicting the 1M context-window UI claim. Now scales with the actual
+    # model's context window: ~70% goes to history, leaving headroom for
+    # system prompt + memories + the new user message + reply.
+    from app.services.model_catalog import context_window_for
+    model_ctx = context_window_for(f"{runtime['provider']}:{runtime['model']}")
+    dynamic_history_budget = max(payload.history_token_budget, int(model_ctx * 0.70))
     sanitized, stats = sanitize_history(history_messages)
     compressed = compress_history(sanitized, payload.hot_head, payload.hot_tail)
-    compressed, budget_stats = enforce_history_token_budget(compressed, runtime["model"], payload.history_token_budget)
+    compressed, budget_stats = enforce_history_token_budget(compressed, runtime["model"], dynamic_history_budget)
     stats.update(budget_stats)
     memories = list(profile.structured_memory)
     subject_bins = derive_subject_bins(payload.content, compressed)
