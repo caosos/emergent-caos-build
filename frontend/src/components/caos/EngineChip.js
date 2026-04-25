@@ -30,12 +30,12 @@ export const EngineChip = ({ activeProvider, activeModel, providerCatalog, onSel
         className="engine-chip"
         data-testid="caos-engine-chip"
         onClick={() => setIsOpen((value) => !value)}
-        title={`Engine: ${label} — click to switch inference engine`}
+        title={`Next reply will use: ${label}. Click to switch. Past replies keep the engine that actually answered them.`}
         type="button"
       >
         <Zap size={13} />
         <strong data-testid="caos-engine-chip-label">{label}</strong>
-        <span className="engine-chip-hint" data-testid="caos-engine-chip-hint">click to switch engine</span>
+        <span className="engine-chip-hint" data-testid="caos-engine-chip-hint">engine for next reply</span>
       </button>
       {isOpen ? (
         <div className="engine-chip-menu" data-testid="caos-engine-chip-menu" role="menu">
