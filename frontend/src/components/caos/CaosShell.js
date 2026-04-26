@@ -163,6 +163,7 @@ export const CaosShell = ({ authenticatedUser }) => {
     setMultiAgentMode,
     setSearchQuery,
     speakText,
+    speakTextApi,
     status,
     toggleFlagSession,
     transcribeAudio,

@@ -27,6 +27,14 @@
    → OpenAI nova/onyx/etc. Backend `/api/caos/voice/tts` confirmed returning
    OpenAI audio. `speakTextApi` also gained a clear error message if Chrome's
    autoplay policy blocks audio.play() after the network round-trip.
+4. ~~**`speakTextApi is not defined` runtime crash (P0 EMERGENCY)**~~ ✅ SHIPPED.
+   Pre-existing bug from prior fork: `CaosShell.js:423` passed `speakTextApi` to
+   `MessagePane.onSpeak` but never destructured it from `useCaosShell` (only
+   `speakText` was destructured at line 165). JS evaluated `speakTextApi` as a
+   free identifier → ReferenceError → error boundary "Something glitched in
+   the shell." Fix: added `speakTextApi,` to the destructuring list at
+   `CaosShell.js:166`. Verified via Playwright on the preview URL — MessagePane
+   now mounts cleanly, the error boundary no longer fires.
 
 `write_file` tool for Aria — DEFERRED (not requested in this fork session).
 See ROADMAP.md.
