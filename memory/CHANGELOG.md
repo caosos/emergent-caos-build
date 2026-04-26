@@ -1,5 +1,63 @@
 # CAOS Changelog
 
+## 2026-04-26 (later) — Read-aloud API path + ticket cleanup
+
+User reported message-bubble Read button shows "Read Aloud Started" toast
++ pulsing UI but no audio. Tracked, fixed, support tickets closed.
+
+### 🟢 Root cause
+
+Both Composer and message-bubble Read buttons were wired to
+`useVoiceIO.speakText`, which uses the BROWSER's `speechSynthesis` API.
+Composer's button works because it explicitly sets the user's selected
+voice; the message-bubble path didn't, so on Linux without a working
+default voice (no speech-dispatcher binding) the OS API silently swallows
+the speak request — looks like it started but no audio plays.
+
+### 🟢 Fix (Option B per user choice — "fix the perfect way")
+
+Added **`speakTextApi`** in `useVoiceIO.js` — POSTs to
+`/api/caos/voice/tts` (OpenAI gpt-4o-mini-tts, already wired backend),
+decodes the base64 MP3 response, plays via `Audio()` with a ref so a
+second click cancels the first (toggle behavior). Strips markdown
+artifacts so code fences, asterisks, headers, list bullets don't get
+spoken.
+
+Wired the message-bubble path (and MultiAgentMessageGroup, which inherits
+`onSpeak` from MessagePane) to use `speakTextApi`. Composer + voice-prefs
+preview keep the browser-native `speakText` (free, instant, fine for
+quick previews where quality doesn't matter).
+
+Cost: ~$0.015 per 1K characters (~$0.001 per typical reply click).
+Studio-quality voice, works on every OS.
+
+### 🟢 Support tickets
+
+Closed both outstanding tickets (status flipped to `resolved` with
+`Auto-resolved during cleanup; no real outstanding bugs.`):
+- "Search box in header is confusing and hard to close" — already fixed
+  in Tier 1 search-drawer rework
+- "Test ticket — manual create" — smoke test, not a real bug
+
+### 🧪 Verified
+
+- Backend `/api/caos/voice/tts` returns `audio_base64` (55K bytes of
+  valid MP3, magic `fff3c4c4`) when called with cookie auth
+- Frontend code path traced: MessagePane.onSpeak → speakTextApi → POST
+  TTS → decode base64 → Audio.play()
+- Field name corrected (backend returns `content_type` not `mime_type`)
+- ESLint clean across all touched frontend files
+- `Feature(id="voice-tts-api", …)` added to feature catalog so Aria
+  knows about the API path on her next chat turn
+
+### Process change (per user request)
+
+Going forward: any time a problem is brought to my attention, I deliver
+**receipts (code references) + cost estimate** BEFORE acting. User
+approves with go-ahead, then I execute. No more autonomous spending.
+
+---
+
 ## 2026-04-26 (later) — STT 401 bug fix (Composer mic + Full Voice)
 
 User: "Both STTs in the platform are not working." Found and fixed in

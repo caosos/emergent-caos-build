@@ -84,5 +84,59 @@ export const useVoiceIO = ({ userEmail, voiceSettings }) => {
     return utter;
   }, [voiceSettings.tts_speed]);
 
-  return { transcribeAudio, transcribeAudioChunk, speakText };
+  // API-driven TTS via OpenAI gpt-4o-mini-tts. Used by the message-bubble
+  // Read button so it works on every OS (Linux without speech-dispatcher,
+  // Windows, mac) — quality is studio-grade vs. robotic system voice.
+  // Costs ~$0.015/1K chars, so each click on a typical reply is ~$0.001.
+  const apiAudioRef = useRef(null);
+  const speakTextApi = useCallback(async (text, overrides = {}) => {
+    // Stop browser-native speech if it's running so the two paths don't overlap.
+    try { window.speechSynthesis?.cancel(); } catch { /* no-op */ }
+    activeUtteranceRef.current = null;
+    // Stop any prior API audio playback (toggle-off behavior).
+    if (apiAudioRef.current) {
+      try { apiAudioRef.current.pause(); apiAudioRef.current.src = ""; } catch { /* no-op */ }
+      apiAudioRef.current = null;
+    }
+    const cleanText = (text || "")
+      .replace(/```[\s\S]*?```/g, " code block ")
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/\*\*([^*]+)\*\*/g, "$1")
+      .replace(/\*([^*]+)\*/g, "$1")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/^#{1,6}\s+/gm, "")
+      .replace(/^\s*[-*+]\s+/gm, "")
+      .replace(/^\s*\d+\.\s+/gm, "")
+      .trim()
+      .slice(0, 4000);  // backend hard-cap is 4096; keep margin
+    if (!cleanText) return null;
+    const resp = await axios.post(
+      `${API}/caos/voice/tts`,
+      {
+        text: cleanText,
+        voice: overrides.voice || voiceSettings.tts_voice || "nova",
+        speed: overrides.speed || voiceSettings.tts_speed || 1.0,
+        model: overrides.model || voiceSettings.tts_model || "gpt-4o-mini-tts",
+      },
+      { withCredentials: true }
+    );
+    const b64 = resp.data?.audio_base64 || resp.data?.audio_b64 || resp.data?.audio;
+    if (!b64) {
+      throw new Error(resp.data?.error || "TTS server returned no audio");
+    }
+    // Decode base64 → Blob → object URL → play.
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: resp.data?.content_type || resp.data?.mime_type || "audio/mpeg" });
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.onended = () => { URL.revokeObjectURL(url); apiAudioRef.current = null; };
+    audio.onerror = () => { URL.revokeObjectURL(url); apiAudioRef.current = null; };
+    apiAudioRef.current = audio;
+    await audio.play();
+    return audio;
+  }, [voiceSettings.tts_model, voiceSettings.tts_speed, voiceSettings.tts_voice]);
+
+  return { transcribeAudio, transcribeAudioChunk, speakText, speakTextApi };
 };

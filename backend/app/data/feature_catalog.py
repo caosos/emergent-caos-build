@@ -315,6 +315,19 @@ CHAT_FEATURES = [
 
 VOICE_FEATURES = [
     Feature(
+        id="voice-tts-api",
+        name="API-driven Read Aloud (message bubbles)",
+        surface="voice",
+        aria_priority=2,
+        public=True,
+        shipped_at="2026-04-26",
+        short_summary=(
+            "Studio-quality read-aloud on every assistant reply via OpenAI gpt-4o-mini-tts. "
+            "Works on every OS (no browser/system TTS dependency)."
+        ),
+        keywords=["tts", "read aloud", "openai voice"],
+    ),
+    Feature(
         id="voice-stt-whisper",
         name="Voice input (Whisper STT)",
         surface="voice",

@@ -330,7 +330,7 @@ export const useCaosShell = (authenticatedUser = null) => {
     userEmail, currentSession, loadFiles, loadSessionLinks, setBusy, setError, setStatus,
   });
 
-  const { transcribeAudio, transcribeAudioChunk, speakText } = useVoiceIO({
+  const { transcribeAudio, transcribeAudioChunk, speakText, speakTextApi } = useVoiceIO({
     userEmail, voiceSettings,
   });
 
@@ -606,7 +606,7 @@ export const useCaosShell = (authenticatedUser = null) => {
     artifacts, busy, continuity, createSession, currentSession, deleteSession, error, filteredMessages,
     files, lastTurn, links, loadSessions, messages, multiAgentMode, profile, renameSession, runtimeSettings, searchQuery,
     selectSession, sendMessage, sessions, setMultiAgentMode, setSearchQuery, commitUserEmail,
-    saveLink, saveMemory, speakText, status, toggleFlagSession, transcribeAudio, transcribeAudioChunk,
+    saveLink, saveMemory, speakText, speakTextApi, status, toggleFlagSession, transcribeAudio, transcribeAudioChunk,
     updateMemory, updateProfile, updateRuntimeSelection, updateVoiceSettings, uploadFile,
     userEmail, deleteMemory, voiceSettings,
   };
