@@ -75,28 +75,18 @@ async def logout(
     response: Response,
     session_token: str | None = Cookie(default=None, alias="session_token"),
 ):
-    """Delete ALL sessions for the current user and clear the cookie.
+    """Delete the current browser's session and clear the cookie.
 
     Intentionally does NOT require an authenticated user — a half-expired or
     mismatched session must still be able to log out cleanly. Otherwise the
     frontend gets a 401 here and the cookie never gets cleared, creating an
     "I click logout and it logs me right back in" loop.
 
-    Nukes ALL sessions for the user (not just the one in the cookie) because
-    OAuth handoffs sometimes create multiple rows; deleting only the cookie
-    one can leave stragglers that re-authenticate the user via a residual
-    session_token still in the browser cookie jar.
+    Per-device only — only deletes the session row matching the cookie's
+    token. Other browsers / devices the user is signed in on stay alive.
     """
     if session_token:
-        from app.services.auth_service import resolve_user_from_token
-        from app.db import collection
-        user = await resolve_user_from_token(session_token)
-        if user:
-            # Delete every session row tied to this user
-            await collection("user_sessions").delete_many({"user_id": user["user_id"]})
-        else:
-            # No user resolved — at minimum delete the row matching the token
-            await delete_session(session_token)
+        await delete_session(session_token)
     # Cookie attributes MUST match the ones used in set_cookie above (httponly,
     # secure, samesite). If any attribute differs the browser silently keeps
     # the original cookie and the user appears to never log out.

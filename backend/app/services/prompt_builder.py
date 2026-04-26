@@ -89,6 +89,7 @@ def build_prompt_sections(
     attachments: list[dict] | None = None,
     provider: str | None = None,
 ) -> dict:
+    from app.services.platform_topology import build_platform_topology
     personal_facts, structured_memory = _split_memories(injected_memories)
     global_entries = global_info_entries or []
     attachment_items = attachments or []
@@ -104,6 +105,7 @@ def build_prompt_sections(
         "global_info_block": _format_global_info(global_entries),
         "attachments_block": _format_attachments(attachment_items, provider_supports_vision),
         "history_block": _format_history(sanitized_history),
+        "platform_topology_block": build_platform_topology(),
         "rehydration_order": f"thread_history -> lane_continuity -> personal_facts -> structured_memory -> {'global_bin(reused)' if global_entries else 'global_bin(empty)'}",
     }
 
@@ -136,6 +138,8 @@ def build_system_prompt_from_sections(sections: dict) -> str:
     )
     return f"""
 You are {sections.get('assistant_name', 'Aria')} inside {sections['environment_name']}, a continuous AI workspace.{_time_block}
+
+{sections.get('platform_topology_block', '')}
 
 Operating rules:
 - Treat `session_id` as the active isolation boundary.

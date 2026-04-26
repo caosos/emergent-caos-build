@@ -1,5 +1,56 @@
 # CAOS Changelog
 
+## 2026-04-25 (round 11) — Platform topology in system prompt + logout per-device
+
+### 🟢 Aria now knows her own house
+
+New `app/services/platform_topology.py` returns the canonical CAOS
+inventory — every UI surface, every memory bin, every connector, every
+tool, and the autonomous-memory pipeline behavior. Injected into the
+system prompt as a "PLATFORM TOPOLOGY" section by `build_prompt_sections`
+on every chat turn. ~6.5K chars, ~1.6K tokens — negligible vs. context
+budget but a massive win for accuracy when users reference platform
+features by name.
+
+What it covers:
+- Top-level surfaces (Threads, Composer, Engine selector, WCW meter,
+  Search, Account chip)
+- Memory Console UX details (atom card layout, bin nav, evidence panel,
+  per-card actions)
+- The 13 typed memory bins by name + default priority + description
+  (auto-rendered from `BIN_REGISTRY` so it stays in sync)
+- All connectors with status (Google read-only, GitHub PAT, MCP,
+  Obsidian, Slack/Twilio/Telegram outbound, Stripe billing)
+- Tools available to Aria (`read_file`, `grep_code`, `web_fetch`,
+  `github_fetch`, `[FILE_TICKET: …]`)
+- Autonomous memory pipeline (per-turn extractor, auto-incremental
+  backfill, Memory Pulse, Phase 3 ranker)
+- Behavior contract: "if user references a CAOS surface, answer from
+  topology, don't guess"
+
+Verified via direct prompt-build test — `PLATFORM TOPOLOGY`,
+`Memory Console`, `IDENTITY_FACT`, `GOVERNANCE_RULE`, `caosos.com`,
+`WCW meter` all present in the rendered system prompt.
+
+### 🟢 Logout reverted to per-device (user-requested rollback)
+
+User: "Log out everywhere? No, we don't want that. Why would you want
+that?" Reverted both the backend and the UI label:
+- `/api/auth/logout` now deletes ONLY the cookie's session row (not all
+  user sessions). Other browsers/devices stay signed in.
+- AccountMenu label back to **"Log Out"**, removed the
+  "wipes every device" confirmation modal, no scary tooltip.
+
+Verified end-to-end: seeded 2 sessions for one user → POST /logout with
+tok_a's cookie → tok_a deleted, tok_b still alive.
+
+Note: the original "kill all sessions" was a defensive fix for an old
+OAuth-callback duplicate-session loop. If that bug recurs we'll fix it
+at the OAuth callback level (where the duplicate is created), not at
+logout time.
+
+---
+
 ## 2026-04-25 (round 10) — Provenance enrichment ("where did you learn this?")
 
 User: "they need to know that they come from certain conversations." Shipped.

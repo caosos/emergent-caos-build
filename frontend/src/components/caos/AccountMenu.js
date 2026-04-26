@@ -204,15 +204,11 @@ export const AccountMenu = ({
           <button
             className="inspector-menu-item inspector-menu-item-danger"
             data-testid="caos-account-menu-logout"
-            onClick={() => {
-              if (window.confirm("Sign out of CAOS on every device, including this one? You'll need to log back in everywhere.")) {
-                pick(onLogOut)();
-              }
-            }}
+            onClick={pick(onLogOut)}
             type="button"
-            title="Wipes every session on every browser/device"
+            title="Log out of this browser"
           >
-            <LogOut size={14} /><span>Log out everywhere</span>
+            <LogOut size={14} /><span>Log Out</span>
           </button>
         </div>
       ) : null}
