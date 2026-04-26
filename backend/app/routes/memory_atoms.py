@@ -15,6 +15,13 @@ from app.schemas.memory import (
     MemoryEvidenceListResponse,
 )
 from app.services.auth_service import require_user
+from app.services.memory_backfill_service import (
+    count_unmined_for_user,
+    get_active_job_for,
+    get_job,
+    schedule_full_backfill,
+    schedule_session_backfill,
+)
 from app.services.profile_memory_service import (
     add_evidence_for_atom,
     confirm_memory_atom,
@@ -146,3 +153,57 @@ async def delete_memory_atom(
         return await delete_profile_memory(user_email, atom_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+# ---- Backfill: mine past conversations into typed bins -------------------
+
+class MemoryBackfillStartRequest(BaseModel):
+    user_email: str
+    session_id: str | None = None  # None = global per-user backfill
+
+
+@router.get("/backfill/unmined-count")
+async def get_unmined_count(
+    user_email: str,
+    session_id: str | None = None,
+    user: dict = Depends(require_user),
+):
+    """Returns the count of past user messages that haven't been mined.
+    Used by the Memory Console UI to label the 'Mine past conversations'
+    button (e.g. 'Mine past conversations · 47 unmined')."""
+    _ensure_owner(user_email, user)
+    count = await count_unmined_for_user(user_email, session_id=session_id)
+    active = get_active_job_for(user_email)
+    return {
+        "unmined": count,
+        "active_job_id": active["job_id"] if active else None,
+    }
+
+
+@router.post("/backfill")
+async def start_backfill(
+    payload: MemoryBackfillStartRequest,
+    user: dict = Depends(require_user),
+):
+    """Kick off a backfill job. Returns immediately with the job dict so
+    the UI can poll `/backfill/status/{job_id}`."""
+    _ensure_owner(payload.user_email, user)
+    if payload.session_id:
+        return schedule_session_backfill(payload.user_email, payload.session_id)
+    return schedule_full_backfill(payload.user_email)
+
+
+@router.get("/backfill/status/{job_id}")
+async def backfill_status(
+    job_id: str,
+    user_email: str,
+    user: dict = Depends(require_user),
+):
+    """Poll progress of a backfill job."""
+    _ensure_owner(user_email, user)
+    job = get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job["user_email"] != user_email:
+        raise HTTPException(status_code=403, detail="Not your job")
+    return job

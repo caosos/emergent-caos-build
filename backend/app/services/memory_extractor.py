@@ -39,6 +39,7 @@ import uuid
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
+from app.db import collection
 from app.schemas.memory import BIN_REGISTRY, MemoryBin
 from app.services.profile_memory_service import insert_extracted_atom, list_memory_atoms
 
@@ -48,6 +49,46 @@ EXTRACTOR_PROVIDER = os.environ.get("MEMORY_EXTRACTOR_PROVIDER", "gemini")
 EXTRACTOR_MODEL = os.environ.get("MEMORY_EXTRACTOR_MODEL", "gemini-3-flash-preview")
 EXTRACTOR_MAX_ATOMS_PER_TURN = 5
 EXTRACTOR_DEDUPE_SAMPLE = 40  # last N atoms shown to the model for dedupe
+EXTRACTION_LOG_COLLECTION = "memory_extraction_log"
+
+
+async def is_message_mined(user_email: str, message_id: str) -> bool:
+    """Check whether the autonomous extractor has already processed this
+    user's message. Used by both the per-turn extractor (defense in depth)
+    and the backfill service (primary idempotency check)."""
+    if not message_id:
+        return False
+    doc = await collection(EXTRACTION_LOG_COLLECTION).find_one(
+        {"user_email": user_email, "message_id": message_id},
+        {"_id": 0, "message_id": 1},
+    )
+    return bool(doc)
+
+
+async def mark_message_mined(user_email: str, message_id: str, atoms_created: int = 0,
+                             session_id: str | None = None, source: str = "turn") -> None:
+    """Stamp a message as mined. Idempotent — re-stamping just updates
+    `last_seen_at` so we know when the most recent pass touched it.
+    `source` is `turn` (chat_pipeline) or `backfill`."""
+    from datetime import datetime, timezone
+    if not message_id:
+        return
+    now = datetime.now(timezone.utc).isoformat()
+    await collection(EXTRACTION_LOG_COLLECTION).update_one(
+        {"user_email": user_email, "message_id": message_id},
+        {
+            "$set": {
+                "user_email": user_email,
+                "message_id": message_id,
+                "session_id": session_id,
+                "atoms_created": int(atoms_created),
+                "source": source,
+                "last_seen_at": now,
+            },
+            "$setOnInsert": {"first_mined_at": now},
+        },
+        upsert=True,
+    )
 
 
 def _bin_taxonomy_block() -> str:
@@ -141,8 +182,14 @@ async def extract_memories_from_turn(
 
     Designed to be called via `asyncio.create_task(...)` from chat_pipeline so
     it never blocks the user's reply. All errors are swallowed (and printed).
+    Writes a `memory_extraction_log` row at the end so the backfill service
+    knows this message has already been mined and skips it.
     """
     try:
+        # Idempotency guard: if this message has already been mined (by a
+        # previous turn write or a backfill pass), skip the LLM call entirely.
+        if user_message_id and await is_message_mined(user_email, user_message_id):
+            return []
         api_key = os.environ.get("EMERGENT_LLM_KEY")
         if not api_key:
             return []
@@ -183,6 +230,13 @@ async def extract_memories_from_turn(
                 created_ids.append(atom.id)
         if created_ids:
             print(f"CAOS memory extractor: +{len(created_ids)} atoms for {user_email}")
+        # Stamp the log even on zero-atom turns so we don't redo the
+        # extraction on the next backfill pass (extractor said "nothing to
+        # save", that's a valid terminal answer).
+        if user_message_id:
+            await mark_message_mined(user_email, user_message_id,
+                                     atoms_created=len(created_ids),
+                                     session_id=session_id, source="turn")
         return created_ids
     except Exception as exc:  # pragma: no cover — non-fatal
         print(f"CAOS memory extractor failed for {user_email}: {exc}")

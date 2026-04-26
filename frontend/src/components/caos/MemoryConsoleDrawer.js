@@ -1,6 +1,6 @@
 import axios from "axios";
-import { Brain, Check, ChevronDown, FileText, ShieldAlert, Trash2, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Brain, Check, ChevronDown, FileText, Pickaxe, ShieldAlert, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { API } from "@/config/apiBase";
@@ -85,6 +85,63 @@ export const MemoryConsoleDrawer = ({ isOpen, onClose, userEmail }) => {
   const [error, setError] = useState("");
   const [evidenceFor, setEvidenceFor] = useState(null);
   const [evidenceList, setEvidenceList] = useState([]);
+  // Backfill state — "Mine past conversations" button + live progress poll.
+  const [unminedCount, setUnminedCount] = useState(0);
+  const [backfillJob, setBackfillJob] = useState(null);
+  const pollTimerRef = useRef(null);
+
+  const refreshUnminedCount = async () => {
+    if (!userEmail) return;
+    try {
+      const resp = await axios.get(`${API}/caos/memory/atoms/backfill/unmined-count`, {
+        params: { user_email: userEmail },
+        withCredentials: true,
+      });
+      setUnminedCount(resp.data?.unmined || 0);
+      // If a job is already running (e.g. session-auto-trigger from earlier),
+      // pick up polling for it so the UI stays in sync.
+      const activeId = resp.data?.active_job_id;
+      if (activeId && (!backfillJob || backfillJob.job_id !== activeId)) {
+        setBackfillJob({ job_id: activeId, status: "running", processed: 0, atoms_created: 0, total_candidates: 0 });
+      }
+    } catch { /* non-fatal */ }
+  };
+
+  const pollBackfillJob = async (jobId) => {
+    try {
+      const resp = await axios.get(`${API}/caos/memory/atoms/backfill/status/${jobId}`, {
+        params: { user_email: userEmail },
+        withCredentials: true,
+      });
+      setBackfillJob(resp.data);
+      if (["completed", "failed"].includes(resp.data?.status)) {
+        if (pollTimerRef.current) { clearInterval(pollTimerRef.current); pollTimerRef.current = null; }
+        if (resp.data.status === "completed") {
+          toast.success(`Backfill complete · +${resp.data.atoms_created} atoms from ${resp.data.processed} past message${resp.data.processed === 1 ? "" : "s"}`);
+        } else {
+          toast.error(`Backfill failed: ${resp.data.error || "unknown"}`);
+        }
+        await refresh();
+        await refreshUnminedCount();
+      }
+    } catch { /* keep polling, may be transient */ }
+  };
+
+  const startBackfill = async () => {
+    if (!userEmail) return;
+    try {
+      const resp = await axios.post(`${API}/caos/memory/atoms/backfill`,
+        { user_email: userEmail },
+        { withCredentials: true }
+      );
+      setBackfillJob(resp.data);
+      toast(`Mining ${unminedCount || "past"} conversation${unminedCount === 1 ? "" : "s"}…`);
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+      pollTimerRef.current = setInterval(() => pollBackfillJob(resp.data.job_id), 2000);
+    } catch (issue) {
+      toast.error(issue?.response?.data?.detail || "Backfill failed to start");
+    }
+  };
 
   const refresh = async () => {
     if (!userEmail) return;
@@ -106,7 +163,10 @@ export const MemoryConsoleDrawer = ({ isOpen, onClose, userEmail }) => {
   };
 
   useEffect(() => {
-    if (isOpen) refresh();
+    if (isOpen) { refresh(); refreshUnminedCount(); }
+    return () => {
+      if (pollTimerRef.current) { clearInterval(pollTimerRef.current); pollTimerRef.current = null; }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, userEmail]);
 
@@ -195,15 +255,42 @@ export const MemoryConsoleDrawer = ({ isOpen, onClose, userEmail }) => {
               {totalAtoms} atom{totalAtoms === 1 ? "" : "s"}
             </span>
           </div>
-          <button
-            aria-label="Close memory console"
-            className="drawer-close-button"
-            data-testid="caos-memory-console-close"
-            onClick={onClose}
-            type="button"
-          >
-            <X size={14} />
-          </button>
+          <div className="memory-console-header-actions">
+            {backfillJob && backfillJob.status === "running" ? (
+              <span className="memory-console-backfill-status" data-testid="caos-memory-backfill-progress">
+                Mining…
+                {backfillJob.total_candidates > 0
+                  ? ` ${backfillJob.processed}/${backfillJob.total_candidates}`
+                  : ""}
+                {backfillJob.atoms_created > 0
+                  ? ` · +${backfillJob.atoms_created}`
+                  : ""}
+              </span>
+            ) : (
+              <button
+                className="memory-console-backfill-btn"
+                data-testid="caos-memory-backfill-button"
+                disabled={!unminedCount}
+                onClick={startBackfill}
+                type="button"
+                title="Globally mine every past user message into the 13 typed bins. Idempotent — already-mined messages are skipped."
+              >
+                <Pickaxe size={12} />
+                {unminedCount
+                  ? `Mine past conversations · ${unminedCount} unmined`
+                  : "All caught up"}
+              </button>
+            )}
+            <button
+              aria-label="Close memory console"
+              className="drawer-close-button"
+              data-testid="caos-memory-console-close"
+              onClick={onClose}
+              type="button"
+            >
+              <X size={14} />
+            </button>
+          </div>
         </div>
 
         <div className="memory-console-body">

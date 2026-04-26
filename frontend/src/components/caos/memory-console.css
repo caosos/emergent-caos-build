@@ -61,6 +61,61 @@
   border: 1px solid rgba(167, 139, 250, 0.3);
 }
 
+/* Header right side: Mine past conversations button + close */
+.memory-console-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.memory-console-backfill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: rgba(110, 231, 183, 0.14);
+  border: 1px solid rgba(110, 231, 183, 0.4);
+  color: #6ee7b7;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.2s;
+}
+
+.memory-console-backfill-btn:hover:not(:disabled) {
+  background: rgba(110, 231, 183, 0.24);
+  border-color: rgba(110, 231, 183, 0.6);
+}
+
+.memory-console-backfill-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  color: rgba(226, 228, 240, 0.55);
+  background: transparent;
+  border-color: rgba(226, 228, 240, 0.15);
+}
+
+.memory-console-backfill-status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #fde68a;
+  background: rgba(253, 230, 138, 0.1);
+  border: 1px solid rgba(253, 230, 138, 0.4);
+  padding: 5px 12px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  /* Subtle pulse so the user knows mining is active */
+  animation: caos-backfill-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes caos-backfill-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
 .memory-console-body {
   display: grid;
   grid-template-columns: 220px 1fr;

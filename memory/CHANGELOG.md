@@ -1,5 +1,93 @@
 # CAOS Changelog
 
+## 2026-04-25 (round 9) — Memory Backfill (per-user, global, idempotent)
+
+User asked: "Past conversations need to be loaded into those memory bins. Per
+user account. Quick pass to fill in blanks, don't redo what's already filed."
+Shipped exactly that.
+
+### 🟢 `memory_extraction_log` — the "already mined" stamp
+
+New collection. Every message the extractor processes (per-turn OR via
+backfill) gets a row keyed by `(user_email, message_id)`. Both code paths
+read this log before doing work, so:
+- Per-turn extractor skips if log already has the message (defense in
+  depth — backfill could have raced ahead).
+- Backfill skips already-mined messages, only processes the gap.
+- Idempotent — re-running backfill on a fully-mined account is a no-op.
+
+Stamps even on zero-atom turns (so "extractor said nothing worth saving"
+is a valid terminal answer that doesn't get re-tried).
+
+### 🟢 `memory_backfill_service.py`
+
+Two entry points sharing the same per-message worker:
+
+1. **`schedule_full_backfill(user_email)`** — global. Walks every session
+   the user owns, pages through all user messages, runs the extractor on
+   the unmined ones, files atoms into the 13 typed bins.
+2. **`schedule_session_backfill(user_email, session_id)`** — targeted.
+   Only mines one session. Used by the auto-incremental path.
+
+Job tracking is in-memory per-process (single-pod is fine; swap to redis
+if/when we shard). Each job carries `processed`, `atoms_created`,
+`skipped_already_mined`, `total_candidates`, `status`, `error` so the
+frontend can poll progress.
+
+Tuning knobs (conservative — never burns LLM budget):
+- `BACKFILL_MAX_PER_RUN = 200` (cap; user re-runs for more)
+- `BACKFILL_CONCURRENCY = 3` parallel extractor calls
+- `BACKFILL_MIN_USER_MSG_CHARS = 30` (skips "ok"/"yes"/"thanks" — no signal)
+- `BACKFILL_RATE_LIMIT_SLEEP_S = 0.05` between waves
+
+Pre-flight count function `count_unmined_for_user` mirrors the SAME
+30-char filter so the UI label `"N unmined"` matches what the job will
+actually process — nothing more annoying than a button saying "1 unmined"
+that does nothing.
+
+### 🟢 New routes (all owner-gated)
+
+- `GET /api/caos/memory/atoms/backfill/unmined-count` → `{unmined, active_job_id}`
+- `POST /api/caos/memory/atoms/backfill` → starts job, returns job dict
+- `GET /api/caos/memory/atoms/backfill/status/{job_id}` → poll progress
+
+### 🟢 Memory Console UI — Mine past conversations button
+
+Header now carries a green-toned **"Mine past conversations · N unmined"**
+button next to the close X. When clicked, drawer shows a yellow pulsing
+**"Mining… 5/12 · +8"** chip while the job runs (polled every 2s).
+On completion: success toast + auto-refresh of atoms.
+
+When everything's mined: button switches to disabled grey **"All caught
+up"**.
+
+### 🟢 Auto-incremental on session-load
+
+`useCaosShell.selectSession` now fires a fire-and-forget session-scoped
+backfill the first time the user opens each session per page-load
+(`autoBackfillFiredRef` ensures one trigger per session per page-load).
+By the time the user opens Memory Console, atoms from the session in
+view are already filed — exactly the "quick pass to fill in blanks"
+behavior the user asked for.
+
+### 🧪 Verification (manual, per budget rules)
+
+End-to-end test against live LLM (Gemini 3 Flash, fractions of a cent):
+- Seeded 2 sessions × 7 messages (4 user, 3 assistant, one too-short)
+- Initial unmined count: 4 (raw) → fixed to 3 (filtered)
+- Backfill kicked off → completed in ~4s
+- 3 messages processed → 6 atoms created, classified across 4 typed bins:
+  - IDENTITY_FACT × 2 ("Michael is the founder of CAOS", "The user's name is Michael")
+  - OPERATING_PREFERENCE × 1 ("truth-first communication")
+  - TECHNICAL_STATE × 1 ("macOS Sonoma on M2 MacBook")
+  - DOMAIN_CONTEXT × 2 ("React development", "FastAPI development")
+- Re-running backfill: `processed=0, atoms_created=0, skipped_already_mined=3` — idempotency confirmed
+- UI screenshot: "All caught up" disabled state renders, atoms appear in correct bins, Confirm/Reclassify/Forget all wired
+
+Backend ruff + frontend ESLint clean across all touched files.
+
+---
+
 ## 2026-04-25 (round 8) — Memory Phase 3 + Phase 5 lite + WCW + Logout-everywhere
 
 ### 🟢 Phase 3 — Bin-aware relevance scoring + recency decay

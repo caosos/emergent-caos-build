@@ -49,6 +49,11 @@ export const useCaosShell = (authenticatedUser = null) => {
   // learning. The toast's action opens the Memory Console drawer via a
   // custom DOM event (CaosShell listens for it).
   const prevAtomCountRef = useRef(null);
+  // Per-session auto-backfill — once per session-load, fire-and-forget a
+  // targeted mine of any unmined messages in this session. The backfill
+  // service is idempotent (memory_extraction_log) so repeated calls are safe;
+  // this ref just avoids hammering the endpoint within the same page load.
+  const autoBackfillFiredRef = useRef({});
   const fireMemoryPulse = useCallback(async () => {
     if (!userEmail) return;
     try {
@@ -164,6 +169,16 @@ export const useCaosShell = (authenticatedUser = null) => {
       await loadSessionLinks(session.session_id);
       await loadFiles();
       setStatus(`Loaded session ${session.title}.`);
+      // Auto-incremental memory backfill — fire-and-forget the once-per-page
+      // session-scoped mining job so by the time the user opens Memory
+      // Console, atoms from THIS session are already filed. Idempotent on
+      // the server (memory_extraction_log skips already-mined messages).
+      if (userEmail && !autoBackfillFiredRef.current[session.session_id]) {
+        autoBackfillFiredRef.current[session.session_id] = true;
+        axios.post(`${API}/caos/memory/atoms/backfill`,
+          { user_email: userEmail, session_id: session.session_id },
+        ).catch(() => { /* non-fatal courtesy mining */ });
+      }
     } catch (issue) {
       const message = issue?.response?.data?.detail || issue?.message || "Failed to load session.";
       setError(message);
@@ -171,7 +186,7 @@ export const useCaosShell = (authenticatedUser = null) => {
     } finally {
       setBusy(false);
     }
-  }, [loadArtifacts, loadContinuity, loadFiles, loadMessages, loadSessionLinks]);
+  }, [loadArtifacts, loadContinuity, loadFiles, loadMessages, loadSessionLinks, userEmail]);
 
   const createSession = useCallback(async (title = "New Thread") => {
     setBusy(true);
