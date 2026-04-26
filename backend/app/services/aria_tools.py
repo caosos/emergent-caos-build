@@ -323,7 +323,9 @@ _TOOL_RX = re.compile(
     r"docs_get_document|calendar_list_events|calendar_freebusy|"
     r"obsidian_search|obsidian_get_note|obsidian_list_tags|obsidian_backlinks|"
     r"slack_list_channels|slack_search_messages|slack_post_message|"
-    r"sms_send|sms_inbox_list|telegram_send_message|telegram_inbox_list)\s+(.*?)\]",
+    r"sms_send|sms_inbox_list|telegram_send_message|telegram_inbox_list|"
+    r"query_receipts|profile_session|query_messages|query_files|"
+    r"query_memory_atoms|query_engine_usage|query_tickets|write_file)\s+(.*?)\]",
     re.DOTALL,
 )
 _KV_RX = re.compile(r"(\w+)\s*=\s*\"?([^\"\n]+?)\"?(?:\s+(?=\w+=)|$)")
@@ -473,6 +475,24 @@ async def extract_and_run_next_tool_async(
         }:
             from app.services.aria_tools_messaging import run_messaging_tool
             result = await run_messaging_tool(tool, ctx.get("user_email") or "", args)
+        elif tool in {
+            "query_receipts", "profile_session", "query_messages", "query_files",
+            "query_memory_atoms", "query_engine_usage", "query_tickets",
+        }:
+            from app.services import aria_diagnostics as _ad
+            user_email = ctx.get("user_email") or ""
+            if not user_email:
+                result = "ERROR: tool requires authenticated user context"
+            else:
+                fn = getattr(_ad, tool)
+                result = await fn(user_email, args)
+        elif tool == "write_file":
+            from app.services import aria_diagnostics as _ad
+            result = await _ad.write_file(
+                user_email=ctx.get("user_email") or "",
+                session_id=ctx.get("session_id") or "",
+                args=args,
+            )
         else:
             result = f"ERROR: unknown tool '{tool}'"
     except Exception as error:

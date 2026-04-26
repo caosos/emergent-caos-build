@@ -205,6 +205,8 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         [entry.model_dump() for entry in global_info_entries],
         attachments=attachment_docs,
         provider=runtime["provider"],
+        session_id=payload.session_id,
+        user_email=payload.user_email,
     )
     # Admin-only: tool-inspection rules are only taught to admin users. Regular
     # users never see the [TOOL: ...] marker syntax in their system prompt, so
@@ -213,7 +215,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     prompt_sections["awareness_block"] = awareness_block
     system_prompt = build_system_prompt_from_sections(prompt_sections)
 
-    _tool_context = {"github_token": github_token, "user_email": payload.user_email}
+    _tool_context = {"github_token": github_token, "user_email": payload.user_email, "session_id": payload.session_id}
     connector_tool_chunks: list[str] = []
     if google_connected:
         from app.services.aria_tools_google import GOOGLE_TOOL_PROMPT

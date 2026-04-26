@@ -109,6 +109,8 @@ def build_prompt_sections(
     global_info_entries: list[dict] | None = None,
     attachments: list[dict] | None = None,
     provider: str | None = None,
+    session_id: str | None = None,
+    user_email: str | None = None,
 ) -> dict:
     from app.services.platform_topology import build_platform_topology
     personal_facts, structured_memory = _split_memories(injected_memories)
@@ -128,6 +130,8 @@ def build_prompt_sections(
         "history_block": _format_history(sanitized_history),
         "platform_topology_block": build_platform_topology(),
         "rehydration_order": f"thread_history -> lane_continuity -> personal_facts -> structured_memory -> {'global_bin(reused)' if global_entries else 'global_bin(empty)'}",
+        "session_id": session_id or "",
+        "user_email": user_email or "",
     }
 
 
@@ -146,6 +150,17 @@ def build_system_prompt_from_sections(sections: dict) -> str:
             "\n  - `[TOOL: grep_code pattern=<regex> path=/absolute/path glob=*.js]` — returns up to 50 matching `file:line: text` lines. Default glob is `*.py`; use `*.js` for frontend searches."
             "\n  - `[TOOL: web_fetch url=<https_url> mode=auto]` — fetches a public webpage or raw file (128 KB cap, 15s timeout). `mode=text` strips HTML, `mode=raw` returns verbatim, `mode=auto` picks based on content-type. Use this for live documentation, news, API references, release notes, and any real-time info beyond your training cutoff. Cite the final URL in your reply."
             "\n  - `[TOOL: github_fetch repo=<owner>/<name> path=<file> ref=main]` — fetches a file from a public GitHub repo via raw.githubusercontent.com. Example: `[TOOL: github_fetch repo=facebook/react path=README.md]`. Use this when the user references GitHub code you haven't seen in `/app`."
+            "\n  - **Diagnostic / measurement tools** (use these BEFORE claiming any latency or system-state diagnosis — guessing without these is bullshit):"
+            "\n    - `[TOOL: query_receipts session_id=<sid> limit=10]` — pulls actual `step_timings`, `tool_step_timings`, `latency_ms`, `tools_used`, and tokens from the last N receipts. THIS is how you answer 'why was that turn slow.' If you don't know the session_id, use the active one from history."
+            "\n    - `[TOOL: profile_session session_id=<sid> limit=20]` — auto-summarises slowest phase (mean/p50/p95), tool histogram, total spend across the last N receipts. One-shot answer to 'what's the bottleneck on this thread.'"
+            "\n    - `[TOOL: query_messages session_id=<sid> limit=10]` — recent message records (role, content trimmed to 600 chars, latency, tools_used)."
+            "\n    - `[TOOL: query_files session_id=<sid>]` (session_id optional) — what's attached. Catches stale-attachment bugs (e.g. 'is the user re-sending screenshots every turn?')."
+            "\n    - `[TOOL: query_memory_atoms bin=<bin_name> limit=20]` — read the 13-bin memory store. bin is optional; omit to scan all bins."
+            "\n    - `[TOOL: query_engine_usage limit=20]` — cost / latency / tokens rollup across recent turns (any session)."
+            "\n    - `[TOOL: query_tickets status=open limit=10]` — the user's filed support tickets."
+            "\n  - **Write tool** (use sparingly — for delivering reports, trackers, notes the user asked you to save):"
+            "\n    - `[TOOL: write_file name=report.md content=<text>]` — saves a file to the user's CAOS Files (visible under Profile → Files). Allowed extensions: .md .txt .json .csv .py .js .ts .html .yaml .yml .log .sql. 256 KB cap. Filename must not contain `/` or `..`."
+            "\n  - **Diagnostic discipline (NON-NEGOTIABLE)**: when the user asks 'why was that slow' / 'what's the bottleneck' / 'why did X happen', do NOT speculate from code-reading alone. Call `query_receipts` or `profile_session` FIRST to get measured timings, then explain. If you have no receipts to back a perf claim, say 'I need data — pulling receipts now' and emit the tool. Confidence without measurement is how you embarrass us."
             "\n  After each tool result comes back, produce your next step: either another tool call (if you need more data) or the final user-facing reply (no more markers). Cite exact file paths and line numbers when you explain what you found. Secrets (`.env`, `*.key`, `*.pem`, `credentials*`, `secrets*`) are blocked at the tool layer — don't try to read them."
         )
     import datetime as _dt
@@ -188,6 +203,8 @@ Operating rules:
 User profile:
 - Preferred name: {sections['preferred_name']}
 - Environment: {sections['environment_name']}
+- Active session_id (use this for `query_receipts`/`profile_session`/`query_messages` tool calls): {sections.get('session_id', '(unknown)')}
+- User email (already auto-injected for any DB tool — you NEVER need to pass it as an arg): {sections.get('user_email', '(unknown)')}
 
 Sanitized active thread history:
 {sections['history_block']}

@@ -8,6 +8,47 @@
 > for the 3 pending issues (Latency / PDF / write_file) with line-level receipts
 > and credit estimates. The next agent MUST read that file before touching code.
 
+## Aria Tool Surface (Apr 26, 2026 — major upgrade in evening fork)
+
+Aria now has measured-data access, not just code-reading. She can pull
+`step_timings`, `tool_step_timings`, latency, tokens, attachments, memory
+atoms, engine usage, and tickets from MongoDB — all scoped to the calling
+user's email so she can NEVER read another user's data.
+
+### Read-only file & web
+- `read_file`, `list_dir`, `grep_code`
+- `web_fetch`, `github_fetch`
+
+### Connectors (require user OAuth)
+- Google: `gmail_search`, `gmail_get_message`, `drive_search`, `drive_read_file`, `docs_get_document`, `calendar_list_events`, `calendar_freebusy`
+- Obsidian: `obsidian_search`, `obsidian_get_note`, `obsidian_list_tags`, `obsidian_backlinks`
+- Slack: `slack_list_channels`, `slack_search_messages`, `slack_post_message`
+- Messaging: `sms_send`, `sms_inbox_list`, `telegram_send_message`, `telegram_inbox_list`
+
+### Diagnostic & DB (NEW)
+- `query_receipts session_id=<sid> limit=10` — pulls actual `step_timings`, `tool_step_timings`, latency, tokens
+- `profile_session session_id=<sid> limit=20` — auto-summary: slowest phase mean/p50/p95, tool histogram, total spend
+- `query_messages session_id=<sid> limit=10` — recent message records
+- `query_files session_id=<sid>` — attachments (catches stale-screenshot bugs)
+- `query_memory_atoms bin=<bin> limit=20` — 13-bin memory store
+- `query_engine_usage limit=20` — cost / latency / tokens rollup
+- `query_tickets status=open` — support tickets
+- `write_file name=report.md content=<text>` — sandboxed save to user's CAOS Files (allowlist: .md .txt .json .csv .py .js .ts .html .yaml .yml .log .sql; 256 KB cap; no path traversal)
+
+### Diagnostic discipline (system prompt directive)
+Aria is now instructed NEVER to claim a phase is slow without backing it with
+`query_receipts` data first. Before Apr 26 evening fork, Aria's perf
+diagnoses were guesses (~70% wrong). With these tools, error rate drops to
+~10-15% AND wrong answers come with citations the user can verify, not vibes.
+
+**Verified end-to-end**: asked Aria "what's the bottleneck on this thread,"
+she fired `profile_session` autonomously and replied with measured numbers
+(slowest phase llm_done mean=4050ms, p95=1955ms, max=11814ms, tool
+breakdown). Concluded correctly: "Not a CAOS pipeline issue — upstream LLM
+latency." Casual no-tool turns measured at 1.69s wall-clock.
+
+---
+
 ## Active Issues (Apr 26, 2026 — ✅ ALL SHIPPED in evening fork)
 
 1. ~~**Latency spike (P0)**~~ ✅ SHIPPED — multi-layer fix:
