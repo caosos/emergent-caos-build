@@ -83,6 +83,10 @@ def build_receipt_record(
         "continuity_chars": receipt.get("continuity_chars", 0),
         "estimated_context_chars": receipt.get("estimated_context_chars", 0),
         "latency_ms": receipt.get("latency_ms"),
+        "step_timings": receipt.get("step_timings"),
+        "tool_iterations": receipt.get("tool_iterations", 0),
+        "tools_used": receipt.get("tools_used", []),
+        "tool_step_timings": receipt.get("tool_step_timings", []),
         "created_at": utc_now_iso(),
     }
 

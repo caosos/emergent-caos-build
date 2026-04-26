@@ -337,6 +337,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     from app.services.aria_tools import extract_and_run_next_tool_async
     tool_iterations = 0
     tools_used: list[str] = []
+    tool_step_timings: list[dict] = []  # per-iteration breakdown for the receipt
     _TOOL_NAME_RX = __import__("re").compile(r"\[TOOL:\s*(\w+)")
     _MCP_CALL_RX = __import__("re").compile(
         r"\[MCP_CALL:\s*([\w-]+):([\w\.\-]+)\s+(\{.*?\})\s*\]",
@@ -344,25 +345,31 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     )
     while tool_iterations < 4:
         # First pass: a built-in [TOOL:...] marker.
+        _tool_t0 = time.perf_counter()
         marker, result = await extract_and_run_next_tool_async(reply, context=_tool_context)
+        _tool_exec_ms = int((time.perf_counter() - _tool_t0) * 1000)
         if marker and result is not None:
             tool_iterations += 1
             name_match = _TOOL_NAME_RX.search(marker)
-            if name_match:
-                tools_used.append(name_match.group(1))
+            tool_name = name_match.group(1) if name_match else "unknown"
+            tools_used.append(tool_name)
             await chat._add_assistant_message(pending_messages, reply)
             await chat._add_user_message(
                 pending_messages,
                 UserMessage(text=f"[TOOL_RESULT for {marker}]\n{result[:60000]}"),
             )
+            _llm_t0 = time.perf_counter()
             llm_response = await chat._execute_completion(pending_messages)
             reply = await chat._extract_response_text(llm_response)
+            _llm_iter_ms = int((time.perf_counter() - _llm_t0) * 1000)
+            tool_step_timings.append({"tool": tool_name, "tool_exec_ms": _tool_exec_ms, "llm_recall_ms": _llm_iter_ms})
             continue
         # Second pass: an [MCP_CALL: server_id:tool_name {json}] marker.
         mcp_match = _MCP_CALL_RX.search(reply) if mcp_servers else None
         if mcp_match:
             tool_iterations += 1
             server_id, tool_name, args_json = mcp_match.group(1), mcp_match.group(2), mcp_match.group(3)
+            _mcp_t0 = time.perf_counter()
             try:
                 import json as _json
                 parsed_args = _json.loads(args_json)
@@ -373,14 +380,18 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
                     mcp_result = await dispatch_mcp_call(payload.user_email, server_id, tool_name, parsed_args)
                 except McpError as me:
                     mcp_result = f"ERROR: MCP — {str(me)[:200]}"
+            _mcp_exec_ms = int((time.perf_counter() - _mcp_t0) * 1000)
             tools_used.append(f"mcp:{tool_name}")
             await chat._add_assistant_message(pending_messages, reply)
             await chat._add_user_message(
                 pending_messages,
                 UserMessage(text=f"[MCP_RESULT for {server_id}:{tool_name}]\n{mcp_result[:60000]}"),
             )
+            _mcp_llm_t0 = time.perf_counter()
             llm_response = await chat._execute_completion(pending_messages)
             reply = await chat._extract_response_text(llm_response)
+            _mcp_llm_ms = int((time.perf_counter() - _mcp_llm_t0) * 1000)
+            tool_step_timings.append({"tool": f"mcp:{tool_name}", "tool_exec_ms": _mcp_exec_ms, "llm_recall_ms": _mcp_llm_ms})
             continue
         break
     latency_ms = int((time.perf_counter() - _llm_start) * 1000)
@@ -467,6 +478,10 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     receipt.update(token_receipt)
     receipt["wcw_budget"] = wcw_budget
     receipt["latency_ms"] = latency_ms
+    receipt["tool_iterations"] = tool_iterations
+    receipt["tools_used"] = tools_used
+    receipt["tool_step_timings"] = tool_step_timings
+    receipt["step_timings"] = step_timings  # shared dict reference; later _mark() calls mutate it in place
     wcw_used_estimate = token_receipt["active_context_tokens"]
     _mark("post_llm_compute")
 
@@ -575,7 +590,6 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
 
     asyncio.create_task(_persist_aftermath())
     _mark("handler_done")
-    receipt["step_timings"] = step_timings
 
     # Phase 2: Autonomous Memory Extraction (already fire-and-forget).
     try:
