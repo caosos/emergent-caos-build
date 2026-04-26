@@ -18,6 +18,7 @@ from app.routes.health import router as health_router
 from app.routes.captures import key_router as api_key_router
 from app.routes.captures import router as captures_router
 from app.routes.memory_atoms import router as memory_atoms_router
+from app.routes.public_discovery import router as public_discovery_router
 from app.routes.memory_profile import router as memory_profile_router
 from app.routes.memory_workers import router as memory_workers_router
 from app.routes.support import router as support_router
@@ -96,6 +97,7 @@ app.include_router(memory_profile_router, prefix="/api")
 app.include_router(memory_atoms_router, prefix="/api")
 app.include_router(captures_router, prefix="/api")
 app.include_router(api_key_router, prefix="/api")
+app.include_router(public_discovery_router, prefix="/api")
 app.include_router(memory_workers_router, prefix="/api")
 app.include_router(support_router, prefix="/api")
 

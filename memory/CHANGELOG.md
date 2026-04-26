@@ -1,5 +1,84 @@
 # CAOS Changelog
 
+## 2026-04-26 — Feature catalog auto-sync (single source of truth)
+
+User: "Anything we do needs to be represented in the documentation on the
+platform, and the AI needs to be aware of it as well." Shipped — one file
+edit propagates to BOTH surfaces.
+
+### 🟢 The architecture
+
+**`/app/backend/app/data/feature_catalog.py`** — canonical Python list of
+every shipped feature. Each `Feature` dataclass entry: id, name, surface,
+aria_priority (1–5), public (bool), shipped_at, short_summary, detail,
+keywords. Two consumers read from it:
+
+1. **`platform_topology.build_platform_topology()`** — Aria's
+   system-prompt awareness. Refactored to render dynamically from
+   `aria_features(min_priority=2)`. New shipped feature → Aria knows on
+   the next chat turn, no manual edit.
+
+2. **`/api/public/llms.txt`** + **`/api/public/features.json`** +
+   **`/api/public/features.html`** — dynamic public discovery routes.
+   ChatGPT browse / Perplexity / Google AI Overviews fetch
+   `caosos.com/api/public/llms.txt` and reflect the live catalog. Old
+   static `/llms.txt` becomes the SPA-build fallback only.
+
+### 🟢 Workflow contract for engineers / agents
+
+After shipping ANY user-visible change:
+
+```python
+# /app/backend/app/data/feature_catalog.py
+Feature(
+    id="my-new-thing",
+    name="Display name",
+    surface="memory",  # or "chat" | "voice" | "capture" | "connectors" | …
+    aria_priority=3,   # 1..5; <2 omitted from topology to bound prompt size
+    public=True,       # False = admin/internal-only
+    shipped_at="2026-04-26",
+    short_summary="One-liner ≤120 chars used in topology + llms.txt list.",
+    detail="Optional paragraph for long-form public docs.",
+    keywords=["seo", "keywords", "for", "search"],
+),
+```
+
+That's it. Both surfaces auto-update on next request.
+
+### 🟢 Catalog seeded with 41 entries
+
+Pre-populated with everything shipped to date across 10 surfaces:
+- 8 memory features (bins / console / extractor / backfill / provenance /
+  pulse / ranker / why-popover)
+- 9 chat features (multi-engine / vision / WCW / continuity / multi-agent /
+  Swarm / tools / receipts / error UI)
+- 4 voice features (STT / Full Voice / journals / ambient)
+- 3 capture features (inbox / API key / promote)
+- 8 connectors (Hub / Google / GitHub / MCP / Obsidian / Slack / Twilio /
+  Telegram)
+- 4 billing/account features
+- 3 file features (upload / HEIC / lightbox)
+- 3 admin features
+- 3 discovery features (incl. this catalog itself)
+
+### 🧪 Verified
+
+- `/api/public/llms.txt` → 38 public features rendered with surface
+  groupings + "What's new" section.
+- `/api/public/features.json` → structured JSON for SEO tooling /
+  JSON-LD generators.
+- Topology: 8.5K chars (~2.1K tokens) — bounded; spot-checks for
+  Memory Console / Quick Capture / Swarm / Connectors Hub / Auto-sync
+  catalog all PASS.
+
+### Note
+
+Static `/app/frontend/public/llms.txt` retained as a build-time fallback
+for SPA hosting that doesn't proxy `/api/*` to the backend. The dynamic
+route at `/api/public/llms.txt` is the canonical, always-current copy.
+
+---
+
 ## 2026-04-25 (round 15) — Quick Capture Phase 1 (vendor-agnostic dump-and-go)
 
 User asked for an ADHD-friendly Work Mode: tap a button on phone, dictate
