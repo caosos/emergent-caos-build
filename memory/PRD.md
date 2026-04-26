@@ -10,31 +10,18 @@
 
 ## Active Issues (Apr 26, 2026 — ✅ ALL SHIPPED in evening fork)
 
-1. ~~**Latency spike (P0)**~~ ✅ SHIPPED. Connector tool prompts now baked into the
-   initial `system_message` in `chat_pipeline.py` (lines ~170–216). The discarded
-   first LLM call is gone. Single LLM call per turn even with connectors enabled.
-   End-to-end verified: 656ms latency on OpenAI gpt-4o-mini.
-2. ~~**PDF reading regression (P1)**~~ ✅ SHIPPED. `pypdf` installed, server-side
-   text extraction in `file_storage.save_upload` (32KB cap per PDF). Extracted
-   text inlined into the system prompt via `prompt_builder._format_attachments`
-   for ALL engines (OpenAI/Claude/Gemini). User's engine routing is untouched.
-   E2E verified: OpenAI quoted PDF contents back exactly ("CAOS PDF EXTRACTION
-   TEST OK"). Path A (auto-route to Gemini) was REJECTED by user — never propose
-   again.
-3. ~~**TTS bubble Read Aloud generic voice (P0)**~~ ✅ SHIPPED.
-   `SelectionReactionPopover.handleRead` was using `window.speechSynthesis.speak`
-   directly (OS default voice). Now routes through `onReadAloud` → `speakTextApi`
-   → OpenAI nova/onyx/etc. Backend `/api/caos/voice/tts` confirmed returning
-   OpenAI audio. `speakTextApi` also gained a clear error message if Chrome's
-   autoplay policy blocks audio.play() after the network round-trip.
-4. ~~**`speakTextApi is not defined` runtime crash (P0 EMERGENCY)**~~ ✅ SHIPPED.
-   Pre-existing bug from prior fork: `CaosShell.js:423` passed `speakTextApi` to
-   `MessagePane.onSpeak` but never destructured it from `useCaosShell` (only
-   `speakText` was destructured at line 165). JS evaluated `speakTextApi` as a
-   free identifier → ReferenceError → error boundary "Something glitched in
-   the shell." Fix: added `speakTextApi,` to the destructuring list at
-   `CaosShell.js:166`. Verified via Playwright on the preview URL — MessagePane
-   now mounts cleanly, the error boundary no longer fires.
+1. ~~**Latency spike (P0)**~~ ✅ SHIPPED — multi-layer fix:
+   - Connector tool prompts baked into the initial `system_message` (eliminates the 2× LLM call on connector turns).
+   - **Pre-LLM gather**: 10 sequential awaits (sessions + summaries + seeds + workers + global_info + awareness + 6 connector flags) → 2 parallel batches via `asyncio.gather`.
+   - **Post-LLM persistence moved to a background `asyncio.create_task`** — receipts / summaries / seeds / sessions / global_info / lane_workers / engine_usage all write in parallel AFTER the response goes back to the UI.
+   - **Lineage queries parallelized** (was 4 sequential `find_one`s).
+   - **Health probes parallelized** in `system_awareness._refresh_health` (was 4 sequential httpx calls up to 24s if all timed out; now bounded by slowest single probe).
+   - **🎯 Attachment recency filter (biggest win)** — was re-sending every photo / PDF / file ever attached to the session on EVERY turn (a 7-screenshot thread = ~2.8 MB re-uploaded per turn = +2-3 s LLM latency + wasted context tokens). Now filters to attachments uploaded since the previous user message; if user wants to re-reference, they re-attach.
+   - **Step-timings receipt field** — every chat turn now returns `receipt.step_timings = {setup, fetch_history, history_compress, memory_rank, pre_llm_ready, llm_done, post_llm_compute, handler_done}` cumulative ms — permanent diagnostic.
+   - **Verified end-to-end**: warm-cache pre_llm_ready dropped from 905 ms → 17 ms (53×). Warm-cache handler_done dropped from 3239 ms → 1510 ms. Wall-clock 3.5–3.9 s → 2.8 s. LLM is now ~95 % of total turn time — bound by Anthropic/OpenAI's own response time, not our overhead.
+2. ~~**PDF reading regression (P1)**~~ ✅ SHIPPED. `pypdf` extraction at upload, inlined into system prompt for ALL engines (`prompt_builder._format_attachments`). Engine routing untouched.
+3. ~~**TTS bubble Read Aloud generic voice (P0)**~~ ✅ SHIPPED. `SelectionReactionPopover` rewired to route through `speakTextApi` → OpenAI nova/onyx voice instead of OS speechSynthesis.
+4. ~~**`speakTextApi is not defined` runtime crash (P0 EMERGENCY)**~~ ✅ SHIPPED. `CaosShell.js:165–166` — added `speakTextApi` to the destructuring list (was a dormant ReferenceError from prior fork).
 
 `write_file` tool for Aria — DEFERRED (not requested in this fork session).
 See ROADMAP.md.

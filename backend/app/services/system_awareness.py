@@ -5,6 +5,7 @@ Cached for 60s so we don't hammer Mongo / the LLM proxy on every chat turn.
 """
 from __future__ import annotations
 
+import asyncio
 import time
 from typing import Any
 
@@ -22,16 +23,21 @@ _TTL_SECONDS = 60.0
 
 
 async def _refresh_health() -> dict:
-    mongo = await _check_mongo()
-    llm = await _check_emergent_llm()
-    voice = await _check_openai_voice()
-    swarm = await _check_swarm()
+    # Run all 4 health probes in parallel — was 4 sequential httpx calls
+    # (up to 24s if all timed out). Now bounded by the slowest single probe
+    # (max 6s timeout). Saves ~300ms-2s on every cache miss in healthy state.
+    mongo, llm, voice, swarm = await asyncio.gather(
+        _check_mongo(), _check_emergent_llm(), _check_openai_voice(), _check_swarm(),
+        return_exceptions=True,
+    )
     storage_ok = is_storage_ready()
+    def _ok(result):
+        return isinstance(result, dict) and bool(result.get("ok", False))
     return {
-        "mongo": mongo.get("ok", False),
-        "llm_proxy": llm.get("ok", False),
-        "openai_voice": voice.get("ok", False),
-        "e2b_swarm": swarm.get("ok", False),
+        "mongo": _ok(mongo),
+        "llm_proxy": _ok(llm),
+        "openai_voice": _ok(voice),
+        "e2b_swarm": _ok(swarm),
         "object_storage": storage_ok,
     }
 
