@@ -1,5 +1,36 @@
 # CAOS Changelog
 
+## 2026-04-26 (later) — STT 401 bug fix (Composer mic + Full Voice)
+
+User: "Both STTs in the platform are not working." Found and fixed in
+~8 calls. Two-line change.
+
+### 🟢 Root cause
+
+`/api/caos/voice/transcribe` is on the `/caos` router which has
+`dependencies=[Depends(require_user)]` at the router level — so the
+endpoint requires a session. The frontend's `useVoiceIO.transcribeAudio`
+and `transcribeAudioChunk` POSTed `multipart/form-data` via axios but
+**never set `withCredentials: true`**, so the browser never sent the
+session_token cookie → 401 Not authenticated → both STTs silently
+failed (no error toast, just no transcript).
+
+### 🟢 Fix
+
+Added `{ withCredentials: true }` to both `axios.post` calls in
+`useVoiceIO.js`. Two-line edit. Verified end-to-end with a live curl
+against the route using a session cookie — `text: ""` returned (200 OK)
+for a sine-wave test audio (no speech to transcribe = empty text is
+correct). Real speech will transcribe normally.
+
+This fixes BOTH STTs:
+- Composer mic (tap mic in chat composer → dictate → text inserted)
+- Full Voice mode (hands-free loop with auto-rearm)
+
+both call the same `transcribeAudio` hook.
+
+---
+
 ## 2026-04-26 — Feature catalog auto-sync (single source of truth)
 
 User: "Anything we do needs to be represented in the documentation on the

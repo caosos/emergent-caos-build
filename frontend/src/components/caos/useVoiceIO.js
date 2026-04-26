@@ -18,7 +18,7 @@ export const useVoiceIO = ({ userEmail, voiceSettings }) => {
     form.append("fallback_model", voiceSettings.stt_fallback_model);
     form.append("language", voiceSettings.stt_language);
     form.append("file", new File([blob], filename, { type: blob.type || "audio/webm" }));
-    const response = await axios.post(`${API}/caos/voice/transcribe`, form);
+    const response = await axios.post(`${API}/caos/voice/transcribe`, form, { withCredentials: true });
     return response.data;
   }, [userEmail, voiceSettings.stt_fallback_model, voiceSettings.stt_language, voiceSettings.stt_primary_model]);
 
@@ -30,7 +30,7 @@ export const useVoiceIO = ({ userEmail, voiceSettings }) => {
     form.append("language", voiceSettings.stt_language);
     if (prompt.trim()) form.append("prompt", prompt.slice(-180));
     form.append("file", new File([blob], filename, { type: blob.type || "audio/webm" }));
-    const response = await axios.post(`${API}/caos/voice/transcribe`, form);
+    const response = await axios.post(`${API}/caos/voice/transcribe`, form, { withCredentials: true });
     return response.data;
   }, [userEmail, voiceSettings.stt_fallback_model, voiceSettings.stt_language, voiceSettings.stt_primary_model]);
 
