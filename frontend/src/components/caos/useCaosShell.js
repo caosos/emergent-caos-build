@@ -604,7 +604,7 @@ export const useCaosShell = (authenticatedUser = null) => {
 
   return {
     artifacts, busy, continuity, createSession, currentSession, deleteSession, error, filteredMessages,
-    files, lastTurn, links, messages, multiAgentMode, profile, renameSession, runtimeSettings, searchQuery,
+    files, lastTurn, links, loadSessions, messages, multiAgentMode, profile, renameSession, runtimeSettings, searchQuery,
     selectSession, sendMessage, sessions, setMultiAgentMode, setSearchQuery, commitUserEmail,
     saveLink, saveMemory, speakText, status, toggleFlagSession, transcribeAudio, transcribeAudioChunk,
     updateMemory, updateProfile, updateRuntimeSelection, updateVoiceSettings, uploadFile,

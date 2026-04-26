@@ -1439,6 +1439,7 @@ body .command-footer,
 .caos-shell-root > .swarm-panel-backdrop,
 .caos-shell-root > .admin-docs-backdrop,
 .caos-shell-root > .memory-console-backdrop,
+.caos-shell-root > .quick-capture-backdrop,
 .caos-shell-root > .image-lightbox-backdrop {
   position: fixed !important;
   inset: 0 !important;

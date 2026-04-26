@@ -50,7 +50,7 @@
    be silently re-anchored to the document flow (e.g. dumped at bottom-left
    instead of top-right). The thread-search-panel was hit by this and its
    `right: 20px` was being ignored. */
-.caos-shell-root > *:not([data-testid="caos-constellation-layer"]):not(.thread-search-panel):not(.inspector-panel):not(.previous-threads-panel):not(.drawer-overlay):not(.command-footer):not(.admin-dashboard-overlay):not(.caos-header):not(.memory-console-backdrop):not(.support-tickets-backdrop):not(.swarm-panel-backdrop):not(.admin-docs-backdrop) {
+.caos-shell-root > *:not([data-testid="caos-constellation-layer"]):not(.thread-search-panel):not(.inspector-panel):not(.previous-threads-panel):not(.drawer-overlay):not(.command-footer):not(.admin-dashboard-overlay):not(.caos-header):not(.memory-console-backdrop):not(.quick-capture-backdrop):not(.support-tickets-backdrop):not(.swarm-panel-backdrop):not(.admin-docs-backdrop) {
   position: relative;
   z-index: 1;
 }

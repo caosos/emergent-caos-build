@@ -28,6 +28,7 @@ export const ShellHeader = ({
   onNewThread,
   onOpenAdminDashboard,
   onOpenAdminDocs,
+  onOpenCaptures,
   onOpenFiles,
   onOpenInspector,
   onOpenMemory,
@@ -82,6 +83,7 @@ export const ShellHeader = ({
           onNewThread={onNewThread}
           onOpenAdminDashboard={onOpenAdminDashboard}
           onOpenAdminDocs={onOpenAdminDocs}
+          onOpenCaptures={onOpenCaptures}
           onOpenFiles={onOpenFiles}
           onOpenMemory={onOpenMemory}
           onOpenProfile={onOpenProfile}

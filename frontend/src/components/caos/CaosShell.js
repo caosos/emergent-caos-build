@@ -17,6 +17,7 @@ import { ProfileDrawer } from "@/components/caos/ProfileDrawer";
 import { ConnectorsDrawer } from "@/components/caos/ConnectorsDrawer";
 import { MemoryConsoleDrawer } from "@/components/caos/MemoryConsoleDrawer";
 import { PricingDrawer } from "@/components/caos/PricingDrawer";
+import { QuickCaptureDrawer } from "@/components/caos/QuickCaptureDrawer";
 import { SwarmPanel } from "@/components/caos/SwarmPanel";
 import { SearchDrawer } from "@/components/caos/SearchDrawer";
 import { ShellHeader } from "@/components/caos/ShellHeader";
@@ -30,6 +31,7 @@ import "./caos-base44-parity.css";
 import "./caos-base44-parity-v2.css";
 import "./caos-base44-parity-v3.css";
 import "./memory-console.css";
+import "./quick-capture.css";
 
 
 export const CaosShell = ({ authenticatedUser }) => {
@@ -43,6 +45,7 @@ export const CaosShell = ({ authenticatedUser }) => {
   const [showProfile, setShowProfile] = useState(false);
   const [showConnectors, setShowConnectors] = useState(false);
   const [showMemoryConsole, setShowMemoryConsole] = useState(false);
+  const [showQuickCapture, setShowQuickCapture] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showSwarm, setShowSwarm] = useState(false);
@@ -148,6 +151,7 @@ export const CaosShell = ({ authenticatedUser }) => {
     files,
     lastTurn,
     links,
+    loadSessions,
     multiAgentMode,
     renameSession,
     searchQuery,
@@ -375,6 +379,7 @@ export const CaosShell = ({ authenticatedUser }) => {
         onNewThread={() => { createSession("New Thread"); }}
         onOpenAdminDashboard={openAdminDashboard}
         onOpenAdminDocs={openAdminDocs}
+        onOpenCaptures={() => setShowQuickCapture(true)}
         onOpenFiles={(filter) => { setArtifactsFilter(filter || "files"); setShowArtifacts(true); }}
         onOpenInspector={() => setShowInspector(true)}
         onOpenMemory={() => setShowMemoryConsole(true)}
@@ -528,6 +533,21 @@ export const CaosShell = ({ authenticatedUser }) => {
       <MemoryConsoleDrawer
         isOpen={showMemoryConsole}
         onClose={() => setShowMemoryConsole(false)}
+        userEmail={userEmail}
+      />
+      <QuickCaptureDrawer
+        isOpen={showQuickCapture}
+        onClose={() => setShowQuickCapture(false)}
+        onPromoted={async (sessionId) => {
+          // After promote-to-chat, close the drawer and load the new session
+          // so the user lands directly on Aria's reply context.
+          setShowQuickCapture(false);
+          try {
+            const fresh = await loadSessions();
+            const target = fresh.find((s) => s.session_id === sessionId);
+            if (target) selectSession(target);
+          } catch { /* non-fatal */ }
+        }}
         userEmail={userEmail}
       />
       <PricingDrawer

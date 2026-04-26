@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, BookOpen, Brain, ChevronDown, ChevronRight, FileText, History, Image as ImageIcon, LayoutDashboard, LifeBuoy, Link2, LogOut, Monitor, PlusCircle, Sparkles, UserCircle, Zap, Shield } from "lucide-react";
+import { Bot, BookOpen, Brain, ChevronDown, ChevronRight, FileText, History, Image as ImageIcon, Inbox, LayoutDashboard, LifeBuoy, Link2, LogOut, Monitor, PlusCircle, Sparkles, UserCircle, Zap, Shield } from "lucide-react";
 
 const LABELS = { openai: "OpenAI", anthropic: "Claude", gemini: "Gemini", xai: "Grok" };
 
@@ -27,6 +27,7 @@ export const AccountMenu = ({
   onNewThread,
   onOpenAdminDashboard,
   onOpenAdminDocs,
+  onOpenCaptures,
   onOpenFiles,
   onOpenMemory,
   onOpenProfile,
@@ -141,6 +142,10 @@ export const AccountMenu = ({
           <button className="inspector-menu-item" data-testid="caos-account-menu-memory" onClick={pick(onOpenMemory)} type="button">
             <Brain size={14} /><span>Memory Console</span>
             <em style={{ marginLeft: "auto", fontSize: 10, color: "rgba(167, 139, 250, 0.85)" }}>NEW</em>
+          </button>
+          <button className="inspector-menu-item" data-testid="caos-account-menu-captures" onClick={pick(onOpenCaptures)} type="button">
+            <Inbox size={14} /><span>Quick Capture</span>
+            <em style={{ marginLeft: "auto", fontSize: 10, color: "rgba(110, 231, 183, 0.95)" }}>NEW</em>
           </button>
           <div className="inspector-menu-engine-row" data-testid="caos-account-menu-engine-row">
             <button

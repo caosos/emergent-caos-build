@@ -1,5 +1,100 @@
 # CAOS Changelog
 
+## 2026-04-25 (round 15) — Quick Capture Phase 1 (vendor-agnostic dump-and-go)
+
+User asked for an ADHD-friendly Work Mode: tap a button on phone, dictate
+or type a thought, sit down at desk later and triage. Bee Pioneer Band
+ordered ($49.99 + $19/mo). Bee API will plug in as Phase 2 when device
+arrives. Phase 1 ships the destination today — vendor-agnostic, works
+with manual entry, Apple Shortcut, any external script via API key.
+
+### 🟢 Schema + service + routes
+
+- **`captures`** MongoDB collection, schema in
+  `app/schemas/captures.py`. Each capture: id, user_email, text,
+  source (manual/shortcut/bee_pendant/api/voice), status
+  (new/promoted/dismissed), captured_at, optional location +
+  lat/lng, optional `promoted_session_id`, atoms_extracted counter.
+- **`user_api_keys`** collection — one personal `caos_xxxxx` bearer
+  token per user. Plaintext shown ONCE at issuance, prefix-only
+  thereafter. Rotation invalidates the prior key immediately.
+- **`captures_service.py`** — CRUD + promote-to-chat
+  + auto-extraction wiring. Every new capture flows through the same
+  `memory_extractor.schedule_extraction` path as a chat turn (so
+  important facts file into the 13 typed bins automatically),
+  fire-and-forget.
+- **`routes/captures.py`** — owner-gated for the UI:
+  - `POST /api/caos/captures` — dual-auth ingest (cookie session for
+    in-app form, Bearer `caos_xxx` for Apple Shortcut / Bee / scripts).
+    Cookie path takes precedence when both present.
+  - `GET /api/caos/captures` — list user's captures + per-status counts
+  - `POST /api/caos/captures/{id}/dismiss` — soft-archive
+  - `DELETE /api/caos/captures/{id}` — hard delete
+  - `POST /api/caos/captures/{id}/promote` — spawns a new chat session
+    with the capture text as the opening user message, marks the
+    capture as `promoted`, returns `{capture_id, session_id, message_id}`
+  - `GET /api/caos/api-key` — returns prefix + issued_at + last_used_at
+    (never plaintext)
+  - `POST /api/caos/api-key/rotate` — generates fresh key, returns
+    plaintext ONCE
+
+### 🟢 Quick Capture drawer UI
+
+- **`QuickCaptureDrawer.js`** — sticky-note inbox.
+- Composer with Ctrl/Cmd+Enter shortcut + manual text dump.
+- Filter tabs: New / Promoted / Dismissed / All with live counts.
+- Color-coded source pills (manual=blue, shortcut=green, bee=yellow,
+  api=purple, voice=orange).
+- Each card: source pill, location pill, relative timestamp,
+  atoms-extracted pill, full text, action buttons (Promote/Dismiss/Delete).
+- "Promote to chat" → spawns new session, closes drawer, auto-loads the
+  promoted thread via `loadSessions` + `selectSession`.
+- API key panel (collapsible header button): shows prefix + issued/used
+  metadata, rotate button (with confirmation if existing), one-shot
+  plaintext display + clipboard copy after rotation, Apple Shortcut code
+  snippet pre-filled in a `<details>` for instant copy-paste.
+
+### 🟢 Wiring
+
+- Account menu → "Quick Capture · NEW" item.
+- ShellHeader forwards `onOpenCaptures` prop.
+- CaosShell wires drawer state + `onPromoted` callback that auto-loads
+  the new chat thread.
+- CSS in `quick-capture.css` (greenish accent — distinct from Memory
+  Console's purple).
+- Z-index exclusion added to `.caos-shell-root > *:not(...)` so the
+  fixed-positioned backdrop covers the full viewport (same trap class
+  that bit the Memory Console drawer).
+
+### 🧪 Verified end-to-end
+
+- API key issued + prefix returned correctly
+- POST capture via Bearer API key (simulating Apple Shortcut) ✅
+- POST capture via cookie session (in-app form) ✅ — initially missed,
+  fixed mid-test by adding `Cookie session_token` resolution
+- GET list + counts ✅
+- Promote-to-chat creates session + message + flips capture status ✅
+- Frontend smoke screenshot: 4 captures rendered with correct source
+  pills, location chip ("@ warehouse"), promoted-status indicator,
+  filter tabs, API key panel showing prefix + last-used time + rotate
+  button + Apple Shortcut snippet.
+
+### Phase 2 plan (~20 calls when Bee arrives)
+
+When the Pioneer Band ships, add:
+- Connectors → "Bee" tile with `BEE_API_TOKEN` Fernet vault entry
+- Background poll job (every 2 min) hitting Bee's `/conversations`
+  + `/facts` endpoints, deduping on Bee's conversation IDs,
+  ingesting via the existing `captures` create path with
+  `source=bee_pendant`
+- Optional: Bee's "todos" map to ACTIVE_PROJECT bin entries directly,
+  bypassing the inbox
+
+Phase 2 reuses ALL of Phase 1's infrastructure — Bee just becomes
+another caller of the same ingest endpoint.
+
+---
+
 ## 2026-04-25 (round 14) — Vision unlocked across ALL engines
 
 User correctly called BS on "OpenAI/Claude only get a text description" —
