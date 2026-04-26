@@ -169,15 +169,26 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         prompt_sections["awareness_block"] = f"awareness unavailable ({str(awareness_error)[:80]})"
     system_prompt = build_system_prompt_from_sections(prompt_sections)
 
-    # Build file_contents for UserMessage — only attach actual files (skip links),
-    # cap to 10, skip files missing on disk. NOTE: emergentintegrations currently
-    # only supports file attachments for Gemini (Claude/GPT route attachments via
-    # a different API surface). For non-Gemini providers we rely on the system
-    # prompt's attachments block to let the AI know files exist by name/type.
+    # Build file_contents for UserMessage. emergentintegrations supports two
+    # attachment shapes:
+    #   - FileContentWithMimeType(file_path=..., mime_type=...)  → Gemini ONLY
+    #     (handles images + PDFs + arbitrary files via Google's File API)
+    #   - ImageContent(image_base64=...)  → OpenAI + Gemini (and we treat it
+    #     as best-effort for Claude — emergentintegrations routes it through
+    #     Claude's vision API; degrades gracefully if unsupported)
+    # We pick the right shape per provider so OpenAI/Claude actually SEE the
+    # pixels instead of getting a text description.
     from pathlib import Path as _Path
-    from emergentintegrations.llm.chat import FileContentWithMimeType
+    import base64 as _b64
+    from emergentintegrations.llm.chat import FileContentWithMimeType, ImageContent
+
+    _IMAGE_MIMES = {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"}
+    _VISION_MAX_PER_TURN = 5  # don't blow up the prompt
+    _VISION_MAX_BYTES = 8 * 1024 * 1024  # 8 MB per image — OpenAI/Claude cap
+
     file_contents: list = []
     if runtime["provider"] == "gemini":
+        # Gemini path: file_path attachment supports any file type.
         for doc in attachment_docs[:10]:
             storage_path = doc.get("storage_path")
             if not storage_path or doc.get("kind") == "link":
@@ -191,6 +202,40 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
                 ))
             except Exception as attach_error:
                 print(f"CAOS attachment skipped {doc.get('name')}: {attach_error}")
+    elif runtime["provider"] in {"openai", "anthropic"}:
+        # OpenAI / Claude path: only IMAGE files via base64 ImageContent.
+        # Non-image files (PDFs, etc.) still appear in the system-prompt
+        # `attachments_block` so Aria knows they exist by name.
+        attached = 0
+        for doc in attachment_docs:
+            if attached >= _VISION_MAX_PER_TURN:
+                break
+            mime = (doc.get("mime_type") or "").lower()
+            if mime not in _IMAGE_MIMES:
+                continue
+            storage_path = doc.get("storage_path")
+            if not storage_path or doc.get("kind") == "link":
+                continue
+            try:
+                # For object-storage uploads, storage_path may be a key, not a
+                # local file. Fetch via the storage layer if not on disk.
+                path_obj = _Path(storage_path)
+                if path_obj.exists():
+                    raw = path_obj.read_bytes()
+                else:
+                    from app.services.object_storage import get_object as _get_obj
+                    raw = _get_obj(storage_path)
+                if len(raw) > _VISION_MAX_BYTES:
+                    print(f"CAOS vision: skipping {doc.get('name')} — {len(raw)/1024/1024:.1f}MB > cap")
+                    continue
+                b64 = _b64.b64encode(raw).decode("ascii")
+                file_contents.append(ImageContent(image_base64=b64))
+                attached += 1
+            except Exception as attach_error:
+                # Non-fatal — let the chat proceed without this image rather
+                # than crashing the whole turn. The attachments_block in the
+                # system prompt still tells Aria the file exists.
+                print(f"CAOS vision attach failed {doc.get('name')}: {attach_error}")
 
     _mode_temp = {"fact": 0.1, "balanced": 0.3, "creative": 0.7}
     _temp = _mode_temp.get(getattr(profile, "chat_mode", "balanced"), 0.3)

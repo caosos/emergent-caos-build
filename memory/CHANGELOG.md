@@ -1,5 +1,64 @@
 # CAOS Changelog
 
+## 2026-04-25 (round 14) — Vision unlocked across ALL engines
+
+User correctly called BS on "OpenAI/Claude only get a text description" —
+those models absolutely have vision. The bug was in CAOS gating image
+attachments behind a `provider == "gemini"` check. Fixed.
+
+### 🟢 Three providers, three attachment shapes
+
+`chat_pipeline.run_chat_turn` now branches per provider with the right
+emergentintegrations attachment shape:
+
+| Provider | Shape | What it carries |
+|----------|-------|-----------------|
+| Gemini | `FileContentWithMimeType(file_path, mime_type)` | Any file (images + PDFs + arbitrary binaries via Google File API) |
+| OpenAI | `ImageContent(image_base64=...)` | Image only — base64 of the file bytes |
+| Anthropic | `ImageContent(image_base64=...)` | Image only — base64 of the file bytes |
+
+Implementation details:
+- Image MIME whitelist: `image/jpeg`, `image/jpg`, `image/png`,
+  `image/webp`, `image/gif`. Non-image files still appear in the system
+  prompt's `attachments_block` so the model knows they exist by name.
+- 8 MB per-image cap (OpenAI/Claude API limit) — oversized files skipped
+  with a console warning rather than crashing the turn.
+- 5-image-per-turn cap so a chatty user can't blow up the context.
+- Fall-through to object-storage fetch via `get_object(storage_path)` if
+  the file isn't on local disk (works for both backends).
+- Errors are non-fatal — a single bad attachment skips that file but the
+  chat turn proceeds.
+
+### 🟢 Bonus — system prompt vision flag now correct
+
+`prompt_builder.provider_supports_vision` now returns True for
+gemini / openai / anthropic (was gemini-only). The
+`attachments_block` rendered into the system prompt now reads
+naturally for all three providers.
+
+### 🧪 Verified end-to-end against ALL three providers
+
+Created a test JPEG with a recognizable feature (red rectangle on white
+background) and sent the same prompt ("What shape and color is in this
+image?") through:
+
+- **OpenAI gpt-5.2**: replied "Red rectangle." ✅
+- **Claude Sonnet 4.5** (claude-sonnet-4-5-20250929): replied "Red
+  rectangle." ✅
+- **Gemini 2.5 Flash**: replied "Red rectangle." ✅
+
+All three saw the actual pixels. No more "AI can't see your photos"
+limitation.
+
+### Note for the user
+
+If you uploaded photos BEFORE this fix shipped and tried to ask Aria
+about them on the OpenAI/Claude route, she only saw a text description
+("File 1: photo.jpg, 245 KB"). Re-attach those photos to a new turn
+(or switch to Gemini for the legacy ones) and she'll see them properly.
+
+---
+
 ## 2026-04-25 (round 13) — Image lightbox bug fix (HEIC + portal)
 
 User: "When you send a photo to CAOS and click the viewer, it doesn't show

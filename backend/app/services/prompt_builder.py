@@ -93,7 +93,7 @@ def build_prompt_sections(
     personal_facts, structured_memory = _split_memories(injected_memories)
     global_entries = global_info_entries or []
     attachment_items = attachments or []
-    provider_supports_vision = provider == "gemini"
+    provider_supports_vision = provider in {"gemini", "openai", "anthropic"}
     return {
         "assistant_name": profile.assistant_name or "Aria",
         "preferred_name": profile.preferred_name or "the user",
