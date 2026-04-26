@@ -225,12 +225,12 @@ This single feature unlocks Notion, Linear, Stripe (as MCP), Sentry, Filesystem,
    - Create OAuth 2.0 Client ID, type "Web application"
    - **Authorized JavaScript origins**: paste these EXACTLY
      ```
-     https://caos-workspace-1.preview.emergentagent.com
+     https://caos-command-center.preview.emergentagent.com
      https://caosos.com
      ```
    - **Authorized redirect URIs**: paste these EXACTLY
      ```
-     https://caos-workspace-1.preview.emergentagent.com/auth/google-connectors-callback
+     https://caos-command-center.preview.emergentagent.com/auth/google-connectors-callback
      https://caosos.com/auth/google-connectors-callback
      ```
    - Copy the **Client ID** and **Client Secret** — give to me to put in `backend/.env`.

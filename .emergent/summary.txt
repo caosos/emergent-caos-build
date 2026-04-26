@@ -1,0 +1,177 @@
+<analysis>**original_problem_statement**: 
+The user wants to replatform CAOS (Cognitive Adaptive Operating System) into a modular React + FastAPI + MongoDB full-stack architecture.
+PRODUCT REQUIREMENTS:
+1. Build a command-center style shell with persistent thread continuity, live Context Window (WCW) metering, artifacts, and receipts.
+2. Integrate advanced Python memory architectures (CAOS MEMORY SCAFFOLDING BLUEPRINT) with 13 explicit memory bins, provenance anchors, counterevidence, and exact injection receipts.
+3. Maintain exact UI parity with user's original Base44 layout.
+4. Add token-based freemium tiers (Stripe) and an admin dashboard.
+5. Provide a vast array of Connectors (Google Workspace, MCP, Obsidian, GitHub, Slack).
+
+**User's preferred language**: English (INSTRUCT next agent to respond in English only)
+
+**what currently exists?** 
+A highly functional, production-ready React + FastAPI + MongoDB app. It includes a robust token quota system, Full Voice mode, dynamic context window scaling, Connectors Hub, Phase 1-3 of the Memory Scaffolding Blueprint (autonomous extraction, 13 memory bins, provenance tracking), Quick Capture inbox system, Vision support, and API-driven TTS. 
+
+**Last working item**: 
+    - Last item agent was working: The agent investigated three new issues (Latency spike, PDF parsing failure, missing  tool), found the root causes, and presented two fix paths for the PDF issue along with cost estimates. The user rejected Path A (auto-routing PDFs to Gemini), explicitly requested to fork the conversation, requested all documentation/blueprints be updated, and demanded the next agent explain *why* it wanted to mess with the manual engine routing logic.
+    - Status: BLOCKED (Requires immediate explanation to the user regarding the PDF routing suggestion before implementing fixes).
+    - Agent Testing Done: N
+    - Which testing method agent to use? manual testing by curl/ python -c / screenshot tool. (CRITICAL: NEVER USE  due to strict user budget).
+    - User Testing Done: N
+
+**All Pending/In progress Issue list**: 
+  Issue 1: Address User's Question regarding PDF Routing (P0)
+     - Attempted fixes: None. 
+     - Next debug checklist: Respond directly to the user's latest message. Explain *why* Path A was suggested: Gemini's API natively handles PDF files, while OpenAI/Claude APIs require text to be extracted *before* sending. Acknowledge the user's valid point that overriding their manual engine selector is bad UX. Recommend Path B (server-side text extraction using a library like ) so *all* engines can read PDFs without altering the user's routing logic. Await their final go to implement Path B.
+     - Why fix this issue and what will be achieved with the fix?: Restores user trust, clarifies technical constraints, and unlocks the actual PDF fix.
+     - Status: NOT STARTED (Pending user response)
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? NA
+     - Blocked on other issue: None
+
+  Issue 2: Latency spike (response time doubled/tripled) (P1)
+     - Attempted fixes: Root cause identified. In , when connectors are enabled, the LLM is called twice sequentially (first call is discarded). 
+     - Next debug checklist: Update . Pre-build connector tool manuals into the initial  instead of making a discarded LLM call. Also, wrap the 6 sequential DB awaits before the LLM call in  to shave off extra ms.
+     - Why fix this issue and what will be achieved with the fix?: Restores real-time interactivity and halves token spend per turn.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Backend
+
+  Issue 3: PDF viewing regression (can't read uploaded PDFs) (P1)
+     - Attempted fixes: Identified that OpenAI/Claude only receive filename strings instead of actual file contents.
+     - Next debug checklist: Implement server-side text extraction (e.g., using ) in  (or a dedicated extractor). Store  and inject it into the system prompt for *all* engines (Implementing Path B from previous estimates).
+     - Why fix this issue and what will be achieved with the fix?: Fulfills user expectation for the AI to parse documents regardless of the selected engine.
+     - Status: NOT STARTED
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix? Backend
+
+  Issue 4: Missing  tool for Aria (P1)
+     - Attempted fixes: Root cause identified.  has only read-only tools.
+     - Next debug checklist: Create a new sandboxed  in . Ensure size caps (e.g., 256KB), validate filenames to prevent path traversal, save via , insert a  DB row, and return the file ID/URL. Update the prompt builder so Aria knows the tool exists.
+     - Why fix this issue and what will be achieved with the fix?: Allows Aria to autonomously generate and save reports/deliverables.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Both
+
+**In progress Task List**:
+  Task 1: Update Blueprints and Documentation (P0)
+     - Where to resume: Review recent completed work (Memory Scaffolding, Quick Capture, TTS). Update , , and  to reflect the current state of the application.
+     - What will be achieved with this?: Fulfills the user's explicit request in their final message before the fork. 
+     - Status: NOT STARTED
+     - Should Test frontend/backend/both after fix? NA
+     - Blocked on something: None
+
+**Upcoming and Future Tasks**
+    Upcoming Tasks:
+    - Bee Pendant Connector (Phase 2): Polling job to pull device transcripts into Quick Capture inbox (P2 - Blocked until user receives physical device).
+    - Memory Scaffolding Phase 4: Counterevidence engine (P3 - Deferred until production data accumulates).
+    - Cross-platform conversation import: Upload ChatGPT/Claude JSON exports to backfill Memory Bins (P3).
+    - Build Spec CTO tool for Aria: Allow Aria to write  files for other coding agents to execute (P3).
+    - Budget alert / Personal spend view / Error drill-down (P2)
+    - Google Drive / Calendar / Stripe billing integrations (P3)
+
+**Completed work in this session**
+- Memory Scaffolding Phase 1 & 2 (Schema, Migration, Console Drawer UI, Autonomous turn-by-turn extraction) (DONE)
+- Memory Pulse UI (DONE)
+- Memory Scaffolding Phase 3 & 5 lite (Bin-aware relevance scoring, Why did you say that? popover) (DONE)
+- Memory Backfill Service & Provenance Tracking (DONE)
+- Platform Topology Injection (DONE)
+- Quick Capture Destination Phase 1 (DONE)
+- Image/Vision support fixed across OpenAI and Claude (DONE)
+- API-driven TTS (OpenAI) applied to Message Bubble Read Aloud button (DONE)
+- Investigated Latency, PDF, and  issues and documented root causes (DONE)
+
+**Earlier issues found/mentioned but not fixed**
+   - Issue 1: STT stop button has visible latency before processing
+     - Debug checklist: Composer UI needs explicit Processing... state immediately on click.
+     - Why to solve this issue and what will be achieved with this? User UX polish; prevents user from thinking it froze.
+     - Should Test frontend/backend/both after fix: Frontend
+     - Is recurring issue? N
+
+**Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork: **CREDIT PANIC / EXTREME BUDGET SENSITIVITY.**
+  - Recurrence count: 16+
+  - Status: ONGOING
+  - Note: **CRITICAL DIRECTIVE:** The user tracks token costs obsessively. **NEVER USE  OR SWARM SUBAGENTS.** When investigating a bug or feature, you MUST provide receipts (code references/root cause) AND a cost estimate (credit count) FIRST, and get explicit user approval before executing the fix. Do not spend credits autonomously. 
+
+**Code Architecture**
+- Frontend: React in .
+- Backend: FastAPI in .
+
+**Key Technical Concepts**
+React, FastAPI, MongoDB, LangGraph, Model Context Protocol (MCP), Autonomous Extraction, Idempotent Backfills, Pillow-heif Transcoding.
+
+**key DB schema**
+  -  /  /  (Governed memory architecture)
+  -  (Tracks processed messages for idempotency)
+  -  (Inbox items for Quick Capture)
+
+**changes in tech stack**
+  - Added  and  dependencies recently.
+  - (Planned): Will likely need  for the PDF fix.
+
+**All files of reference** 
+  - 
+  - 
+  - 
+  - 
+  -  & 
+
+**Areas that need refactoring**: 
+- Ensure any new UI drawers or fixed popovers are excluded from the  styling in .
+
+**key api endpoints**
+- 
+- 
+- 
+
+**Critical Info for New Agent** 
+1. **NO TESTING SUBAGENTS.** Use manual , , and  only.
+2. **THE USER IS ANGRY ABOUT THE ROUTING SUGGESTION:** The previous agent suggested dynamically changing the user's engine to Gemini when a PDF is uploaded because Gemini's API supports native PDF parsing, whereas OpenAI/Claude require text extraction first. The user hated this idea (Why do you wanna mess with the routing?).
+3. **IMMEDIATE NEXT STEP:** Use the  tool to reply to the user. Explain the technical constraint (OpenAI/Claude need raw text extracted first), validate their frustration (agree that their manual selector should dictate the engine), and propose using Path B (server-side extraction using ) to fix the PDF issue cleanly across all engines. Provide the list of upcoming fixes as they requested. 
+4. Update the blueprints/PRD files immediately as requested by the user.
+
+**documents and test reports created in this job** 
+  - 
+  - 
+  - 
+
+**Last 10 User Messages and any pending HUMAN messages** 
+- (User) Complained STT read-aloud wasn't working. Demanded cost estimates *before* fixes.
+- (Agent) Provided receipts and a cost estimate for Option A vs Option B.
+- (User) Approved Option B (API-driven TTS).
+- (Agent) Implemented API TTS and verified with curl.
+- (User) Forwarded a list of 3 issues (Latency spike, PDF viewing regression, Missing  tool).
+- (Agent) Investigated all 3. Suggested Path A (auto-route to Gemini) or Path B (extract text) for PDFs.
+- (User) Got confused and frustrated by Path A. Asked why the agent wants to mess with the manual routing logic, requested to fork the conversation, demanded a full list of everything that needs to be done, requested documentation/blueprint updates, and demanded the next AI read the platform and explain the PDF reasoning. 
+- *Pending Human Message*: You must respond to the user's frustration regarding PDF routing, explain the technical constraints of OpenAI/Claude vs Gemini, validate their choice to use Path B (server-side extraction), and provide the consolidated to-do list they requested.
+
+**Project Health Check:**
+Healthy.
+
+**3rd Party Integrations** 
+- OpenAI, Claude, Gemini (Emergent LLM Key via emergentintegrations)
+- Whisper STT / OpenAI TTS (Emergent LLM Key via emergentintegrations)
+- Emergent-managed Google OAuth
+- Stripe (Billing) (Requires User API Key)
+- GitHub (User PAT)
+
+**Testing status**
+  - Testing agent used after significant changes: NO (Prohibited by budget constraints)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: None
+  - Known regressions: PDF viewing / text extraction currently failing. Latency spikes introduced by recent architecture additions.
+
+**Credentials to test flow:**
+Check .
+
+**What agent forgot to execute**
+The agent did not update the PRD/Blueprints to reflect the completed work before the user triggered the fork.
+
+**Debugging checklist for current issue**
+    Task: Answer the user's question, update docs, and await approval to implement the 3 fixes.
+    Files to check: 
+    - ,  (Update these immediately).
+    -  (For latency fix).
+    -  (For Path B PDF fix).
+    -  (For  tool).</analysis>

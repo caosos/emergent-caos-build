@@ -9,7 +9,7 @@ import requests
 import time
 
 # Configuration
-BASE_URL = "https://caos-workspace-1.preview.emergentagent.com"
+BASE_URL = "https://caos-command-center.preview.emergentagent.com"
 API_BASE = f"{BASE_URL}/api"
 
 def create_test_user() -> str:

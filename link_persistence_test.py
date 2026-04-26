@@ -10,7 +10,7 @@ import time
 from typing import Dict, Any, List
 
 # Configuration from review request
-BASE_URL = "https://caos-workspace-1.preview.emergentagent.com"
+BASE_URL = "https://caos-command-center.preview.emergentagent.com"
 API_BASE = f"{BASE_URL}/api"
 AUTH_HEADER = "Bearer test_session_b82ef2e35c02445c821a01d02179530a"
 TEST_USER_EMAIL = "seeded@example.com"

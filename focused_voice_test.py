@@ -12,7 +12,7 @@ import tempfile
 from pathlib import Path
 
 # Configuration
-BASE_URL = "https://caos-workspace-1.preview.emergentagent.com/api"
+BASE_URL = "https://caos-command-center.preview.emergentagent.com/api"
 TEST_USER_EMAIL = "voice.test@emergentagent.com"
 
 def log_test(test_name, status, details=""):

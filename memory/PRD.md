@@ -1,8 +1,29 @@
 # CAOS — Emergent Replatform PRD (LIVE)
 
-> **Latest changes:** Memory Scaffolding Phase 1 + 2 (Apr 25, 2026 — typed
-> bins, Memory Console, autonomous extraction). See
-> `/app/memory/CHANGELOG.md` for the full timeline.
+> **Latest changes:** Memory Scaffolding Phase 1 + 2 (Apr 25, 2026), Quick
+> Capture inbox (Apr 25), Vision/HEIC support (Apr 26), API-driven TTS
+> (Apr 26). See `/app/memory/CHANGELOG.md` for the full timeline.
+>
+> **NEW FORK HANDOFF (Apr 26, 2026):** see `/app/memory/FORK_HANDOFF_2026_04_26.md`
+> for the 3 pending issues (Latency / PDF / write_file) with line-level receipts
+> and credit estimates. The next agent MUST read that file before touching code.
+
+## Active Issues (Apr 26, 2026 — investigated, not yet fixed)
+
+1. **Latency spike (P0)** — `chat_pipeline.py` line 310-317 runs the LLM twice
+   when any connector is enabled. Doubles tokens + latency per turn. Fix: move
+   connector tool prompts into the initial `system_message`. ~25 credits.
+2. **PDF reading regression (P1)** — OpenAI/Claude only see PDF filenames, not
+   contents (only Gemini gets `FileContentWithMimeType`). Fix: server-side
+   text extraction with `pypdf` on upload, inject into prompt for ALL engines.
+   Path A (auto-route to Gemini) was REJECTED by user — never propose again.
+   ~35 credits.
+3. **`write_file` tool missing (P1)** — Aria can't save reports/trackers back
+   to the user's CAOS Files. Fix: new `[TOOL: write_file name=... content=...]`
+   in `aria_tools.py`. ~30 credits.
+
+User has NOT approved any fix yet. Wait for explicit "GO".
+
 
 ## Original Problem Statement
 Port Base44 CAOS (Deno serverless) to clean React + FastAPI + MongoDB on Emergent. Preserve behaviors, governance, and UX from the Base44 live build. Aria = persona, CAOS = platform.
