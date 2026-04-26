@@ -1,5 +1,84 @@
 # CAOS Changelog
 
+## 2026-04-25 (round 13) — Image lightbox bug fix (HEIC + portal)
+
+User: "When you send a photo to CAOS and click the viewer, it doesn't show
+anything. It's like cloudy and the same schema color, but you don't see
+anything." Three independent causes diagnosed and fixed:
+
+### 🟢 Cause #1 — HEIC photos uploaded from iPhone
+
+Modern iPhones save photos as `image/heic`. Mainstream browsers
+(Chrome, Firefox, even most Safari versions) **cannot render HEIC in
+`<img>` tags**. The upload succeeds, the bytes are stored, but the
+chat thumbnail and lightbox both render as invisible broken images
+against the dark theme — exactly the "cloudy + same color, can't see
+anything" symptom.
+
+**Fix**: server-side auto-transcode HEIC/HEIF → JPEG at upload time.
+- Added `pillow-heif==1.3.0` to `requirements.txt`
+- `file_storage.save_upload` now calls `_maybe_transcode_heic()` which
+  registers the HEIF opener once at module load, opens the bytes via
+  PIL, converts to RGB if needed (handles iPhone Live Photos with
+  alpha channels), and re-encodes as JPEG quality=88.
+- Filename extension swapped (`.heic` → `.jpg`), MIME swapped
+  (`image/heic` → `image/jpeg`).
+- Falls through to the original bytes if transcoding fails — better
+  to store a HEIC than drop the upload entirely.
+- Verified end-to-end: 474-byte HEIC uploaded → 737-byte JPEG
+  downloaded with magic bytes `ffd8ffe0` (valid JFIF).
+
+### 🟢 Cause #2 — `position: fixed` lightbox trapped inside `.message-pane`
+
+`.message-pane` has `backdrop-filter: blur(18px)` for the
+glass-morphism effect. Per CSS spec, ANY ancestor with
+`backdrop-filter` (or `transform`, `filter`, `perspective`,
+`will-change`) becomes the containing block for `position: fixed`
+descendants. So the lightbox's `inset: 0` was clipped to the
+message-pane's bounding rect (1823×340 in our test) instead of the
+full viewport (1920×1080).
+
+**Fix**: render the lightbox via `createPortal(jsx, document.body)`
+so it escapes ALL ancestor stacking contexts and sizes correctly to
+the viewport. Verified post-fix bbox is `1905×1080` with
+`parent: BODY`.
+
+### 🟢 Cause #3 — No `onError` fallback on the `<img>`
+
+If the image fails to load for ANY reason (corrupt upload, HEIC on
+old data, expired URL), the user just saw a black backdrop with
+nothing inside. Painful debugging UX.
+
+**Fix**: added `onError` / `onLoad` handlers on the lightbox `<img>`.
+On error, swaps to a friendly fallback panel:
+> **Image preview unavailable.**
+> The browser couldn't render `[filename]`. This usually happens with
+> HEIC photos uploaded before transcoding shipped, or a corrupted
+> upload.
+> [Open original in new tab]
+
+Plus accompanying CSS (`.image-lightbox-error`) — purple-bordered card
+with download link styled like other action buttons.
+
+### 🧪 Verified end-to-end
+
+Real HEIC roundtrip (created HEIC via PIL + pillow_heif, uploaded,
+downloaded the result, confirmed JPEG magic bytes). Live screenshot
+of the lightbox shows the image rendered at native size with the
+backdrop covering the FULL viewport, close button visible top-right,
+chat content properly dimmed below.
+
+### Note for users with legacy uploads
+
+Photos uploaded BEFORE this fix shipped were stored as raw HEIC. Those
+will hit the new `onError` fallback ("preview unavailable, open
+original in new tab"). The Open-in-new-tab link still serves the file
+correctly — Safari and recent macOS versions can render HEIC in a
+standalone tab even when `<img>` can't. New uploads going forward will
+auto-transcode and just work.
+
+---
+
 ## 2026-04-25 (round 12) — External AI / search-engine discoverability
 
 User: "Did you make it so AIs and search engines can see and know exactly

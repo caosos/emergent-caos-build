@@ -560,6 +560,38 @@ body .command-footer,
 }
 .image-lightbox-close:hover { background: rgba(255, 255, 255, 0.28); }
 
+/* Fallback panel when an image fails to render (e.g. legacy HEIC uploaded
+   before the auto-transcode shipped). Gives the user an actionable next
+   step instead of a silent black screen. */
+.image-lightbox-error {
+  background: rgba(15, 19, 36, 0.96);
+  border: 1px solid rgba(252, 165, 165, 0.4);
+  border-radius: 12px;
+  padding: 28px 32px;
+  max-width: min(520px, 90vw);
+  color: #f1efff;
+  font-size: 13.5px;
+  line-height: 1.55;
+  text-align: center;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55);
+}
+.image-lightbox-error p { margin: 0 0 10px; }
+.image-lightbox-error strong { color: #fca5a5; font-size: 14.5px; }
+.image-lightbox-error em { color: #fde68a; font-style: normal; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
+.image-lightbox-error a {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 8px 16px;
+  background: rgba(167, 139, 250, 0.18);
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  border-radius: 8px;
+  color: #c4b5fd;
+  text-decoration: none;
+  font-size: 12.5px;
+  transition: background-color 0.15s ease;
+}
+.image-lightbox-error a:hover { background: rgba(167, 139, 250, 0.3); }
+
 /* === Scroll-to-bottom floating button === */
 .message-pane {
   position: relative;

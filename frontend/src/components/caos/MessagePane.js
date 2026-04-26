@@ -36,6 +36,7 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
   const [messageMeta, setMessageMeta] = useState({});
   const [speakingId, setSpeakingId] = useState("");
   const [lightboxImage, setLightboxImage] = useState(null);
+  const [lightboxError, setLightboxError] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const scrollRef = useRef(null);
   const sessionScrollRef = useRef("");
@@ -510,26 +511,40 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
       </div>
       {actionStatus ? <div className="message-action-status" data-testid="caos-message-action-status">{actionStatus}</div> : null}
       {showScrollBottom ? (portalReady ? createPortal(scrollButton, document.body) : scrollButton) : null}
-      {lightboxImage ? (
+      {lightboxImage ? createPortal((
         <div
           className="image-lightbox-backdrop"
           data-testid="caos-image-lightbox-backdrop"
-          onClick={() => setLightboxImage(null)}
+          onClick={() => { setLightboxImage(null); setLightboxError(false); }}
         >
           <button
             aria-label="Close image"
             className="image-lightbox-close"
             data-testid="caos-image-lightbox-close"
-            onClick={(event) => { event.stopPropagation(); setLightboxImage(null); }}
+            onClick={(event) => { event.stopPropagation(); setLightboxImage(null); setLightboxError(false); }}
             type="button"
           >
             <X size={18} />
           </button>
           <div className="image-lightbox-inner" onClick={(event) => event.stopPropagation()}>
-            <img alt={lightboxImage.name} data-testid="caos-image-lightbox-image" src={lightboxImage.url} />
+            {lightboxError ? (
+              <div className="image-lightbox-error" data-testid="caos-image-lightbox-error">
+                <p><strong>Image preview unavailable.</strong></p>
+                <p>The browser couldn&apos;t render <em>{lightboxImage.name}</em>. This usually happens with HEIC photos uploaded before transcoding shipped, or a corrupted upload.</p>
+                <a href={lightboxImage.url} rel="noopener noreferrer" target="_blank" data-testid="caos-image-lightbox-download">Open original in new tab</a>
+              </div>
+            ) : (
+              <img
+                alt={lightboxImage.name}
+                data-testid="caos-image-lightbox-image"
+                onError={() => setLightboxError(true)}
+                onLoad={() => setLightboxError(false)}
+                src={lightboxImage.url}
+              />
+            )}
           </div>
         </div>
-      ) : null}
+      ), document.body) : null}
     </section>
   );
 };

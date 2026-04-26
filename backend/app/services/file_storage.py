@@ -3,9 +3,14 @@ falling back to a local ephemeral disk path only if storage init fails (dev).
 
 Returns a dict that matches the existing user_files schema (same keys as before)
 so the /files/upload route and downstream consumers don't need to change.
+
+HEIC/HEIF auto-transcode: iPhone photos upload as image/heic which no
+mainstream browser can render in `<img>` tags. We transcode to JPEG at
+upload time using `pillow-heif` so the chat thumbnail + lightbox just work.
 """
 from __future__ import annotations
 
+import io
 import logging
 import shutil
 import uuid
@@ -20,6 +25,48 @@ from app.services.object_storage import build_path, is_storage_ready, put_object
 LOCAL_FALLBACK_ROOT = Path("/app/backend/uploads")
 LOCAL_FALLBACK_ROOT.mkdir(parents=True, exist_ok=True)
 logger = logging.getLogger(__name__)
+
+
+# HEIC/HEIF support — register the opener once at module load so PIL.Image.open
+# can handle them throughout the process. Fails closed with a warning if the
+# native library is missing (we still accept the upload as raw HEIC; browser
+# just won't render the preview).
+_HEIF_AVAILABLE = False
+try:
+    import pillow_heif  # type: ignore[import-not-found]
+    pillow_heif.register_heif_opener()
+    _HEIF_AVAILABLE = True
+except Exception as exc:  # pragma: no cover
+    logger.warning("pillow-heif not available — HEIC uploads won't be transcoded: %s", exc)
+
+
+def _maybe_transcode_heic(raw: bytes, mime_type: str, name: str) -> tuple[bytes, str, str]:
+    """If `raw` is a HEIC/HEIF file and pillow-heif is available, transcode
+    it to JPEG so browsers can render it in `<img>` tags. Returns
+    `(bytes, mime_type, name)` — possibly the originals if no transcode
+    happened. Errors fall through to the original bytes (better to store
+    a HEIC the browser can't render than to drop the upload entirely).
+    """
+    is_heic = mime_type in {"image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence"}
+    if not is_heic or not _HEIF_AVAILABLE:
+        return raw, mime_type, name
+    try:
+        from PIL import Image
+        with Image.open(io.BytesIO(raw)) as img:
+            # Force RGB — HEICs from iPhone Live Photos sometimes have an
+            # alpha channel JPEG can't encode.
+            if img.mode not in ("RGB", "L"):
+                img = img.convert("RGB")
+            buf = io.BytesIO()
+            # Quality 88 keeps the photo crisp without doubling file size.
+            img.save(buf, format="JPEG", quality=88, optimize=True)
+            new_name = Path(name).with_suffix(".jpg").name
+            logger.info("HEIC transcoded to JPEG: %s → %s (%.1f KB → %.1f KB)",
+                        name, new_name, len(raw) / 1024, buf.tell() / 1024)
+            return buf.getvalue(), "image/jpeg", new_name
+    except Exception as exc:
+        logger.warning("HEIC transcode failed (storing original): %s", exc)
+        return raw, mime_type, name
 
 
 def _kind_for_upload(file: UploadFile) -> str:
@@ -43,16 +90,20 @@ def _save_local_fallback(file: UploadFile, user_id: str, session_id: str | None)
 
 async def save_upload(file: UploadFile, user: dict, session_id: str | None = None) -> dict:
     """Upload a file to durable object storage (or local fallback). `user` is the
-    authenticated user dict (user_id + email) from the auth dependency."""
+    authenticated user dict (user_id + email) from the auth dependency.
+    HEIC/HEIF photos are auto-transcoded to JPEG so browsers can render them.
+    """
     file_id = str(uuid.uuid4())
     user_id = user["user_id"]
     user_email = user["email"]
     name = file.filename or f"{file_id}.bin"
     mime_type = file.content_type or "application/octet-stream"
-    kind = _kind_for_upload(file)
+
+    raw = await file.read()
+    raw, mime_type, name = _maybe_transcode_heic(raw, mime_type, name)
+    kind = "photo" if mime_type.startswith("image/") else "file"
 
     if is_storage_ready():
-        raw = await file.read()
         storage_path = build_path(user_id, name, file_id)
         try:
             result = put_object(storage_path, raw, mime_type)
@@ -71,10 +122,16 @@ async def save_upload(file: UploadFile, user: dict, session_id: str | None = Non
             }
         except Exception as error:
             logger.warning("Object storage upload failed, falling back to disk: %s", str(error)[:200])
-            # Reset the UploadFile so the local fallback can re-read it.
-            await file.seek(0)
 
-    stored_path, size = _save_local_fallback(file, user_id, session_id)
+    # Local fallback — write the (possibly transcoded) bytes manually since
+    # we already consumed the UploadFile stream.
+    user_dir = LOCAL_FALLBACK_ROOT / user_id
+    if session_id:
+        user_dir = user_dir / session_id
+    user_dir.mkdir(parents=True, exist_ok=True)
+    extension = Path(name).suffix or ".bin"
+    stored_path = user_dir / f"{file_id}{extension}"
+    stored_path.write_bytes(raw)
     return {
         "id": file_id,
         "user_id": user_id,
@@ -83,8 +140,8 @@ async def save_upload(file: UploadFile, user: dict, session_id: str | None = Non
         "name": name,
         "kind": kind,
         "mime_type": mime_type,
-        "size": size,
-        "storage_path": stored_path,
+        "size": len(raw),
+        "storage_path": str(stored_path),
         "storage_backend": "local_ephemeral",
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
