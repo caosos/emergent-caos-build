@@ -454,6 +454,17 @@
   font-style: italic;
 }
 
+.memory-evidence-source-line {
+  font-size: 11.5px;
+  color: rgba(196, 181, 253, 0.95);
+  margin: 2px 0 4px;
+  letter-spacing: 0.01em;
+}
+.memory-evidence-source-line strong {
+  color: #f1efff;
+  font-weight: 600;
+}
+
 .memory-evidence-ref {
   font-family: 'JetBrains Mono', monospace;
   font-size: 9.5px;

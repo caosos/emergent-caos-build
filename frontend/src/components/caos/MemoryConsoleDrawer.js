@@ -480,10 +480,17 @@ const EvidencePanel = ({ atom, evidence, onClose }) => (
           <div className="memory-evidence-meta">
             <span className="memory-evidence-type">{e.source_type}</span>
             <span className="memory-evidence-strength">strength {Math.round((e.evidence_strength || 0) * 100)}%</span>
-            <span className="memory-evidence-date">{formatDate(e.created_at)}</span>
+            <span className="memory-evidence-date">
+              {formatDate(e.source_message_timestamp || e.created_at)}
+            </span>
           </div>
+          {e.source_session_title ? (
+            <div className="memory-evidence-source-line" data-testid={`caos-memory-evidence-source-${e.id}`}>
+              From: <strong>{e.source_session_title}</strong>
+            </div>
+          ) : null}
           <div className="memory-evidence-quote">{e.quote_or_anchor}</div>
-          {e.source_ref ? (
+          {e.source_ref && !e.source_session_title ? (
             <div className="memory-evidence-ref" title="Source reference">ref: {e.source_ref}</div>
           ) : null}
         </div>

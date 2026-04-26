@@ -298,7 +298,34 @@ async def list_evidence_for_atom(user_email: str, atom_id: str) -> list[MemoryEv
         {"user_email": user_email, "atom_id": atom_id},
         {"_id": 0},
     ).sort("created_at", -1).to_list(50)
-    return [MemoryEvidence(**doc) for doc in docs]
+    evidence_rows = [MemoryEvidence(**doc) for doc in docs]
+    # Provenance enrichment — for each evidence row whose `source_ref` is a
+    # message_id we know about, hydrate the session title + original
+    # message timestamp so the Memory Console can answer "where did Aria
+    # learn this?" with a real conversation name + date.
+    msg_refs = [e.source_ref for e in evidence_rows if e.source_ref]
+    if msg_refs:
+        msgs = await collection("messages").find(
+            {"id": {"$in": msg_refs}},
+            {"_id": 0, "id": 1, "session_id": 1, "timestamp": 1, "content": 1, "role": 1},
+        ).to_list(len(msg_refs))
+        msg_by_id = {m["id"]: m for m in msgs}
+        session_ids = list({m["session_id"] for m in msgs if m.get("session_id")})
+        sessions = await collection("sessions").find(
+            {"session_id": {"$in": session_ids}, "user_email": user_email},
+            {"_id": 0, "session_id": 1, "title": 1},
+        ).to_list(len(session_ids)) if session_ids else []
+        sess_by_id = {s["session_id"]: s for s in sessions}
+        for ev in evidence_rows:
+            msg = msg_by_id.get(ev.source_ref)
+            if not msg:
+                continue
+            sess = sess_by_id.get(msg.get("session_id", ""))
+            ev.source_session_id = msg.get("session_id")
+            ev.source_session_title = (sess or {}).get("title") or "Untitled thread"
+            ev.source_message_timestamp = msg.get("timestamp")
+            ev.source_message_role = msg.get("role")
+    return evidence_rows
 
 
 async def add_evidence_for_atom(user_email: str, *, atom_id: str, source_type: str,

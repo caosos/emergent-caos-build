@@ -1,5 +1,46 @@
 # CAOS Changelog
 
+## 2026-04-25 (round 10) — Provenance enrichment ("where did you learn this?")
+
+User: "they need to know that they come from certain conversations." Shipped.
+
+### 🟢 Evidence rows now carry source attribution
+
+`list_evidence_for_atom` now JOINs each evidence row's `source_ref`
+against `messages` + `sessions` to hydrate:
+- `source_session_id`
+- `source_session_title` (e.g. "Marketing strategy chat")
+- `source_message_timestamp`
+- `source_message_role`
+
+These are populated **read-side only** (never written to the
+`memory_evidence` collection) — so when sessions get renamed in the
+future, the provenance label updates automatically. No stale denorm.
+
+### 🟢 Evidence panel UI — "From: <session title>"
+
+The Memory Console's evidence side-panel now renders a purple
+"From: **Marketing strategy chat**" line above each quote, plus the
+real message timestamp instead of the evidence row's `created_at`.
+Falls back gracefully to `ref: <message_id>` for legacy evidence rows
+whose source can't be resolved (e.g. message was deleted).
+
+### 🧪 Verified end-to-end
+
+Seeded session "Marketing strategy chat" with 1 message, ran backfill,
+opened evidence panel — UI renders **"From: Marketing strategy chat"**
+on every atom. API response carries all four enriched fields.
+
+### 💡 Future possibility (logged, not built)
+
+User raised cross-platform conversation import (ChatGPT export,
+Claude export, Gemini Takeout). Existing "Mine past conversations"
+button is the natural home — would just need an "Import from other
+platform" sub-flow that parses the standard JSON export formats and
+feeds them through the same extractor + log. ~25 calls when desired.
+
+---
+
 ## 2026-04-25 (round 9) — Memory Backfill (per-user, global, idempotent)
 
 User asked: "Past conversations need to be loaded into those memory bins. Per

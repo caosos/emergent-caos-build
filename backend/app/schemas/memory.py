@@ -194,6 +194,14 @@ class MemoryEvidence(BaseModel):
     precision: str = "summary_anchor"  # exact_quote | summary_anchor
     evidence_strength: float = 0.7  # 0..1
     created_at: datetime = Field(default_factory=_utc_now)
+    # ---- Provenance enrichment (read-side only — populated by
+    # `list_evidence_for_atom` via JOINs against sessions/messages, never
+    # written directly). Lets the UI show "From: 'Marketing chat' on Apr 22"
+    # instead of just an opaque message_id.
+    source_session_id: Optional[str] = None
+    source_session_title: Optional[str] = None
+    source_message_timestamp: Optional[str] = None
+    source_message_role: Optional[str] = None
 
 
 # ---- Atom shape (extended MemoryEntry — keeps wire compat) ----------------
