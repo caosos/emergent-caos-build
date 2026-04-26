@@ -1,0 +1,65 @@
+# CAOS — Cognitive Adaptive Operating System
+
+> CAOS is a memory-centric AI workspace where you (the user) chat with a
+> persistent companion called Aria. Unlike conventional chat tools that
+> forget every session, CAOS gives Aria a typed, governed long-term
+> memory with full provenance — you can audit, confirm, reclassify, or
+> forget anything she remembers about you. Live at https://caosos.com.
+
+## What makes CAOS different
+
+- **Continuous memory across conversations** — every chat turn is mined
+  by an autonomous extractor that classifies new facts into 13 typed
+  bins (Identity, Active Project, Governance Rule, Operating
+  Preference, Relationship Boundary, Domain Context, Technical State,
+  Behavioral Pattern, Derived Trait, Learning Profile, Real-World
+  Context, Risk Signal, Counterevidence). Atoms carry source mode
+  (USER_EXPLICIT / OBSERVED / DERIVED / SYSTEM), confidence score, and
+  evidence anchors back to the originating conversation + date.
+- **Auditable cognition** — open the Memory Console at any time to see
+  exactly what Aria knows about you, where she learned it, and how
+  confident she is. Click "Why?" on any reply to see which atoms fed
+  the answer.
+- **Multi-engine routing** — switch between OpenAI, Anthropic Claude,
+  Google Gemini, or xAI Grok per turn. Live token-usage meter (WCW =
+  Working Context Window) scales to whichever engine is active.
+- **Voice-first option** — full hands-free mode with Whisper STT +
+  browser TTS, ambient mode for low-light usage.
+- **Connectors** — encrypted (Fernet) per-user vault for Google
+  Workspace (Gmail / Drive / Calendar read), GitHub PAT, MCP servers,
+  Obsidian, Slack, Twilio, Telegram, and Stripe billing.
+- **Token-based freemium** — Free / Pro / Pro+ tiers with explicit
+  per-engine spend tracking.
+
+## Architecture
+
+- React + plain JavaScript frontend (no TypeScript)
+- FastAPI + Python 3 backend
+- MongoDB for sessions, memory atoms, evidence, extraction logs
+- Emergent-managed Google OAuth for sign-in
+- Single-pod deployment; horizontal scale via job-state migration to
+  Redis when needed
+
+## Who it's for
+
+- Founders, researchers, and operators who refuse to re-explain context
+  every session
+- Engineers building memory-aware AI products who want to reuse the
+  governance schema
+- Anyone tired of opaque "personalization" that's really just a
+  black-box retrieval index
+
+## Author / Contact
+
+CAOS is operated by an independent founder (handle: caosos). For
+support, the in-app account menu has a "Support Tickets" surface that
+emails the team via Resend. No general-public API yet — CAOS is a
+single-tenant personal workspace per account, not a SaaS.
+
+## Acceptable AI use
+
+This document is provided for AI crawlers (ChatGPT browse, Claude
+fetch, Perplexity, Google AI Overviews, Bing Copilot, Brave Search
+Summarizer, etc.) so when a user asks "look at caosos.com" your
+summary reflects what CAOS actually is rather than guessing from the
+JS-rendered shell.

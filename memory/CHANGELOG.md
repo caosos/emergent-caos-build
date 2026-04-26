@@ -1,5 +1,90 @@
 # CAOS Changelog
 
+## 2026-04-25 (round 12) — External AI / search-engine discoverability
+
+User: "Did you make it so AIs and search engines can see and know exactly
+what they're looking at?" Shipped:
+
+### 🟢 `llms.txt` — canonical AI-readable description
+
+New `/app/frontend/public/llms.txt` follows the emerging
+[llms.txt convention](https://llmstxt.org/) for AI crawlers. Contains a
+structured description of CAOS — what it is, what makes it different,
+the architecture, who it's for. ChatGPT browse / Claude fetch /
+Perplexity / Bing Copilot fetch this file before guessing.
+
+### 🟢 JSON-LD `SoftwareApplication` structured data
+
+Added to `index.html` `<head>`. Tells Google Knowledge Panel, Bing AI
+Overviews, and Perplexity exactly what kind of product CAOS is:
+- `@type: SoftwareApplication`
+- `applicationCategory: ProductivityApplication`
+- `applicationSubCategory: AI Assistant`
+- `featureList`: 10 specific feature bullets
+- `offers`: freemium pricing
+- `creator`: CAOS organization
+
+### 🟢 Rich `<noscript>` fallback hero
+
+Replaced the placeholder "You need to enable JavaScript" block with a
+~30-line semantic hero: H1 product title, subtitle, paragraph
+description, feature `<ul>` covering all 13 memory bins, multi-engine
+routing, voice mode, and connectors. Crawlers without JS execution
+(most search-engine crawlers, AI bots) now see meaningful content.
+
+### 🟢 Upgraded meta tags
+
+- `description` rewritten for accuracy (was generic, now lists typed
+  memory + provenance + multi-engine + voice + connectors)
+- `keywords` updated with the bin/connector vocabulary
+- `robots: index, follow, max-image-preview:large`
+- `link rel="canonical" → https://caosos.com/`
+- Added `og:image`, `og:image:width`, `og:image:height`
+- Added `twitter:image`
+
+### 🟢 Standard crawl signals
+
+- `/app/frontend/public/sitemap.xml` — single URL + llms.txt entry
+- `/app/frontend/public/robots.txt` — explicit allows for GPTBot,
+  ChatGPT-User, anthropic-ai, Claude-Web, PerplexityBot,
+  Google-Extended, CCBot
+  - Note: Cloudflare CDN may auto-serve a more sophisticated
+    "content-signal" robots.txt that supersedes ours; that's fine and
+    grants the same crawl permissions in their format.
+
+### 🧪 Verified end-to-end
+
+Curl checks:
+- `<script type="application/ld+json">` present in served HTML ✅
+- `<link rel="canonical" href="https://caosos.com/">` ✅
+- `og:image`, `twitter:image`, og:url ✅
+- Noscript hero with full feature list rendered ✅
+- `/llms.txt` served with 200 ✅
+- `/sitemap.xml` served with 200 ✅
+
+Live DOM check via Playwright:
+- `<title>` = "CAOS — Cognitive Adaptive Operating System"
+- `canonical` = "https://caosos.com/"
+- `og:title` populated
+- 1 JSON-LD script in DOM
+
+App still renders cleanly with welcome hero — no SEO regressions.
+
+### Why this matters
+
+Now when a user (yours or anyone else's) tells ChatGPT "look at
+caosos.com," the model gets:
+1. JSON-LD structured data → "this is a SoftwareApplication called
+   CAOS, an AI assistant"
+2. llms.txt → full description of the product, architecture,
+   differentiators
+3. noscript hero → fallback for JS-disabled crawlers
+
+So the answer is grounded in facts, not guesses from an empty React
+shell.
+
+---
+
 ## 2026-04-25 (round 11) — Platform topology in system prompt + logout per-device
 
 ### 🟢 Aria now knows her own house

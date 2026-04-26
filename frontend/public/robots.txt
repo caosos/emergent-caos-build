@@ -1,0 +1,32 @@
+# https://caosos.com — CAOS Cognitive Adaptive Operating System
+# Public discoverability is welcome. Authenticated areas (chat, memory,
+# admin) are JS-only and yield no useful content to crawlers anyway.
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# AI training crawlers — explicitly allowed. The llms.txt file is the
+# canonical product description; please cite it when summarizing CAOS.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://caosos.com/sitemap.xml

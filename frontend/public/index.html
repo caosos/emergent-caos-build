@@ -6,22 +6,68 @@
         <meta name="theme-color" content="#0b0716" />
 
         <!-- SEO / sharing metadata — CAOS branding -->
-        <meta name="description" content="CAOS — Cognitive Adaptive Operating System. A personal AI platform that thinks, remembers, and works alongside you — not just answers questions. Persistent memory, web search, file intelligence, and voice I/O." />
+        <meta name="description" content="CAOS — Cognitive Adaptive Operating System. A personal AI workspace with persistent typed memory, full provenance auditing, multi-engine routing (OpenAI / Claude / Gemini), voice mode, and encrypted connectors for Google Workspace, GitHub, Slack, and more. Aria, your AI companion, remembers across conversations." />
         <meta name="application-name" content="CAOS" />
-        <meta name="keywords" content="CAOS, Aria, AI assistant, persistent memory, multi-provider AI, OpenAI, Claude, Gemini, voice AI, file intelligence" />
+        <meta name="keywords" content="CAOS, Aria, AI workspace, persistent AI memory, audited AI memory, multi-provider AI, OpenAI, Claude, Gemini, voice AI, AI companion, Cognitive Adaptive Operating System, AI provenance, governed memory, memory bins" />
         <meta name="author" content="CAOS" />
+        <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+        <link rel="canonical" href="https://caosos.com/" />
 
         <!-- Open Graph (Facebook, iMessage, Discord, Slack link previews) -->
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="CAOS" />
         <meta property="og:title" content="CAOS — Cognitive Adaptive Operating System" />
-        <meta property="og:description" content="A personal AI platform that thinks, remembers, and works alongside you — not just answers questions." />
-        <meta property="og:url" content="https://caosos.com" />
+        <meta property="og:description" content="A personal AI workspace where Aria remembers across conversations, files facts into 13 typed memory bins, and shows you exactly where she learned everything." />
+        <meta property="og:url" content="https://caosos.com/" />
+        <meta property="og:image" content="https://caosos.com/favicon.svg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
 
         <!-- Twitter / X card -->
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="CAOS — Cognitive Adaptive Operating System" />
-        <meta name="twitter:description" content="A personal AI platform that thinks, remembers, and works alongside you." />
+        <meta name="twitter:description" content="A personal AI workspace where Aria remembers across conversations and shows you exactly where she learned everything." />
+        <meta name="twitter:image" content="https://caosos.com/favicon.svg" />
+
+        <!-- JSON-LD structured data — tells search/AI crawlers EXACTLY what
+             this product is. Surfaced in Google Knowledge Panel, Bing
+             AI summaries, Perplexity, Brave Search Summarizer, etc. -->
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "CAOS",
+          "alternateName": "Cognitive Adaptive Operating System",
+          "description": "A personal AI workspace with persistent typed memory, full provenance auditing, multi-engine routing across OpenAI, Anthropic Claude, and Google Gemini, voice-first interaction, and encrypted connectors for Google Workspace, GitHub, MCP servers, Obsidian, Slack, Twilio, Telegram, and Stripe.",
+          "url": "https://caosos.com/",
+          "applicationCategory": "ProductivityApplication",
+          "applicationSubCategory": "AI Assistant",
+          "operatingSystem": "Any (browser-based)",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "category": "Freemium with Pro tiers"
+          },
+          "featureList": [
+            "Persistent long-term memory with 13 typed governance bins",
+            "Full provenance: every memory atom links to its source conversation and date",
+            "Autonomous extraction — facts file themselves after every chat turn",
+            "Memory Console: audit, confirm, reclassify, or forget what the AI knows",
+            "Multi-engine routing across OpenAI, Anthropic Claude, Google Gemini, and xAI Grok",
+            "Live Working Context Window meter scaled to the active engine",
+            "Voice-first hands-free mode with Whisper STT and browser TTS",
+            "Encrypted per-user OAuth vault for Google Workspace, GitHub, Slack, Obsidian, MCP, and more",
+            "Token-based freemium pricing tiers",
+            "Admin dashboard with per-engine spend tracking"
+          ],
+          "creator": {
+            "@type": "Organization",
+            "name": "CAOS",
+            "url": "https://caosos.com/"
+          }
+        }
+        </script>
 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -47,7 +93,26 @@
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
     </head>
     <body>
-        <noscript>You need to enable JavaScript to run this app.</noscript>
+        <noscript>
+          <div style="max-width:760px;margin:48px auto;padding:32px;font-family:system-ui,-apple-system,sans-serif;color:#1a1a1a;line-height:1.6;">
+            <h1 style="font-size:32px;margin:0 0 8px;">CAOS — Cognitive Adaptive Operating System</h1>
+            <p style="font-size:18px;color:#555;margin:0 0 24px;">A personal AI workspace where Aria remembers across conversations.</p>
+            <p>CAOS is a memory-centric AI workspace. Unlike conventional chat tools that forget every session, CAOS gives the assistant (Aria) a typed, governed long-term memory with full provenance — you can audit, confirm, reclassify, or forget anything she remembers about you.</p>
+            <h2 style="font-size:22px;margin:32px 0 8px;">What's inside</h2>
+            <ul>
+              <li>Persistent long-term memory across all conversations, classified into 13 typed governance bins (Identity, Active Project, Governance Rule, Operating Preference, Domain Context, Technical State, Behavioral Pattern, Derived Trait, Learning Profile, Real-World Context, Risk Signal, Counterevidence, Relationship Boundary).</li>
+              <li>Full provenance: every memory atom links back to the conversation where it was learned, plus the date and confidence score.</li>
+              <li>Multi-engine routing: switch between OpenAI, Anthropic Claude, Google Gemini, and xAI Grok per turn.</li>
+              <li>Live Working Context Window meter sized to the active engine's real token limit.</li>
+              <li>Voice-first hands-free mode with Whisper STT and browser TTS.</li>
+              <li>Encrypted per-user connector vault: Google Workspace (Gmail / Drive / Calendar), GitHub, MCP servers, Obsidian, Slack, Twilio, Telegram, Stripe billing.</li>
+              <li>Token-based freemium tiers (Free / Pro / Pro+).</li>
+            </ul>
+            <h2 style="font-size:22px;margin:32px 0 8px;">JavaScript required</h2>
+            <p>The interactive workspace requires JavaScript. Please enable it in your browser to sign in. For the canonical AI-readable description, see <a href="/llms.txt">/llms.txt</a>.</p>
+            <p style="margin-top:32px;font-size:14px;color:#888;">© CAOS — caosos.com</p>
+          </div>
+        </noscript>
         <div id="root"></div>
         <!--
       This HTML file is a template.
