@@ -2,7 +2,7 @@ from pathlib import Path
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
@@ -534,7 +534,7 @@ async def prepare_context(input: ContextPrepareRequest):
 
 
 @router.post("/chat/multi")
-async def chat_multi_agent(input: ChatRequest, user=Depends(require_user)):
+async def chat_multi_agent(input: ChatRequest, background_tasks: BackgroundTasks, user=Depends(require_user)):
     """Parallel multi-agent fan-out: same prompt → Claude + OpenAI + Gemini concurrently.
 
     Each agent gets its own lane suffix so its turn is stored independently. Returns
@@ -542,7 +542,8 @@ async def chat_multi_agent(input: ChatRequest, user=Depends(require_user)):
     """
     try:
         result = await run_multi_agent_turn(input)
-        await capture_links_from_message(user, input.session_id, input.content)
+        # Link capture moved to background task — saves 5-50ms on the critical path.
+        background_tasks.add_task(capture_links_from_message, user, input.session_id, input.content)
         return result
     except ValueError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
@@ -602,10 +603,11 @@ async def swarm_stream(input: SwarmRunRequest, user=Depends(require_user)):
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(input: ChatRequest, user=Depends(require_user)):
+async def chat(input: ChatRequest, background_tasks: BackgroundTasks, user=Depends(require_user)):
     try:
         result = await run_chat_turn(input)
-        await capture_links_from_message(user, input.session_id, input.content)
+        # Link capture moved to background task — saves 5-50ms on the critical path.
+        background_tasks.add_task(capture_links_from_message, user, input.session_id, input.content)
         return result
     except ValueError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
@@ -625,7 +627,7 @@ async def chat(input: ChatRequest, user=Depends(require_user)):
 
 
 @router.post("/chat/stream")
-async def chat_stream(input: ChatRequest, user=Depends(require_user)):
+async def chat_stream(input: ChatRequest, background_tasks: BackgroundTasks, user=Depends(require_user)):
     """SSE streaming chat endpoint — Base44 TSB-036 parity.
 
     Flow: Option A — run full pipeline, then stream the final reply text in
@@ -638,7 +640,8 @@ async def chat_stream(input: ChatRequest, user=Depends(require_user)):
     async def event_stream():
         try:
             result = await run_chat_turn(input)
-            await capture_links_from_message(user, input.session_id, input.content)
+            # Link capture moved to background task — saves 5-50ms on the critical path.
+            background_tasks.add_task(capture_links_from_message, user, input.session_id, input.content)
         except ValueError as error:
             yield f"event: error\ndata: {json.dumps({'error': str(error), 'code': 'not_found'})}\n\n"
             return
