@@ -99,15 +99,24 @@ export const SelectionReactionPopover = ({ containerRef, onReact, onReply, onCop
 
   const handleReact = (emoji) => { trackEmoji(emoji); onReact?.(emoji, selectedText); toast.success(`Reacted ${emoji}`); close(); };
   const handleRead = () => {
-    if (!("speechSynthesis" in window)) { toast.error("Read aloud unavailable"); return; }
-    if (isSpeaking) { window.speechSynthesis.cancel(); setIsSpeaking(false); return; }
+    // Route through parent's onReadAloud (speakTextApi → OpenAI voice).
+    // Previously this used window.speechSynthesis directly which played the
+    // OS's default voice (generic Google voice on Linux/Chrome) instead of
+    // the user's chosen OpenAI voice (nova/onyx/etc.).
+    // speakTextApi auto-cancels prior audio when called again, so toggle-off
+    // via re-click is preserved without us tracking the audio handle.
+    if (isSpeaking) {
+      try { window.speechSynthesis?.cancel(); } catch { /* no-op */ }
+      onReadAloud?.(""); // empty text → speakTextApi pauses prior audio and returns null
+      setIsSpeaking(false);
+      return;
+    }
     window.getSelection()?.removeAllRanges();
-    const utter = new SpeechSynthesisUtterance(selectedText);
-    utter.onend = () => setIsSpeaking(false);
-    utter.onerror = () => setIsSpeaking(false);
-    window.speechSynthesis.speak(utter);
-    setIsSpeaking(true);
     onReadAloud?.(selectedText);
+    setIsSpeaking(true);
+    // Auto-reset speaking state once typical TTS playback would have ended.
+    const expectedMs = Math.min(120000, selectedText.length * 60 + 1500);
+    setTimeout(() => setIsSpeaking(false), expectedMs);
   };
   const handleCopy = async () => {
     try { await navigator.clipboard.writeText(selectedText); toast.success("Copied to clipboard"); }

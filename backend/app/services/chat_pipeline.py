@@ -169,6 +169,52 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         prompt_sections["awareness_block"] = f"awareness unavailable ({str(awareness_error)[:80]})"
     system_prompt = build_system_prompt_from_sections(prompt_sections)
 
+    # Connector tool prompts — fetched in advance so the FIRST (and only) LLM
+    # call this turn already knows the full tool surface. Replaces the old
+    # 2× LLM call architecture (which made a discarded first call, then
+    # appended connector docs as a user message and called AGAIN). Halves
+    # token spend + latency for any user with a connector enabled.
+    from app.routes.connectors import (
+        get_github_token_for, is_google_connected, is_obsidian_connected,
+        is_slack_connected, is_messaging_connected,
+    )
+    from app.services.mcp_client import (
+        get_active_servers, render_mcp_prompt, dispatch_mcp_call, McpError,
+    )
+    google_connected = await is_google_connected(payload.user_email)
+    obsidian_connected = await is_obsidian_connected(payload.user_email)
+    slack_connected = await is_slack_connected(payload.user_email)
+    messaging_state = await is_messaging_connected(payload.user_email)
+    mcp_servers = await get_active_servers(payload.user_email)
+    _tool_context = {
+        "github_token": await get_github_token_for(payload.user_email),
+        "user_email": payload.user_email,
+    }
+    connector_tool_chunks: list[str] = []
+    if google_connected:
+        from app.services.aria_tools_google import GOOGLE_TOOL_PROMPT
+        connector_tool_chunks.append(GOOGLE_TOOL_PROMPT)
+    if obsidian_connected:
+        from app.services.aria_tools_obsidian import OBSIDIAN_TOOL_PROMPT
+        connector_tool_chunks.append(OBSIDIAN_TOOL_PROMPT)
+    if slack_connected:
+        from app.services.aria_tools_slack import SLACK_TOOL_PROMPT
+        connector_tool_chunks.append(SLACK_TOOL_PROMPT)
+    if messaging_state["twilio"] or messaging_state["telegram"]:
+        from app.services.aria_tools_messaging import MESSAGING_TOOL_PROMPT
+        msg_prompt = MESSAGING_TOOL_PROMPT
+        if not messaging_state["twilio"]:
+            msg_prompt = "\n".join(line for line in msg_prompt.splitlines() if "sms_" not in line)
+        if not messaging_state["telegram"]:
+            msg_prompt = "\n".join(line for line in msg_prompt.splitlines() if "telegram_" not in line)
+        connector_tool_chunks.append(msg_prompt)
+    if mcp_servers:
+        mcp_section = render_mcp_prompt(mcp_servers)
+        if mcp_section:
+            connector_tool_chunks.append(mcp_section)
+    if connector_tool_chunks:
+        system_prompt = system_prompt + "\n\nConnector tools available this turn:\n" + "\n\n".join(connector_tool_chunks)
+
     # Build file_contents for UserMessage. emergentintegrations supports two
     # attachment shapes:
     #   - FileContentWithMimeType(file_path=..., mime_type=...)  → Gemini ONLY
@@ -264,57 +310,6 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     # Agent loop: let Aria call read-only inspection tools up to 3 times.
     # Tool access now open to all authenticated users (freemium model).
     from app.services.aria_tools import extract_and_run_next_tool_async
-    from app.routes.connectors import (
-        get_github_token_for, is_google_connected, is_obsidian_connected,
-    )
-    from app.services.mcp_client import (
-        get_active_servers, render_mcp_prompt, dispatch_mcp_call, McpError,
-    )
-    google_connected = await is_google_connected(payload.user_email)
-    obsidian_connected = await is_obsidian_connected(payload.user_email)
-    mcp_servers = await get_active_servers(payload.user_email)
-    from app.routes.connectors import is_slack_connected, is_messaging_connected
-    slack_connected = await is_slack_connected(payload.user_email)
-    messaging_state = await is_messaging_connected(payload.user_email)
-    _tool_context = {
-        "github_token": await get_github_token_for(payload.user_email),
-        "user_email": payload.user_email,
-    }
-    # If Google is connected, append the Google tools manual to the existing
-    # system message in the running chat so Aria knows the new tool surface
-    # for this turn. Done as an extra user-role primer (the SDK doesn't expose
-    # a "patch system prompt" hook mid-conversation cleanly).
-    extra_prompt_chunks: list[str] = []
-    if google_connected:
-        from app.services.aria_tools_google import GOOGLE_TOOL_PROMPT
-        extra_prompt_chunks.append(GOOGLE_TOOL_PROMPT)
-    if obsidian_connected:
-        from app.services.aria_tools_obsidian import OBSIDIAN_TOOL_PROMPT
-        extra_prompt_chunks.append(OBSIDIAN_TOOL_PROMPT)
-    if slack_connected:
-        from app.services.aria_tools_slack import SLACK_TOOL_PROMPT
-        extra_prompt_chunks.append(SLACK_TOOL_PROMPT)
-    if messaging_state["twilio"] or messaging_state["telegram"]:
-        from app.services.aria_tools_messaging import MESSAGING_TOOL_PROMPT
-        # Trim to only the half the user has connected.
-        prompt = MESSAGING_TOOL_PROMPT
-        if not messaging_state["twilio"]:
-            prompt = "\n".join(line for line in prompt.splitlines() if "sms_" not in line)
-        if not messaging_state["telegram"]:
-            prompt = "\n".join(line for line in prompt.splitlines() if "telegram_" not in line)
-        extra_prompt_chunks.append(prompt)
-    if mcp_servers:
-        mcp_section = render_mcp_prompt(mcp_servers)
-        if mcp_section:
-            extra_prompt_chunks.append(mcp_section)
-    if extra_prompt_chunks:
-        await chat._add_user_message(
-            pending_messages,
-            UserMessage(text="\n\n".join(extra_prompt_chunks)),
-        )
-        # Rerun the LLM so this turn's reply already knows about new tools.
-        llm_response = await chat._execute_completion(pending_messages)
-        reply = await chat._extract_response_text(llm_response)
     tool_iterations = 0
     tools_used: list[str] = []
     _TOOL_NAME_RX = __import__("re").compile(r"\[TOOL:\s*(\w+)")

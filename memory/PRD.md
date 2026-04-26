@@ -8,21 +8,28 @@
 > for the 3 pending issues (Latency / PDF / write_file) with line-level receipts
 > and credit estimates. The next agent MUST read that file before touching code.
 
-## Active Issues (Apr 26, 2026 — investigated, not yet fixed)
+## Active Issues (Apr 26, 2026 — ✅ ALL SHIPPED in evening fork)
 
-1. **Latency spike (P0)** — `chat_pipeline.py` line 310-317 runs the LLM twice
-   when any connector is enabled. Doubles tokens + latency per turn. Fix: move
-   connector tool prompts into the initial `system_message`. ~25 credits.
-2. **PDF reading regression (P1)** — OpenAI/Claude only see PDF filenames, not
-   contents (only Gemini gets `FileContentWithMimeType`). Fix: server-side
-   text extraction with `pypdf` on upload, inject into prompt for ALL engines.
-   Path A (auto-route to Gemini) was REJECTED by user — never propose again.
-   ~35 credits.
-3. **`write_file` tool missing (P1)** — Aria can't save reports/trackers back
-   to the user's CAOS Files. Fix: new `[TOOL: write_file name=... content=...]`
-   in `aria_tools.py`. ~30 credits.
+1. ~~**Latency spike (P0)**~~ ✅ SHIPPED. Connector tool prompts now baked into the
+   initial `system_message` in `chat_pipeline.py` (lines ~170–216). The discarded
+   first LLM call is gone. Single LLM call per turn even with connectors enabled.
+   End-to-end verified: 656ms latency on OpenAI gpt-4o-mini.
+2. ~~**PDF reading regression (P1)**~~ ✅ SHIPPED. `pypdf` installed, server-side
+   text extraction in `file_storage.save_upload` (32KB cap per PDF). Extracted
+   text inlined into the system prompt via `prompt_builder._format_attachments`
+   for ALL engines (OpenAI/Claude/Gemini). User's engine routing is untouched.
+   E2E verified: OpenAI quoted PDF contents back exactly ("CAOS PDF EXTRACTION
+   TEST OK"). Path A (auto-route to Gemini) was REJECTED by user — never propose
+   again.
+3. ~~**TTS bubble Read Aloud generic voice (P0)**~~ ✅ SHIPPED.
+   `SelectionReactionPopover.handleRead` was using `window.speechSynthesis.speak`
+   directly (OS default voice). Now routes through `onReadAloud` → `speakTextApi`
+   → OpenAI nova/onyx/etc. Backend `/api/caos/voice/tts` confirmed returning
+   OpenAI audio. `speakTextApi` also gained a clear error message if Chrome's
+   autoplay policy blocks audio.play() after the network round-trip.
 
-User has NOT approved any fix yet. Wait for explicit "GO".
+`write_file` tool for Aria — DEFERRED (not requested in this fork session).
+See ROADMAP.md.
 
 
 ## Original Problem Statement

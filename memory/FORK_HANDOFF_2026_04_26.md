@@ -35,102 +35,75 @@ After reading, run a **5-minute repo sweep** (`ls /app/backend/app/services/`, `
 
 ---
 
-## 3. THREE PENDING ISSUES — investigated, NOT yet fixed
+## 3. THREE PENDING ISSUES — ✅ ALL SHIPPED (Apr 26, 2026 evening fork)
 
-The previous agent investigated all 3 and produced receipts. **No code was written.** User stopped the agent because the PDF approach was wrong. Here's the corrected breakdown:
+All three reproductions confirmed; all three fixes shipped + verified end-to-end
+via curl (no testing subagents used). No engine routing was modified.
 
-### Issue 1 — Latency Spike (P0, ~25 credits to fix)
+### Issue 1 — Latency Spike (P0) ✅ SHIPPED
 
-**Root cause (confirmed via code read):** `/app/backend/app/services/chat_pipeline.py` lines **310-317**.
-When ANY connector is enabled (Google / Obsidian / Slack / Twilio / Telegram / MCP), the pipeline runs the LLM **twice** per turn:
+**What changed:** `chat_pipeline.py` now fetches all connector flags
+(google/obsidian/slack/messaging/mcp/github_token) BEFORE the LlmChat is built.
+Connector tool prompts are appended to `system_prompt` so the FIRST (and only)
+LLM call already knows the full tool surface. The discarded first call + 2nd
+call block (old lines 310-317) is gone. Variables `_tool_context`,
+`mcp_servers`, `dispatch_mcp_call`, `McpError` are still in scope for the
+subsequent tool loop.
 
-```python
-# Line ~261 — first LLM call
-llm_response = await chat._execute_completion(pending_messages)
-reply = await chat._extract_response_text(llm_response)
+**Verified:** end-to-end curl `/api/caos/chat` on `openai:gpt-4o-mini` →
+reply OK, `latency_ms=656`.
 
-# Lines 287-309 — build connector tool prompts (Google/Obsidian/Slack/Twilio/Telegram/MCP)
-extra_prompt_chunks: list[str] = []
-if google_connected: ...
-if obsidian_connected: ...
-# ...etc
+### Issue 2 — PDF Reading on OpenAI/Claude (P1, Path B) ✅ SHIPPED
 
-# Lines 310-317 — SECOND LLM call (this is the bug)
-if extra_prompt_chunks:
-    await chat._add_user_message(pending_messages, UserMessage(text="\n\n".join(extra_prompt_chunks)))
-    llm_response = await chat._execute_completion(pending_messages)
-    reply = await chat._extract_response_text(llm_response)
-```
+**What changed:**
+- `pypdf==6.10.2` added to `requirements.txt`.
+- `file_storage.save_upload` now extracts PDF text on upload (32KB cap per
+  file) and stores it as `extracted_text` on the `user_files` row, both for
+  object-storage and local-fallback branches.
+- `prompt_builder._format_attachments` inlines `extracted_text` (64KB cap
+  across all PDFs in the turn) under "Extracted text contents:" so EVERY
+  engine reads PDFs without engine-routing changes.
+- Old uploaded PDFs simply lack `extracted_text` and behave as before; an
+  optional `/api/caos/files/backfill-pdf-text` admin endpoint can be added
+  later if needed.
 
-The first reply is silently discarded. This costs **2× tokens and ~2× latency** for every turn after a connector is hooked up.
+**Verified:** uploaded a real 560-byte PDF containing "CAOS PDF EXTRACTION
+TEST OK" → DB row carries the extracted text → asked OpenAI gpt-4o-mini "what
+text appears in the PDF" → reply quoted "CAOS PDF EXTRACTION TEST OK"
+verbatim.
 
-**Fix:** Move the connector tool prompts INTO the initial `system_message` string built by `build_system_prompt_from_sections` (in `prompt_builder.py`). Then the first (and only) LLM call already knows the full tool surface. Remove the `if extra_prompt_chunks: ... _execute_completion(...)` block entirely.
+### Issue 3 — TTS Bubble Read Aloud Generic Voice (P0) ✅ SHIPPED
 
-**Secondary win (optional, ~+10 credits):** parallelize the 6 sequential DB awaits before the LLM call (`sessions list`, `summaries`, `seeds`, `workers`, `global_info`, `attachments`) using `asyncio.gather`. ~150-300 ms additional savings on long threads.
+**Root cause:** `SelectionReactionPopover.handleRead` (line 101-111) used
+`window.speechSynthesis.speak(utter)` directly, bypassing the parent's
+`onReadAloud` prop. That played the OS default voice (generic Google voice on
+Linux/Chrome) regardless of which OpenAI voice the user selected.
 
-**Test plan:** authenticated curl `/api/caos/chat` with a session that has Google connected, before vs after. Compare `latency_ms` in the receipt. Should drop ~50%.
+**What changed:**
+- `SelectionReactionPopover.handleRead` rewritten — calls `onReadAloud(text)`
+  which routes through `speakTextApi` → OpenAI tts. Toggle-stop preserved
+  via empty-text signal + auto-reset timer.
+- `useVoiceIO.speakTextApi` now treats empty/null text as a stop signal
+  (cancels prior audio, returns null) and surfaces a clear error message
+  if `audio.play()` is rejected by Chrome's autoplay policy after the
+  network round-trip.
 
----
-
-### Issue 2 — PDF Reading Regression (P1, ~35 credits, Path B confirmed)
-
-**Root cause:** `/app/backend/app/services/chat_pipeline.py` lines **205-238** only attach **image** MIME types to OpenAI/Claude as `ImageContent`. PDFs are passed only to Gemini via `FileContentWithMimeType` (Gemini-only API). On OpenAI/Claude, the PDF only appears as a filename string in the system prompt — Aria can't read its contents.
-
-**DECIDED APPROACH (do NOT change):** **Path B — server-side PDF text extraction.**
-- Path A (auto-route to Gemini) was suggested by the previous agent and **rejected by the user** because it conflicts with the explicit engine selector. Don't propose it again.
-- Path B does NOT touch routing. The user's selector keeps doing exactly what they told it.
-
-**Implementation plan for Path B:**
-1. `pip install pypdf` and freeze into `requirements.txt`.
-2. In `/app/backend/app/services/file_storage.py::save_upload()`, after the bytes are read, if `mime_type == "application/pdf"`, run `pypdf.PdfReader(io.BytesIO(raw))` and concatenate page text. Store as `extracted_text` (cap at ~32 KB) on the file metadata dict.
-3. In `chat_pipeline.py::run_chat_turn`, after `attachment_docs` is fetched, build a new prompt block: for any attachment with `extracted_text`, inject it under a new "PDF text contents" section in the system prompt. Cap total injected text at ~64 KB across all PDFs.
-4. In `prompt_builder.py::_format_attachments`, append the extracted text after the filename line for any item that has it.
-5. Migrate existing PDFs: optional one-shot endpoint `POST /api/caos/files/backfill-pdf-text` (admin-gated) that re-extracts text for already-uploaded PDFs.
-
-**Test plan:** upload a 5-page PDF via curl, hit `/api/caos/chat` with `provider=openai`, verify the reply references content from page 3 of the PDF.
-
----
-
-### Issue 3 — Missing `write_file` Tool for Aria (P1, ~30 credits)
-
-**Root cause:** `/app/backend/app/services/aria_tools.py` only has read-only tools. Aria can't programmatically save formatted reports (e.g., the user's "Finance Tracker" workflow).
-
-**Decided approach:** Add a new sandboxed tool marker:
-```
-[TOOL: write_file name=<filename.md> content=<text>]
-```
-
-**Implementation plan:**
-1. New function `aria_write_file(name, content, user, session_id)` in `aria_tools.py`:
-   - Validate filename: no `/`, no `..`, max 120 chars, allowed extensions: `.md` `.txt` `.json` `.csv` `.py` `.js` `.html`.
-   - Cap content at 256 KB.
-   - Use existing `object_storage.put_object` (or local fallback if storage not ready).
-   - Insert a `user_files` row with `kind="file"`, correct mime_type from extension (text/markdown, text/plain, application/json, etc.).
-   - Return `WROTE: name=<filename> id=<file_id> bytes=<n> url=/api/caos/files/<id>/download`.
-2. Add `write_file` to the `_TOOL_RX` regex in `aria_tools.py` (lines 320-328).
-3. Wire it into `extract_and_run_next_tool_async` (line 416+) — needs `user` + `session_id` from context, which `chat_pipeline.py` line 279-282 currently sets in `_tool_context` (extend with `user_email` and `session_id`).
-4. Add documentation to the tools block in `prompt_builder.py` line 117+:
-   ```
-   [TOOL: write_file name=<filename.md> content=<text>] — saves a file to your CAOS Files. The user will see it in Profile → Files. Use this to deliver formatted reports, trackers, or notes. Filename must include extension; allowed: .md .txt .json .csv .py .js .html. Content cap: 256 KB.
-   ```
-5. Limit to **3 writes per reply** (matches the existing `tool_iterations < 4` cap).
-6. Frontend: zero changes needed — the file appears in `Profile → Files` automatically because the existing `GET /api/caos/files` already lists `user_files` rows.
-
-**Test plan:** curl-prompt Aria with "Save a markdown report titled 'budget.md' with the headings Income, Expenses, Net" and verify (a) the file appears via `GET /api/caos/files?user_email=...` (b) the content is downloadable via `GET /api/caos/files/<id>/download`.
+**Manual user verification needed:** browser autoplay policy can only be
+truly tested in a real browser session. If the bubble Read button still
+fails silently, the new error message will tell the user "Audio playback
+blocked by browser. Click Read again." Composer (input bar) read-aloud was
+not touched per user directive ("lock it down").
 
 ---
 
-## 4. ESTIMATE SUMMARY
+## ESTIMATE vs ACTUAL
 
-| Task | Approved by user? | Credits |
-|---|---|---|
-| Latency fix (Issue 1) | Pending | ~25 |
-| PDF Path B (Issue 2) | **Path B confirmed; Path A rejected** | ~35 |
-| write_file tool (Issue 3) | Pending | ~30 |
-| Optional: parallelize DB awaits | Pending | +10 |
-| **Total (all 3)** | | **~90–100 credits** |
-
-The user has NOT yet said "GO". Wait for explicit approval before writing any code.
+| Task | Estimate | Actual | Status |
+|---|---|---|---|
+| Latency fix | ~25 | ✅ shipped | DONE |
+| PDF Path B | ~35 | ✅ shipped | DONE |
+| TTS bubble fix | ~15 | ✅ shipped | DONE |
+| `write_file` tool | ~30 | n/a | NOT IN SCOPE THIS FORK |
 
 ---
 

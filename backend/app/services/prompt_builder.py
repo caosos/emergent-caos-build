@@ -65,19 +65,40 @@ def _format_attachments(attachments: list[dict], provider_supports_vision: bool 
     if not attachments:
         return "No files have been attached to this thread."
     lines = []
+    extracted_blocks: list[str] = []
+    total_extracted = 0
+    MAX_TOTAL_EXTRACTED = 64 * 1024  # 64KB cap across all PDFs in this turn
     for item in attachments:
         size_kb = max(1, int(item.get("size", 0) / 1024))
         kind = item.get("kind", "file")
         mime = item.get("mime_type", "application/octet-stream")
         lines.append(f"- [{kind}] {item.get('name')} ({mime}, ~{size_kb}KB)")
-    hint = (
-        "These attachments are included as binary inputs below; inspect them directly."
-        if provider_supports_vision
-        else "NOTE: Binary contents of these files are NOT visible to you on this provider. "
-        "You can reference them by name/type. To let the AI see image/file contents, "
-        "the user should switch the engine to Gemini."
-    )
-    return "\n".join(lines) + "\n" + hint
+        # Path B: server-side PDF text extraction lands in `extracted_text`.
+        # Inject it here so every engine (OpenAI/Claude/Gemini) can read PDFs
+        # without the user having to swap their selected engine.
+        et = item.get("extracted_text") or ""
+        if et and total_extracted < MAX_TOTAL_EXTRACTED:
+            remaining = MAX_TOTAL_EXTRACTED - total_extracted
+            chunk = et[:remaining]
+            extracted_blocks.append(f"\n--- Contents of {item.get('name')} ---\n{chunk}")
+            total_extracted += len(chunk)
+    has_extracted = bool(extracted_blocks)
+    if provider_supports_vision and has_extracted:
+        hint = "These attachments are included as binary inputs below; PDF text contents are also inlined for direct reading."
+    elif provider_supports_vision:
+        hint = "These attachments are included as binary inputs below; inspect them directly."
+    elif has_extracted:
+        hint = "PDF text contents are inlined below so you can read them directly. Image binaries are NOT visible on this provider."
+    else:
+        hint = (
+            "NOTE: Binary contents of these files are NOT visible to you on this provider. "
+            "You can reference them by name/type. To let the AI see image/file contents, "
+            "the user should switch the engine to Gemini."
+        )
+    body = "\n".join(lines) + "\n" + hint
+    if extracted_blocks:
+        body += "\n\nExtracted text contents:" + "".join(extracted_blocks)
+    return body
 
 
 def build_prompt_sections(

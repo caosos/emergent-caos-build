@@ -109,6 +109,8 @@ export const useVoiceIO = ({ userEmail, voiceSettings }) => {
       .replace(/^\s*\d+\.\s+/gm, "")
       .trim()
       .slice(0, 4000);  // backend hard-cap is 4096; keep margin
+    // Empty text = stop signal. The popover/Stop UI calls speakTextApi("")
+    // to cancel an in-flight bubble Read without firing a fresh API call.
     if (!cleanText) return null;
     const resp = await axios.post(
       `${API}/caos/voice/tts`,
@@ -134,7 +136,17 @@ export const useVoiceIO = ({ userEmail, voiceSettings }) => {
     audio.onended = () => { URL.revokeObjectURL(url); apiAudioRef.current = null; };
     audio.onerror = () => { URL.revokeObjectURL(url); apiAudioRef.current = null; };
     apiAudioRef.current = audio;
-    await audio.play();
+    try {
+      await audio.play();
+    } catch (playErr) {
+      // Chrome autoplay policy can reject playback if the click's
+      // user-activation window expired during the network round-trip.
+      // Surface a clear, actionable error to the bubble's status banner
+      // instead of failing silently.
+      URL.revokeObjectURL(url);
+      apiAudioRef.current = null;
+      throw new Error(`Audio playback blocked by browser: ${playErr?.message || "unknown"}. Click Read again.`);
+    }
     return audio;
   }, [voiceSettings.tts_model, voiceSettings.tts_speed, voiceSettings.tts_voice]);
 

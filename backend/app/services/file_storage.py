@@ -103,6 +103,31 @@ async def save_upload(file: UploadFile, user: dict, session_id: str | None = Non
     raw, mime_type, name = _maybe_transcode_heic(raw, mime_type, name)
     kind = "photo" if mime_type.startswith("image/") else "file"
 
+    # PDF text extraction (Path B): so OpenAI/Claude/Gemini all receive the
+    # PDF's contents as text in the system prompt, regardless of which engine
+    # the user picks. Without this, only Gemini could read PDFs (via its
+    # native file-input API). The user's engine selector is never overridden.
+    extracted_text = ""
+    if mime_type == "application/pdf":
+        try:
+            import pypdf
+            reader = pypdf.PdfReader(io.BytesIO(raw))
+            chunks: list[str] = []
+            total = 0
+            MAX_BYTES = 32 * 1024  # 32 KB cap per file
+            for page in reader.pages:
+                page_text = (page.extract_text() or "").strip()
+                if not page_text:
+                    continue
+                chunks.append(page_text)
+                total += len(page_text)
+                if total >= MAX_BYTES:
+                    break
+            extracted_text = ("\n\n".join(chunks))[:MAX_BYTES]
+            logger.info("PDF extracted: %s — %d pages, %d chars", name, len(reader.pages), len(extracted_text))
+        except Exception as exc:
+            logger.warning("PDF extraction failed for %s: %s", name, exc)
+
     if is_storage_ready():
         storage_path = build_path(user_id, name, file_id)
         try:
@@ -118,6 +143,7 @@ async def save_upload(file: UploadFile, user: dict, session_id: str | None = Non
                 "size": result.get("size", len(raw)),
                 "storage_path": result.get("path", storage_path),
                 "storage_backend": "emergent_objstore",
+                "extracted_text": extracted_text,
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }
         except Exception as error:
@@ -143,6 +169,7 @@ async def save_upload(file: UploadFile, user: dict, session_id: str | None = Non
         "size": len(raw),
         "storage_path": str(stored_path),
         "storage_backend": "local_ephemeral",
+        "extracted_text": extracted_text,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
