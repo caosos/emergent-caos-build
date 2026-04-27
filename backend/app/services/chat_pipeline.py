@@ -35,6 +35,7 @@ from app.services.context_engine import (
 from app.services.global_info_service import select_global_info_entries, upsert_global_info_entry
 from app.services.hydration_policy import build_hydration_decision
 from app.services.memory_worker_service import derive_lane, list_lane_workers, rebuild_lane_workers
+from app.services.proactivity_policy import build_proactivity_decision
 from app.services.prompt_builder import build_prompt_sections, build_system_prompt_from_sections
 from app.services.runtime_service import resolve_chat_runtime, supports_temperature_param
 from app.services.token_meter import build_token_receipt
@@ -185,6 +186,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     runtime = resolve_chat_runtime(profile, payload.provider, payload.model)
     from app.services.model_catalog import context_window_for, compute_cost_usd
     model_ctx = context_window_for(f"{runtime['provider']}:{runtime['model']}")
+    proactivity = build_proactivity_decision(payload.content, is_admin=is_admin_user)
     hydration = build_hydration_decision(
         payload.content,
         model_context_window=model_ctx,
@@ -201,6 +203,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     compressed, budget_stats = enforce_history_token_budget(compressed, runtime["model"], dynamic_history_budget)
     stats.update(budget_stats)
     stats["hydration_policy"] = hydration.as_receipt()
+    stats["proactivity_policy"] = proactivity.as_receipt()
     _mark("history_compress")
 
     memories = list(profile.structured_memory)
@@ -216,9 +219,9 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     )
     from app.services.mcp_client import get_active_servers, render_mcp_prompt, dispatch_mcp_call, McpError
 
-    tools_allowed = is_admin_user or hydration.use_tool_prompt
-    connector_tools_allowed = hydration.use_connector_tools or (is_admin_user and hydration.use_tool_prompt)
-    need_sessions = hydration.use_cross_thread or hydration.use_lane_workers
+    tools_allowed = is_admin_user or hydration.use_tool_prompt or proactivity.allow_tools
+    connector_tools_allowed = hydration.use_connector_tools or proactivity.allow_connectors or (is_admin_user and hydration.use_tool_prompt)
+    need_sessions = hydration.use_cross_thread or hydration.use_lane_workers or ("thread_summaries" in proactivity.wake_departments) or ("context_seeds" in proactivity.wake_departments)
     need_connectors = connector_tools_allowed
     need_github_token = tools_allowed or connector_tools_allowed
 
@@ -237,8 +240,8 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     ) = await asyncio.gather(
         collection("sessions").find({"user_email": payload.user_email}, {"_id": 0}).to_list(200) if need_sessions else _empty([]),
         collection("user_files").find({"user_email": payload.user_email, "session_id": payload.session_id}, {"_id": 0}).sort("created_at", -1).to_list(20),
-        list_lane_workers(payload.user_email) if hydration.use_lane_workers else _empty([]),
-        select_global_info_entries(payload.user_email, payload.content, subject_bins, session_lane) if hydration.use_global_info else _empty([]),
+        list_lane_workers(payload.user_email) if (hydration.use_lane_workers or "lane_workers" in proactivity.wake_departments) else _empty([]),
+        select_global_info_entries(payload.user_email, payload.content, subject_bins, session_lane) if (hydration.use_global_info or "search" in proactivity.wake_departments) else _empty([]),
         _safe_awareness(payload.user_email),
         is_google_connected(payload.user_email) if need_connectors else _empty(False),
         is_obsidian_connected(payload.user_email) if need_connectors else _empty(False),
@@ -251,7 +254,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     session_ids = [doc["session_id"] for doc in user_session_docs]
     summary_docs: list[dict] = []
     seed_docs: list[dict] = []
-    if hydration.use_cross_thread and session_ids:
+    if (hydration.use_cross_thread or "thread_summaries" in proactivity.wake_departments or "context_seeds" in proactivity.wake_departments) and session_ids:
         summary_docs, seed_docs = await asyncio.gather(
             collection("thread_summaries").find({"session_id": {"$in": session_ids}}, {"_id": 0}).sort("created_at", -1).to_list(120),
             collection("context_seeds").find({"session_id": {"$in": session_ids}}, {"_id": 0}).sort("created_at", -1).to_list(120),
@@ -282,6 +285,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         continuity_packet,
         global_info_entries,
     )
+    receipt["proactivity_policy"] = proactivity.as_receipt()
     receipt["hydration_policy"] = hydration.as_receipt()
     receipt["tools_allowed"] = tools_allowed
     receipt["connector_tools_allowed"] = connector_tools_allowed
@@ -300,6 +304,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     prompt_sections["tools_allowed"] = tools_allowed
     prompt_sections["admin_tools_allowed"] = is_admin_user
     prompt_sections["awareness_block"] = awareness_block
+    prompt_sections["proactivity_policy"] = proactivity.as_receipt()
     system_prompt = build_system_prompt_from_sections(prompt_sections)
 
     _tool_context = {"github_token": github_token, "user_email": payload.user_email, "session_id": payload.session_id}
@@ -478,6 +483,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     receipt["tools_used"] = tools_used
     receipt["tool_step_timings"] = tool_step_timings
     receipt["step_timings"] = step_timings
+    receipt["proactivity_policy"] = proactivity.as_receipt()
     receipt["hydration_policy"] = hydration.as_receipt()
     receipt["tools_allowed"] = tools_allowed
     receipt["connector_tools_allowed"] = connector_tools_allowed
@@ -563,8 +569,8 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
             ]
             # Lane workers are background-only and no longer rebuilt after every
             # casual fast-path turn. They wake when continuity/deep/tool modes
-            # indicate the lane department is relevant.
-            if hydration.use_lane_workers:
+            # or proactivity policy indicate the lane department is relevant.
+            if hydration.use_lane_workers or "lane_workers" in proactivity.wake_departments:
                 ops.append(rebuild_lane_workers(payload.user_email))
             if engine_usage_doc is not None:
                 ops.append(collection("engine_usage").insert_one(engine_usage_doc))
