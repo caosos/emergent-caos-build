@@ -48,7 +48,7 @@ _TOOL_RX = re.compile(
     r"\b(code|repo|repository|github|file|inspect|audit|debug|bug|error|exception|"
     r"stack trace|traceback|latency|bottleneck|receipt|profile_session|query_receipts|"
     r"route|endpoint|api|database|mongo|db|deploy|branch|pr|pull request|merge|"
-    r"fix|patch|write|save|report)\b",
+    r"fix|patch|write|save|report|look up|lookup|find|open|read|check|verify)\b",
     re.I,
 )
 
@@ -93,8 +93,9 @@ def build_hydration_decision(
 ) -> HydrationDecision:
     """Classify a turn into a bounded hydration mode.
 
-    The policy is intentionally conservative. If a signal is absent, standby
-    systems remain available but are not injected into the active prompt.
+    Capability is not gated here. This only decides which manuals/standby
+    departments are injected up front. If a turn smells actionable, tools and
+    connector checks stay available so Aria remains proactive.
     """
     text = (user_message or "").strip()
     lowered = text.lower()
@@ -105,6 +106,7 @@ def build_hydration_decision(
     deep = bool(_DEEP_RX.search(lowered))
     connectors = bool(_CONNECTOR_RX.search(lowered))
     global_info = bool(_GLOBAL_RX.search(lowered))
+    proactive_connector = tools or connectors or global_info
 
     # A non-general lane is a weak continuity hint, but not enough to force
     # heavyweight workers unless the user message also asks for continuity.
@@ -113,6 +115,8 @@ def build_hydration_decision(
 
     if deep:
         reasons.append("deep_signal")
+        if proactive_connector:
+            reasons.append("proactive_connector_signal")
         return HydrationDecision(
             mode="deep",
             history_token_budget=_cap_budget(120_000, model_context_window),
@@ -120,7 +124,7 @@ def build_hydration_decision(
             use_lane_workers=True,
             use_global_info=True,
             use_tool_prompt=True,
-            use_connector_tools=connectors or tools,
+            use_connector_tools=proactive_connector,
             reasons=reasons,
         )
 
@@ -130,6 +134,8 @@ def build_hydration_decision(
             reasons.append("continuity_signal")
         if connectors:
             reasons.append("connector_signal")
+        if global_info:
+            reasons.append("global_info_signal")
         return HydrationDecision(
             mode="tool",
             history_token_budget=_cap_budget(48_000 if continuity else 32_000, model_context_window),
@@ -137,7 +143,9 @@ def build_hydration_decision(
             use_lane_workers=continuity,
             use_global_info=global_info,
             use_tool_prompt=True,
-            use_connector_tools=connectors,
+            # Tool mode should be proactive: if the user asks to inspect/check/find,
+            # the connector department may be needed even if they did not name it.
+            use_connector_tools=True,
             reasons=reasons,
         )
 
@@ -145,6 +153,8 @@ def build_hydration_decision(
         reasons.append("continuity_signal")
         if lane_hint:
             reasons.append("active_lane_hint")
+        if proactive_connector:
+            reasons.append("proactive_connector_signal")
         return HydrationDecision(
             mode="continuity",
             history_token_budget=_cap_budget(32_000, model_context_window),
@@ -152,7 +162,7 @@ def build_hydration_decision(
             use_lane_workers=True,
             use_global_info=global_info,
             use_tool_prompt=False,
-            use_connector_tools=connectors,
+            use_connector_tools=proactive_connector,
             reasons=reasons,
         )
 
@@ -164,8 +174,8 @@ def build_hydration_decision(
             use_cross_thread=False,
             use_lane_workers=False,
             use_global_info=True,
-            use_tool_prompt=False,
-            use_connector_tools=connectors,
+            use_tool_prompt=True,
+            use_connector_tools=True,
             reasons=reasons,
         )
 
@@ -177,7 +187,7 @@ def build_hydration_decision(
             use_cross_thread=False,
             use_lane_workers=False,
             use_global_info=False,
-            use_tool_prompt=False,
+            use_tool_prompt=True,
             use_connector_tools=True,
             reasons=reasons,
         )
