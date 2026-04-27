@@ -216,9 +216,11 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     )
     from app.services.mcp_client import get_active_servers, render_mcp_prompt, dispatch_mcp_call, McpError
 
+    tools_allowed = is_admin_user or hydration.use_tool_prompt
+    connector_tools_allowed = hydration.use_connector_tools or (is_admin_user and hydration.use_tool_prompt)
     need_sessions = hydration.use_cross_thread or hydration.use_lane_workers
-    need_connectors = hydration.use_connector_tools
-    need_github_token = hydration.use_tool_prompt or hydration.use_connector_tools
+    need_connectors = connector_tools_allowed
+    need_github_token = tools_allowed or connector_tools_allowed
 
     (
         user_session_docs,
@@ -242,7 +244,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         is_obsidian_connected(payload.user_email) if need_connectors else _empty(False),
         is_slack_connected(payload.user_email) if need_connectors else _empty(False),
         is_messaging_connected(payload.user_email) if need_connectors else _empty({"twilio": False, "telegram": False}),
-        get_active_servers(payload.user_email) if (hydration.use_tool_prompt or hydration.use_connector_tools) else _empty([]),
+        get_active_servers(payload.user_email) if (tools_allowed or connector_tools_allowed) else _empty([]),
         get_github_token_for(payload.user_email) if need_github_token else _empty(None),
     )
 
@@ -281,6 +283,8 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         global_info_entries,
     )
     receipt["hydration_policy"] = hydration.as_receipt()
+    receipt["tools_allowed"] = tools_allowed
+    receipt["connector_tools_allowed"] = connector_tools_allowed
 
     prompt_sections = build_prompt_sections(
         profile,
@@ -293,14 +297,14 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         session_id=payload.session_id,
         user_email=payload.user_email,
     )
-    prompt_sections["tools_allowed"] = hydration.use_tool_prompt
+    prompt_sections["tools_allowed"] = tools_allowed
     prompt_sections["admin_tools_allowed"] = is_admin_user
     prompt_sections["awareness_block"] = awareness_block
     system_prompt = build_system_prompt_from_sections(prompt_sections)
 
     _tool_context = {"github_token": github_token, "user_email": payload.user_email, "session_id": payload.session_id}
     connector_tool_chunks: list[str] = []
-    if hydration.use_connector_tools:
+    if connector_tools_allowed:
         if google_connected:
             from app.services.aria_tools_google import GOOGLE_TOOL_PROMPT
             connector_tool_chunks.append(GOOGLE_TOOL_PROMPT)
@@ -355,7 +359,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     tool_iterations = 0
     tools_used: list[str] = []
     tool_step_timings: list[dict] = []
-    max_tool_iterations = 4 if hydration.use_tool_prompt else 0
+    max_tool_iterations = 4 if tools_allowed else 0
     while tool_iterations < max_tool_iterations:
         _tool_t0 = time.perf_counter()
         marker, result = await extract_and_run_next_tool_async(reply, context=_tool_context)
@@ -475,6 +479,8 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     receipt["tool_step_timings"] = tool_step_timings
     receipt["step_timings"] = step_timings
     receipt["hydration_policy"] = hydration.as_receipt()
+    receipt["tools_allowed"] = tools_allowed
+    receipt["connector_tools_allowed"] = connector_tools_allowed
     wcw_used_estimate = token_receipt["active_context_tokens"]
     _mark("post_llm_compute")
 
