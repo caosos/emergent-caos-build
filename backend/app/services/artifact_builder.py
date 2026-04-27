@@ -39,6 +39,7 @@ def build_receipt_record(
         "subject_bins": receipt.get("subject_bins", []),
         "rehydration_order": receipt.get("rehydration_order", []),
         "global_bin_status": receipt.get("global_bin_status", "empty"),
+        "proactivity_policy": receipt.get("proactivity_policy", {}),
         "hydration_policy": receipt.get("hydration_policy", {}),
         "tools_allowed": receipt.get("tools_allowed", False),
         "connector_tools_allowed": receipt.get("connector_tools_allowed", False),
