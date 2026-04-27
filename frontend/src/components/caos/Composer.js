@@ -182,17 +182,38 @@ export const Composer = ({ busy, draft, lastAssistantMessage, onDraftChange, onS
     
     recorder.onstop = async () => {
       const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
+      // Guard against truly empty captures (very fast click-click, or mic muted at OS level).
+      if (!blob.size || blob.size < 1024) {
+        toast.error("Recording was too short or empty — try holding the mic and speaking for 1-2 seconds");
+        setRecording(false);
+        streamRef.current?.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+        recorderRef.current = null;
+        return;
+      }
       try {
         const response = await onTranscribe(blob);
-        const transcriptText = response.text || "";
-        // Base44 approach: Append to existing draft (if any)
-        const newDraft = initialDraftRef.current 
-          ? `${initialDraftRef.current} ${transcriptText}` 
+        const transcriptText = (response?.text || "").trim();
+        // If Whisper returned empty text, the mic captured silence / unintelligible audio.
+        // Preserve the user's existing draft instead of wiping it, and tell them why.
+        if (!transcriptText) {
+          toast.error("I didn't catch any speech — try speaking closer to the mic, in a quieter spot, or for longer");
+          setRecording(false);
+          streamRef.current?.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+          recorderRef.current = null;
+          return;
+        }
+        const newDraft = initialDraftRef.current
+          ? `${initialDraftRef.current} ${transcriptText}`
           : transcriptText;
         onDraftChange(newDraft);
+        toast.success(`Transcribed: "${transcriptText.slice(0, 60)}${transcriptText.length > 60 ? "..." : ""}"`, { duration: 2200 });
       } catch (error) {
-        toast.error("Transcription failed - please try again");
-        console.error("STT error:", error);
+        const status = error?.response?.status;
+        const detail = error?.response?.data?.detail || error?.message || "unknown";
+        toast.error(`Transcription failed${status ? ` (HTTP ${status})` : ""}: ${String(detail).slice(0, 100)}`);
+        console.error("STT error:", { status, detail, error });
       }
       setRecording(false);
       streamRef.current?.getTracks().forEach((track) => track.stop());

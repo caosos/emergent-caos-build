@@ -24,7 +24,7 @@ from emergentintegrations.llm.openai import OpenAISpeechToText, OpenAITextToSpee
 # available on audio routes, gpt-4o-* are. We fall back to legacy models if the
 # newer ones aren't accessible on the caller's key.
 OPENAI_TTS_MODELS = ["gpt-4o-mini-tts", "tts-1", "tts-1-hd"]
-OPENAI_STT_MODELS = ["gpt-4o-mini-transcribe", "whisper-1"]
+OPENAI_STT_MODELS = ["gpt-4o-transcribe", "gpt-4o-mini-transcribe", "whisper-1"]
 
 # Whisper/GPT-4o-transcribe hallucinate these exact phrases when given silence
 # or near-silent audio. Only drop VERY obvious hallucinations to avoid filtering
