@@ -137,8 +137,9 @@ def build_prompt_sections(
 
 def build_system_prompt_from_sections(sections: dict) -> str:
     tools_block = ""
-    # Tool access now open to all authenticated users (freemium model)
-    if sections.get("admin_tools_allowed") or True:  # Always include tools
+    # Tool instructions are expensive prompt cargo. Hydration policy decides when
+    # they enter a turn; normal conversation keeps the tool department on standby.
+    if sections.get("tools_allowed"):
         tools_block = (
             "\n- **Read-only code inspection & web tools**: when the user asks about specific code behavior, file contents, implementation details, or needs real-time information, emit ONE tool marker on its own line. The pipeline will run the tool, feed the result back, and you will continue. You have AT MOST 3 tool calls per reply. Do NOT use tools for casual chat or questions you can already answer from context."
             "\n  - **Project structure you are inspecting**:"
