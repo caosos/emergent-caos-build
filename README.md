@@ -8,7 +8,7 @@ This repository is the Emergent-hosted CAOS application codebase. It contains th
 
 If you are ChatGPT, Claude, Gemini, Emergent Agent, GitHub Copilot, or another code-reading agent, start with these files before making claims about the repo:
 
-1. `AGENTS.md` — mandatory inspection and safety protocol for AI agents.
+1. `AGENTS.md` — mandatory inspection, branch, safety, and tooling protocol for AI agents.
 2. `docs/REPO_MAP.md` — searchable module map and file ownership guide.
 3. `docs/LATENCY_AND_TURNTRACE.md` — latency, hydration, proactivity, and TurnTrace architecture.
 4. `backend/app/services/chat_pipeline.py` — primary chat orchestration spine.
@@ -18,6 +18,36 @@ If you are ChatGPT, Claude, Gemini, Emergent Agent, GitHub Copilot, or another c
 8. `backend/app/services/turn_trace.py` — per-turn forensic latency ledger.
 9. `backend/app/services/artifact_builder.py` — persisted receipts, summaries, and seeds.
 10. `frontend/src` — React frontend application surface.
+
+### Agent branch rule
+
+No agent should write directly to `main`.
+
+Every agent must work from a slash-free branch with a clear ownership/name. State the active branch before writes and report commit SHAs after bounded changes.
+
+Example branch names:
+
+```text
+aria-ai-hardware-integration
+fix-normal-user-aria-continuity-v1
+fix-latency-popover-v1
+repo-topology-housecleaning-v1
+```
+
+Do not merge or deploy production without Michael approval.
+
+### Connector/tooling warning
+
+Do not assume broad code search or directory browsing is complete. Some GitHub connector searches and directory fetches can return false negatives or partial results. Use this fallback path before making repo claims:
+
+```text
+README.md
+AGENTS.md
+docs/REPO_MAP.md
+docs/LATENCY_AND_TURNTRACE.md
+known direct file paths
+runtime screenshots / request evidence as clues, then source verification
+```
 
 ## Repository Layout
 
@@ -87,6 +117,15 @@ refactor-chat-tool-loop-v1
 ```
 
 Existing slash branches are valid Git branches, but slash-free names are more reliable across lightweight web-fetch and connector tools.
+
+For stacked work, compare against both:
+
+```text
+active branch vs main
+active branch vs immediate parent branch
+```
+
+Direct comparison to `main` can include prior stacked PRs and overstate the actual change set.
 
 ## Non-Negotiable Preserve List
 
