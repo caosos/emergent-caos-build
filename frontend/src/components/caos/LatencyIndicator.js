@@ -48,11 +48,11 @@ const formatProactivity = (policy) => policy?.primary_intent || policy?.intent |
  *  - latency_budget.actual_ms / t_total / latency_breakdown.t_total
  *  - inference_ms fallback
  *
- * If TurnTrace fields are present in the receipt payload, the popover shows a
- * compact diagnostic breakdown. If not, it falls back to a normal-user-safe
- * plain-language explanation.
+ * If TurnTrace fields are present and the viewer is admin, the popover shows a
+ * compact diagnostic breakdown. Non-admin users receive a plain-language
+ * explanation only; raw trace internals stay behind the admin boundary.
  */
-export const LatencyIndicator = ({ receipt, className = "" }) => {
+export const LatencyIndicator = ({ receipt, className = "", isAdmin = false }) => {
   const [open, setOpen] = useState(false);
   const totalMs = pickTotalMs(receipt);
   const topContributors = useMemo(() => {
@@ -74,6 +74,7 @@ export const LatencyIndicator = ({ receipt, className = "" }) => {
       || receipt?.hydration_policy
       || receipt?.proactivity_policy,
   );
+  const showTraceDetails = isAdmin && hasTraceDetails;
   const toolsUsed = Array.isArray(receipt?.tools_used) ? receipt.tools_used : [];
   const traceId = receipt?.id || receipt?.assistant_message_id || "na";
 
@@ -124,7 +125,7 @@ export const LatencyIndicator = ({ receipt, className = "" }) => {
           }}
         >
           <strong>Response latency — {formatSeconds(totalMs)}</strong>
-          {hasTraceDetails ? (
+          {showTraceDetails ? (
             <>
               <span>
                 Budget: {budget?.target_ms ? formatSeconds(budget.target_ms) : "unclassified"}
