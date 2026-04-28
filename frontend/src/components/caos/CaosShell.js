@@ -420,6 +420,7 @@ export const CaosShell = ({ authenticatedUser }) => {
               busy={busy}
               currentSession={currentSession}
               files={files}
+              isAdmin={isAdmin}
               messages={filteredMessages}
               onSpeak={speakTextApi}
               receipts={artifacts.receipts}
