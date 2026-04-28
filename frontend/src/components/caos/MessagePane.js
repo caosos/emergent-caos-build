@@ -1,4 +1,4 @@
-import { ArrowDown, Clock, Copy, CornerDownLeft, FileSearch, Globe, Mail, Paperclip, ThumbsUp, Volume2, X } from "lucide-react";
+import { ArrowDown, Copy, CornerDownLeft, FileSearch, Globe, Mail, Paperclip, ThumbsUp, Volume2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -293,6 +293,7 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
             }
             const meta = messageMeta[message.id] || { reactions: [], replies: [], replyDraft: "", showReceipt: false, showReply: false };
             const linkedReceipt = receipts.find((receipt) => receipt.assistant_message_id === message.id);
+            const messageLatencyReceipt = linkedReceipt || (message.latency_ms ? { assistant_message_id: message.id, latency_ms: message.latency_ms } : null);
             const isPending = message.pending === true;
             const isFailed = message.failed === true;
             const isStreamingPlaceholder = message.role === "assistant" && isPending && !message.content;
@@ -324,8 +325,8 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
                   ) : null}
                   <span data-testid={`caos-message-time-${message.id}`}>{formatTimestamp(message.timestamp)}</span>
                   {isFailed ? <span className="message-failed-chip" data-testid={`caos-message-failed-chip-${message.id}`}>Issue</span> : null}
-                  {message.role === "assistant" && linkedReceipt ? (
-                    <LatencyIndicator receipt={linkedReceipt} />
+                  {message.role === "assistant" && messageLatencyReceipt ? (
+                    <LatencyIndicator receipt={messageLatencyReceipt} />
                   ) : null}
                 </div>
                 {isStreamingPlaceholder ? (
@@ -431,11 +432,8 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
                 {isPending ? null : (
                   <div className="message-footer" data-testid={`caos-message-footer-${message.id}`}>
                     <span data-testid={`caos-message-fulldate-${message.id}`}>{formatFullDate(message.timestamp)}</span>
-                    {message.role === "assistant" && (linkedReceipt?.latency_ms || message.latency_ms) ? (
-                      <span className="message-footer-latency-chip" data-testid={`caos-message-latency-${message.id}`} title="Response latency">
-                        <Clock size={11} />
-                        <strong>{(((linkedReceipt?.latency_ms || message.latency_ms) || 0) / 1000).toFixed(1)}s</strong>
-                      </span>
+                    {message.role === "assistant" && messageLatencyReceipt ? (
+                      <LatencyIndicator receipt={messageLatencyReceipt} className="message-footer-latency-chip" />
                     ) : null}
                   </div>
                 )}
