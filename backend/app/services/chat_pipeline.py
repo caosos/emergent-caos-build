@@ -35,11 +35,13 @@ from app.services.context_engine import (
 from app.services.global_info_service import select_global_info_entries, upsert_global_info_entry
 from app.services.hydration_policy import build_hydration_decision
 from app.services.memory_worker_service import derive_lane, list_lane_workers, rebuild_lane_workers
+from app.services.proactivity_policy import build_proactivity_decision
 from app.services.prompt_builder import build_prompt_sections, build_system_prompt_from_sections
 from app.services.runtime_service import resolve_chat_runtime, supports_temperature_param
 from app.services.token_meter import build_token_receipt
 from app.services.token_quota import check_and_deduct_tokens
 from app.services.thread_title_service import build_auto_thread_title, is_generic_session_title
+from app.services.turn_trace import TurnTrace, classify_latency_budget
 
 _IMAGE_MIMES = {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"}
 _VISION_MAX_PER_TURN = 5
@@ -119,16 +121,20 @@ def _build_file_contents(runtime_provider: str, attachment_docs: list[dict]) -> 
 
 async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     _t_start = time.perf_counter()
+    trace = TurnTrace()
+    trace.instant("turn_start", category="request", meta={"session_id": payload.session_id})
     step_timings: dict[str, int] = {}
 
     def _mark(name: str) -> None:
         step_timings[name] = int((time.perf_counter() - _t_start) * 1000)
 
+    trace.start("setup", category="db", meta={"collections": ["sessions", "user_profiles"]})
     session, profile_doc = await asyncio.gather(
         collection("sessions").find_one({"session_id": payload.session_id}, {"_id": 0}),
         collection("user_profiles").find_one({"user_email": payload.user_email}, {"_id": 0}),
     )
     if not session:
+        trace.end("setup", category="db", meta={"error": "session_not_found"})
         raise ValueError("Session not found")
 
     if not profile_doc:
@@ -142,10 +148,13 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     else:
         profile = UserProfileRecord(**profile_doc)
         is_admin_user = bool(profile_doc.get("is_admin") is True or profile_doc.get("role") == "admin")
+    trace.end("setup", category="db", meta={"is_admin": is_admin_user, "profile_created": not bool(profile_doc)})
     _mark("setup")
 
     estimated_tokens = 2000
+    trace.start("quota_check", category="quota", meta={"estimated_tokens": estimated_tokens, "admin_bypass": is_admin_user})
     quota_check = {"allowed": True, "tokens_remaining": 999999, "message": ""} if is_admin_user else await check_and_deduct_tokens(payload.user_email, estimated_tokens)
+    trace.end("quota_check", category="quota", meta={"allowed": bool(quota_check.get("allowed"))})
     if not quota_check["allowed"]:
         error_message = quota_check["message"]
         quota_text = f"⚠️ **Daily Token Limit Reached**\n\n{error_message}\n\n💡 **Upgrade to Pro** for 5M tokens/day, or wait for the daily reset."
@@ -161,7 +170,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
             assistant_message=quota_msg,
             sanitized_history=[],
             injected_memories=[],
-            receipt={"error": "quota_exceeded", "tokens_remaining": quota_check["tokens_remaining"]},
+            receipt={"error": "quota_exceeded", "tokens_remaining": quota_check["tokens_remaining"], "latency_trace": trace.receipt()},
             provider=payload.provider or "system",
             model=payload.model or "system",
             lane="general",
@@ -170,9 +179,12 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
             wcw_budget=0,
         )
 
+    trace.start("save_user_message", category="db")
     user_message = MessageRecord(session_id=payload.session_id, role="user", content=payload.content)
     await collection("messages").insert_one(_serialize_message_doc(user_message))
+    trace.end("save_user_message", category="db")
 
+    trace.start("fetch_history", category="db", meta={"limit": 1000})
     docs = await collection("messages").find(
         {"session_id": payload.session_id},
         {"_id": 0},
@@ -180,34 +192,63 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     docs.reverse()
     messages = [MessageRecord(**doc) for doc in docs]
     history_messages = messages[:-1] if messages and messages[-1].id == user_message.id else messages
+    trace.end("fetch_history", category="db", meta={"message_count": len(messages), "history_count": len(history_messages)})
     _mark("fetch_history")
 
+    trace.start("policy_runtime", category="policy")
     runtime = resolve_chat_runtime(profile, payload.provider, payload.model)
     from app.services.model_catalog import context_window_for, compute_cost_usd
     model_ctx = context_window_for(f"{runtime['provider']}:{runtime['model']}")
+    proactivity = build_proactivity_decision(payload.content, is_admin=is_admin_user)
     hydration = build_hydration_decision(
         payload.content,
         model_context_window=model_ctx,
         session=session,
         is_admin=is_admin_user,
     )
-    # The model context window is capacity. Hydration policy decides the actual
-    # history truck-load; explicit callers can request a larger budget, but the
-    # default 2.2k schema value no longer inflates to 70% of WCW.
     dynamic_history_budget = max(payload.history_token_budget, hydration.history_token_budget)
+    trace.end(
+        "policy_runtime",
+        category="policy",
+        meta={
+            "provider": runtime["provider"],
+            "model": runtime["model"],
+            "model_ctx": model_ctx,
+            "hydration_mode": hydration.mode,
+            "proactivity_intent": proactivity.primary_intent,
+            "history_budget": dynamic_history_budget,
+        },
+    )
 
+    trace.start("history_compress", category="history", meta={"history_budget": dynamic_history_budget})
     sanitized, stats = sanitize_history(history_messages)
     compressed = compress_history(sanitized, payload.hot_head, payload.hot_tail)
     compressed, budget_stats = enforce_history_token_budget(compressed, runtime["model"], dynamic_history_budget)
     stats.update(budget_stats)
     stats["hydration_policy"] = hydration.as_receipt()
+    stats["proactivity_policy"] = proactivity.as_receipt()
+    trace.end(
+        "history_compress",
+        category="history",
+        meta={
+            "sanitized_count": len(sanitized),
+            "compressed_count": len(compressed),
+            "history_tokens_after_budget": budget_stats.get("history_tokens_after_budget", 0),
+        },
+    )
     _mark("history_compress")
 
+    trace.start("memory_rank", category="memory")
     memories = list(profile.structured_memory)
     subject_bins = derive_subject_bins(payload.content, compressed)
     session_lane = derive_lane(subject_bins, session.get("title"), session.get("lane"))
     injected_memories, retrieval_terms = rank_memories(payload.content, compressed, memories, payload.memory_limit, subject_bins)
     subject_bins = derive_subject_bins(payload.content, compressed, injected_memories)
+    trace.end(
+        "memory_rank",
+        category="memory",
+        meta={"available_memories": len(memories), "injected_memories": len(injected_memories), "lane": session_lane},
+    )
     _mark("memory_rank")
 
     from app.routes.connectors import (
@@ -216,12 +257,25 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     )
     from app.services.mcp_client import get_active_servers, render_mcp_prompt, dispatch_mcp_call, McpError
 
-    tools_allowed = is_admin_user or hydration.use_tool_prompt
-    connector_tools_allowed = hydration.use_connector_tools or (is_admin_user and hydration.use_tool_prompt)
-    need_sessions = hydration.use_cross_thread or hydration.use_lane_workers
+    tools_allowed = is_admin_user or hydration.use_tool_prompt or proactivity.allow_tools
+    connector_tools_allowed = hydration.use_connector_tools or proactivity.allow_connectors or (is_admin_user and hydration.use_tool_prompt)
+    need_sessions = hydration.use_cross_thread or hydration.use_lane_workers or ("thread_summaries" in proactivity.wake_departments) or ("context_seeds" in proactivity.wake_departments)
     need_connectors = connector_tools_allowed
     need_github_token = tools_allowed or connector_tools_allowed
+    trace.instant(
+        "department_gates",
+        category="policy",
+        meta={
+            "tools_allowed": tools_allowed,
+            "connector_tools_allowed": connector_tools_allowed,
+            "need_sessions": need_sessions,
+            "need_connectors": need_connectors,
+            "need_github_token": need_github_token,
+            "wake_departments": proactivity.wake_departments,
+        },
+    )
 
+    trace.start("pre_llm_gather", category="db_connector")
     (
         user_session_docs,
         attachment_docs,
@@ -237,8 +291,8 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     ) = await asyncio.gather(
         collection("sessions").find({"user_email": payload.user_email}, {"_id": 0}).to_list(200) if need_sessions else _empty([]),
         collection("user_files").find({"user_email": payload.user_email, "session_id": payload.session_id}, {"_id": 0}).sort("created_at", -1).to_list(20),
-        list_lane_workers(payload.user_email) if hydration.use_lane_workers else _empty([]),
-        select_global_info_entries(payload.user_email, payload.content, subject_bins, session_lane) if hydration.use_global_info else _empty([]),
+        list_lane_workers(payload.user_email) if (hydration.use_lane_workers or "lane_workers" in proactivity.wake_departments) else _empty([]),
+        select_global_info_entries(payload.user_email, payload.content, subject_bins, session_lane) if (hydration.use_global_info or "search" in proactivity.wake_departments) else _empty([]),
         _safe_awareness(payload.user_email),
         is_google_connected(payload.user_email) if need_connectors else _empty(False),
         is_obsidian_connected(payload.user_email) if need_connectors else _empty(False),
@@ -247,11 +301,27 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         get_active_servers(payload.user_email) if (tools_allowed or connector_tools_allowed) else _empty([]),
         get_github_token_for(payload.user_email) if need_github_token else _empty(None),
     )
+    trace.end(
+        "pre_llm_gather",
+        category="db_connector",
+        meta={
+            "sessions_loaded": len(user_session_docs),
+            "attachments_loaded": len(attachment_docs),
+            "workers_loaded": len(workers),
+            "global_info_loaded": len(global_info_entries),
+            "google_connected": bool(google_connected),
+            "obsidian_connected": bool(obsidian_connected),
+            "slack_connected": bool(slack_connected),
+            "mcp_server_count": len(mcp_servers),
+            "github_token_present": bool(github_token),
+        },
+    )
 
+    trace.start("continuity_build", category="continuity")
     session_ids = [doc["session_id"] for doc in user_session_docs]
     summary_docs: list[dict] = []
     seed_docs: list[dict] = []
-    if hydration.use_cross_thread and session_ids:
+    if (hydration.use_cross_thread or "thread_summaries" in proactivity.wake_departments or "context_seeds" in proactivity.wake_departments) and session_ids:
         summary_docs, seed_docs = await asyncio.gather(
             collection("thread_summaries").find({"session_id": {"$in": session_ids}}, {"_id": 0}).sort("created_at", -1).to_list(120),
             collection("context_seeds").find({"session_id": {"$in": session_ids}}, {"_id": 0}).sort("created_at", -1).to_list(120),
@@ -271,7 +341,13 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         lane=session_lane,
         session_id=payload.session_id,
     )
+    trace.end(
+        "continuity_build",
+        category="continuity",
+        meta={"summary_docs": len(summary_docs), "seed_docs": len(seed_docs), "workers": len(workers)},
+    )
 
+    trace.start("prompt_build", category="prompt")
     receipt = build_context_receipt(
         stats,
         history_messages,
@@ -282,6 +358,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         continuity_packet,
         global_info_entries,
     )
+    receipt["proactivity_policy"] = proactivity.as_receipt()
     receipt["hydration_policy"] = hydration.as_receipt()
     receipt["tools_allowed"] = tools_allowed
     receipt["connector_tools_allowed"] = connector_tools_allowed
@@ -300,6 +377,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     prompt_sections["tools_allowed"] = tools_allowed
     prompt_sections["admin_tools_allowed"] = is_admin_user
     prompt_sections["awareness_block"] = awareness_block
+    prompt_sections["proactivity_policy"] = proactivity.as_receipt()
     system_prompt = build_system_prompt_from_sections(prompt_sections)
 
     _tool_context = {"github_token": github_token, "user_email": payload.user_email, "session_id": payload.session_id}
@@ -328,9 +406,12 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
                 connector_tool_chunks.append(mcp_section)
     if connector_tool_chunks:
         system_prompt = system_prompt + "\n\nConnector tools available this turn:\n" + "\n\n".join(connector_tool_chunks)
+    trace.end("prompt_build", category="prompt", meta={"connector_tool_chunks": len(connector_tool_chunks), "tools_allowed": tools_allowed})
     _mark("pre_llm_ready")
 
+    trace.start("file_content_build", category="attachments")
     file_contents = _build_file_contents(runtime["provider"], attachment_docs)
+    trace.end("file_content_build", category="attachments", meta={"file_content_count": len(file_contents or [])})
 
     _mode_temp = {"fact": 0.1, "balanced": 0.3, "creative": 0.7}
     _temp = _mode_temp.get(getattr(profile, "chat_mode", "balanced"), 0.3)
@@ -341,6 +422,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         except ValueError:
             pass
 
+    trace.start("llm_prepare", category="llm", meta={"provider": runtime["provider"], "model": runtime["model"]})
     chat = LlmChat(
         api_key=runtime["api_key"],
         session_id=f"{payload.session_id}-{uuid.uuid4()}",
@@ -351,9 +433,14 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
 
     pending_messages = await chat.get_messages()
     await chat._add_user_message(pending_messages, UserMessage(text=payload.content, file_contents=file_contents or None))
+    trace.end("llm_prepare", category="llm")
+
     _llm_start = time.perf_counter()
+    llm_call_count = 1
+    trace.start("llm_initial", category="llm", meta={"provider": runtime["provider"], "model": runtime["model"]})
     llm_response = await chat._execute_completion(pending_messages)
     reply = await chat._extract_response_text(llm_response)
+    trace.end("llm_initial", category="llm")
 
     from app.services.aria_tools import extract_and_run_next_tool_async
     tool_iterations = 0
@@ -361,26 +448,35 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     tool_step_timings: list[dict] = []
     max_tool_iterations = 4 if tools_allowed else 0
     while tool_iterations < max_tool_iterations:
-        _tool_t0 = time.perf_counter()
+        trace.start("tool_scan", category="tool", meta={"iteration": tool_iterations + 1})
         marker, result = await extract_and_run_next_tool_async(reply, context=_tool_context)
-        _tool_exec_ms = int((time.perf_counter() - _tool_t0) * 1000)
+        trace.end("tool_scan", category="tool", meta={"marker_found": bool(marker)})
         if marker and result is not None:
             tool_iterations += 1
             name_match = _TOOL_NAME_RX.search(marker)
             tool_name = name_match.group(1) if name_match else "unknown"
             tools_used.append(tool_name)
+            tool_exec_event = f"tool_exec.{tool_name}"
+            trace.instant(tool_exec_event, category="tool", meta={"iteration": tool_iterations, "result_chars": len(result or "")})
             await chat._add_assistant_message(pending_messages, reply)
             await chat._add_user_message(pending_messages, UserMessage(text=f"[TOOL_RESULT for {marker}]\n{result[:60000]}"))
+            recall_event = f"llm_recall.{tool_iterations}"
+            trace.start(recall_event, category="llm", meta={"after_tool": tool_name, "iteration": tool_iterations})
             _llm_t0 = time.perf_counter()
+            llm_call_count += 1
             llm_response = await chat._execute_completion(pending_messages)
             reply = await chat._extract_response_text(llm_response)
-            tool_step_timings.append({"tool": tool_name, "tool_exec_ms": _tool_exec_ms, "llm_recall_ms": int((time.perf_counter() - _llm_t0) * 1000)})
+            recall_ms = int((time.perf_counter() - _llm_t0) * 1000)
+            trace.end(recall_event, category="llm", meta={"after_tool": tool_name})
+            tool_step_timings.append({"tool": tool_name, "tool_exec_ms": 0, "llm_recall_ms": recall_ms})
             continue
 
         mcp_match = _MCP_CALL_RX.search(reply) if mcp_servers else None
         if mcp_match:
             tool_iterations += 1
             server_id, tool_name, args_json = mcp_match.group(1), mcp_match.group(2), mcp_match.group(3)
+            mcp_event = f"mcp_exec.{tool_name}"
+            trace.start(mcp_event, category="tool", meta={"server_id": server_id, "iteration": tool_iterations})
             _mcp_t0 = time.perf_counter()
             try:
                 import json as _json
@@ -391,19 +487,26 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
             except Exception as parse_err:
                 mcp_result = f"ERROR: MCP_CALL args not valid JSON — {str(parse_err)[:120]}"
             _mcp_exec_ms = int((time.perf_counter() - _mcp_t0) * 1000)
+            trace.end(mcp_event, category="tool", meta={"tool_exec_ms": _mcp_exec_ms})
             tools_used.append(f"mcp:{tool_name}")
             await chat._add_assistant_message(pending_messages, reply)
             await chat._add_user_message(pending_messages, UserMessage(text=f"[MCP_RESULT for {server_id}:{tool_name}]\n{mcp_result[:60000]}"))
+            recall_event = f"llm_recall.{tool_iterations}"
+            trace.start(recall_event, category="llm", meta={"after_tool": f"mcp:{tool_name}", "iteration": tool_iterations})
             _mcp_llm_t0 = time.perf_counter()
+            llm_call_count += 1
             llm_response = await chat._execute_completion(pending_messages)
             reply = await chat._extract_response_text(llm_response)
-            tool_step_timings.append({"tool": f"mcp:{tool_name}", "tool_exec_ms": _mcp_exec_ms, "llm_recall_ms": int((time.perf_counter() - _mcp_llm_t0) * 1000)})
+            recall_ms = int((time.perf_counter() - _mcp_llm_t0) * 1000)
+            trace.end(recall_event, category="llm", meta={"after_tool": f"mcp:{tool_name}"})
+            tool_step_timings.append({"tool": f"mcp:{tool_name}", "tool_exec_ms": _mcp_exec_ms, "llm_recall_ms": recall_ms})
             continue
         break
 
     latency_ms = int((time.perf_counter() - _llm_start) * 1000)
     _mark("llm_done")
 
+    trace.start("ticket_marker_parse", category="support")
     try:
         marker_pattern = _re.compile(r"\[FILE_TICKET:\s*(.*?)\]", _re.DOTALL)
         match = marker_pattern.search(reply)
@@ -428,9 +531,14 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
             )
             reply = marker_pattern.sub("", reply).strip()
             reply = f"{reply}\n\n✅ Support ticket filed: **{ticket_record.title}** (ID `{ticket_record.id[:8]}` · {ticket_record.category})."
+            trace.end("ticket_marker_parse", category="support", meta={"ticket_filed": True})
+        else:
+            trace.end("ticket_marker_parse", category="support", meta={"ticket_filed": False})
     except Exception as ticket_error:
+        trace.end("ticket_marker_parse", category="support", meta={"error": str(ticket_error)[:120]})
         print(f"CAOS ticket marker parse failed: {ticket_error}")
 
+    trace.start("save_assistant_message", category="db")
     await chat._add_assistant_message(pending_messages, reply)
     assistant_message = MessageRecord(
         session_id=payload.session_id,
@@ -442,6 +550,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         metadata_tags=["SESSION_MEMORY", "SANITIZED_CONTEXT"],
     )
     await collection("messages").insert_one(_serialize_message_doc(assistant_message))
+    trace.end("save_assistant_message", category="db")
 
     title_updates = {
         "lane": session_lane,
@@ -454,6 +563,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         title_updates["title"] = build_auto_thread_title(messages, session_lane)
         title_updates["title_source"] = "auto"
 
+    trace.start("post_llm_reads", category="db")
     wcw_budget = model_ctx
     prior_receipts, previous_receipt, previous_summary, previous_seed = await asyncio.gather(
         collection("receipts").find({"session_id": payload.session_id}, {"_id": 0, "prompt_tokens": 1, "completion_tokens": 1}).to_list(500),
@@ -461,6 +571,9 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         collection("thread_summaries").find_one({"session_id": payload.session_id}, {"_id": 0}, sort=[("created_at", -1)]),
         collection("context_seeds").find_one({"session_id": payload.session_id}, {"_id": 0}, sort=[("created_at", -1)]),
     )
+    trace.end("post_llm_reads", category="db", meta={"prior_receipts": len(prior_receipts)})
+
+    trace.start("token_receipt", category="tokens")
     token_receipt = build_token_receipt(
         runtime["model"],
         prompt_sections,
@@ -478,18 +591,31 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     receipt["tools_used"] = tools_used
     receipt["tool_step_timings"] = tool_step_timings
     receipt["step_timings"] = step_timings
+    receipt["llm_call_count"] = llm_call_count
+    receipt["proactivity_policy"] = proactivity.as_receipt()
     receipt["hydration_policy"] = hydration.as_receipt()
     receipt["tools_allowed"] = tools_allowed
     receipt["connector_tools_allowed"] = connector_tools_allowed
     wcw_used_estimate = token_receipt["active_context_tokens"]
+    trace.end("token_receipt", category="tokens", meta={"active_context_tokens": wcw_used_estimate})
     _mark("post_llm_compute")
 
+    trace.start("artifact_build", category="receipt")
     lineage_depth = max(
         previous_receipt.get("lineage_depth", 0) if previous_receipt else 0,
         previous_summary.get("lineage_depth", 0) if previous_summary else 0,
         previous_seed.get("lineage_depth", 0) if previous_seed else 0,
     ) + 1
     source_message_ids = [user_message.id, assistant_message.id]
+
+    receipt["phase_timings"] = trace.phase_timings()
+    receipt["latency_category_totals"] = trace.totals_by_category()
+    receipt["latency_budget"] = classify_latency_budget(
+        total_ms=trace.now_ms(),
+        tool_iterations=tool_iterations,
+        active_context_tokens=wcw_used_estimate,
+    )
+    receipt["latency_trace"] = trace.receipt()
 
     receipt_record = build_receipt_record(
         payload.session_id,
@@ -531,6 +657,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         previous_summary_id=previous_summary["id"] if previous_summary else None,
         lineage_depth=lineage_depth,
     )
+    trace.end("artifact_build", category="receipt", meta={"lineage_depth": lineage_depth})
 
     engine_usage_doc = None
     try:
@@ -561,10 +688,7 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
                 collection("sessions").update_one({"session_id": payload.session_id}, {"$set": title_updates}),
                 upsert_global_info_entry(payload.user_email, payload.session_id, assistant_message.id, session_lane, list(subject_bins), retrieval_terms, reply),
             ]
-            # Lane workers are background-only and no longer rebuilt after every
-            # casual fast-path turn. They wake when continuity/deep/tool modes
-            # indicate the lane department is relevant.
-            if hydration.use_lane_workers:
+            if hydration.use_lane_workers or "lane_workers" in proactivity.wake_departments:
                 ops.append(rebuild_lane_workers(payload.user_email))
             if engine_usage_doc is not None:
                 ops.append(collection("engine_usage").insert_one(engine_usage_doc))
