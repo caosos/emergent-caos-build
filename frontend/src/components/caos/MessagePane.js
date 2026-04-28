@@ -31,7 +31,7 @@ const formatFullDate = (value) => {
 const ATTACH_WINDOW_MS = 75 * 1000;  // files uploaded within 75s of a user message = attached to that message
 
 
-export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, receipts }) => {
+export const MessagePane = ({ busy, currentSession, files, isAdmin = false, messages, onSpeak, receipts }) => {
   const [actionStatus, setActionStatus] = useState("");
   const [messageMeta, setMessageMeta] = useState({});
   const [speakingId, setSpeakingId] = useState("");
@@ -326,7 +326,7 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
                   <span data-testid={`caos-message-time-${message.id}`}>{formatTimestamp(message.timestamp)}</span>
                   {isFailed ? <span className="message-failed-chip" data-testid={`caos-message-failed-chip-${message.id}`}>Issue</span> : null}
                   {message.role === "assistant" && messageLatencyReceipt ? (
-                    <LatencyIndicator receipt={messageLatencyReceipt} />
+                    <LatencyIndicator isAdmin={isAdmin} receipt={messageLatencyReceipt} />
                   ) : null}
                 </div>
                 {isStreamingPlaceholder ? (
@@ -433,7 +433,7 @@ export const MessagePane = ({ busy, currentSession, files, messages, onSpeak, re
                   <div className="message-footer" data-testid={`caos-message-footer-${message.id}`}>
                     <span data-testid={`caos-message-fulldate-${message.id}`}>{formatFullDate(message.timestamp)}</span>
                     {message.role === "assistant" && messageLatencyReceipt ? (
-                      <LatencyIndicator receipt={messageLatencyReceipt} className="message-footer-latency-chip" />
+                      <LatencyIndicator isAdmin={isAdmin} receipt={messageLatencyReceipt} className="message-footer-latency-chip" />
                     ) : null}
                   </div>
                 )}
