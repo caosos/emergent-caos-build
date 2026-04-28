@@ -8,7 +8,7 @@ other apps on the same bucket.
 Public contract:
 - `init_storage()` — call once at startup (fastapi on_event("startup")).
 - `put_object(path, data, content_type)` — upload bytes, return `{path, size, etag}`.
-- `get_object(path)` — download bytes, return `(bytes, content_type)`.
+- `get_object(path)` — download bytes, return an unpackable bytes payload.
 - `is_storage_ready()` — bool, True if init succeeded.
 """
 from __future__ import annotations
@@ -26,6 +26,30 @@ logger = logging.getLogger(__name__)
 
 _storage_key: str | None = None
 _lock = threading.Lock()
+
+
+class ObjectPayload(bytes):
+    """Bytes payload that also supports legacy tuple-unpack usage.
+
+    Why this exists:
+    - Download route uses: `data, content_type = get_object(path)`.
+    - Vision attachment code uses: `raw = get_object(path)` and expects bytes.
+
+    Returning this bytes subclass satisfies both call patterns without changing
+    chat orchestration or route behavior. Iteration yields `(bytes, content_type)`
+    for legacy unpacking; bytes APIs still receive a real bytes-like object.
+    """
+
+    content_type: str
+
+    def __new__(cls, data: bytes, content_type: str):
+        obj = super().__new__(cls, data)
+        obj.content_type = content_type
+        return obj
+
+    def __iter__(self):
+        yield bytes(self)
+        yield self.content_type
 
 
 def init_storage() -> str | None:
@@ -71,7 +95,7 @@ def put_object(path: str, data: bytes, content_type: str) -> dict:
     return response.json()
 
 
-def get_object(path: str) -> tuple[bytes, str]:
+def get_object(path: str) -> ObjectPayload:
     key = init_storage()
     if not key:
         raise RuntimeError("Object storage not initialized")
@@ -81,7 +105,10 @@ def get_object(path: str) -> tuple[bytes, str]:
         timeout=60,
     )
     response.raise_for_status()
-    return response.content, response.headers.get("Content-Type", "application/octet-stream")
+    return ObjectPayload(
+        response.content,
+        response.headers.get("Content-Type", "application/octet-stream"),
+    )
 
 
 def build_path(user_id: str, filename: str, uuid_suffix: str) -> str:
