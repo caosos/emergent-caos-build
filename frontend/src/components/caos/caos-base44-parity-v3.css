@@ -447,9 +447,12 @@ body .command-footer,
   gap: 6px !important;
 }
 
-/* Make space at the page bottom so the last message isn't tucked under the floating composer */
-.caos-shell-no-rail .caos-main-column { padding-bottom: 4px !important; }
-.message-scroll { padding-bottom: 4px !important; }
+/* Reserve space at the bottom equal to the floating composer's actual
+   measured height (set as --composer-height by the ResizeObserver in
+   CaosShell.js). Falls back to 120px on desktop until JS runs.
+   Apr 2026 — fixes "first message tucked under composer" on desktop + tablet. */
+.caos-shell-no-rail .caos-main-column { padding-bottom: calc(var(--composer-height, 120px) + 16px) !important; }
+.message-scroll { padding-bottom: calc(var(--composer-height, 120px) + 16px) !important; }
 
 .caos-shell-no-rail .message-pane,
 .caos-shell-no-rail .message-scroll {
@@ -1252,8 +1255,9 @@ body .command-footer,
   .caos-shell-no-rail .caos-main-column {
     flex: 1 1 auto !important;
     min-height: 0 !important;
-    /* fixed header height + safe bottom for floating composer */
-    padding: 64px 12px 96px !important;
+    /* fixed header height + dynamic composer height (set by ResizeObserver in
+       CaosShell). Falls back to 96px until the JS observer runs. */
+    padding: 64px 12px calc(var(--composer-height, 96px) + 16px) !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch !important;

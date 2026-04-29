@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
@@ -102,6 +102,32 @@ export const CaosShell = ({ authenticatedUser }) => {
     poll();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Composer height observer — measures the floating composer wrapper and
+  // exposes its real pixel height as a CSS variable (--composer-height) on
+  // the shell root. The message pane reads the variable and reserves matching
+  // bottom padding so the composer never overlaps message bubbles, no matter
+  // how tall it grows (multi-line typing, attachments, queue, voice picker).
+  // Apr 2026 — fixes the "first message starts under the composer" bug.
+  const composerWrapperRef = useRef(null);
+  const shellRootRef = useRef(null);
+  useEffect(() => {
+    const wrapper = composerWrapperRef.current;
+    const root = shellRootRef.current;
+    if (!wrapper || !root || typeof ResizeObserver === "undefined") return;
+    const apply = () => {
+      const h = Math.ceil(wrapper.getBoundingClientRect().height);
+      if (h > 0) root.style.setProperty("--composer-height", `${h}px`);
+    };
+    apply();
+    const ro = new ResizeObserver(() => apply());
+    ro.observe(wrapper);
+    window.addEventListener("resize", apply);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", apply);
+    };
   }, []);
 
   // Apply user preferences (ambient mode + bubble opacity) on boot so the
@@ -327,7 +353,7 @@ export const CaosShell = ({ authenticatedUser }) => {
   };
 
   return (
-    <main className="caos-shell-root caos-shell-no-rail" data-testid="caos-shell-root">
+    <main className="caos-shell-root caos-shell-no-rail" data-testid="caos-shell-root" ref={shellRootRef}>
       <ShellHeader
         activeModel={runtimeSettings.default_model}
         activeProvider={runtimeSettings.default_provider}
@@ -442,7 +468,7 @@ export const CaosShell = ({ authenticatedUser }) => {
         wcwUsed={latestReceipt?.active_context_tokens || lastTurn?.wcw_used_estimate || 0}
       />
 
-      <div className="command-footer" data-testid="caos-command-footer">
+      <div className="command-footer" data-testid="caos-command-footer" ref={composerWrapperRef}>
         <div className="command-footer-inner" data-testid="caos-command-footer-inner">
           <Composer
             busy={busy}
