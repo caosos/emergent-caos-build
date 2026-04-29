@@ -1212,27 +1212,65 @@ body .command-footer,
 
 @media (max-width: 768px) {
   /* === MOBILE RESPONSIVE OVERHAUL === */
-  
-  /* Header: Make compact and readable */
+
+  /* CRITICAL FIX (Apr 2026): Header MUST stay fixed at top on mobile, not
+     static. Static-positioning was the bug that caused the header to scroll
+     away and broke touch handling on the upper half of the screen. */
   .caos-shell-root > .caos-header {
-    position: static;
-    top: auto;
-    left: auto;
-    right: auto;
-    transform: none;
-    width: auto;
-    min-height: 0;
-    padding: 12px 16px;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    transform: none !important;
+    min-height: 56px !important;
+    padding: 8px 12px !important;
+    z-index: 50;
   }
-  
-  .caos-header h1 {
-    font-size: 24px !important;
+
+  /* CRITICAL FIX (Apr 2026): Make the message pane its own scroll container
+     on mobile instead of letting the whole document scroll. This is how every
+     modern chat app (iMessage, WhatsApp, ChatGPT) is structured. Solves:
+     - Header disappearing (it's fixed; only the middle scrolls)
+     - Touch dead zones above the composer (whole pane is scroll-capturing)
+     - Chrome URL bar auto-hide every time you scroll
+     - Random pinning behavior on long threads
+     `100dvh` accounts for Chrome's collapsing URL bar; falls back to 100vh. */
+  body, html {
+    overflow: hidden !important;
+    height: 100vh !important;
+    height: 100dvh !important;
   }
-  
-  .caos-header-center p[data-testid="caos-header-subtitle"] {
-    font-size: 9px;
+  .caos-shell-root.caos-shell-no-rail {
+    height: 100vh !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
-  
+  /* Header takes its natural height; main column gets the rest and scrolls */
+  .caos-shell-no-rail .caos-main-column {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    /* fixed header height + safe bottom for floating composer */
+    padding: 64px 12px 96px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+  }
+  /* Message pane and scroll INSIDE the main column flow naturally */
+  .caos-shell-no-rail .message-pane,
+  .caos-shell-no-rail .message-scroll {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Header chips compress on mobile */
+  .caos-header h1 { font-size: 18px !important; }
+  .caos-header-center p[data-testid="caos-header-subtitle"] { font-size: 9px; }
+
   /* Search dropdown: Full width on mobile */
   .caos-header-search-dropdown {
     width: calc(100vw - 32px);
