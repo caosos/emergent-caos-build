@@ -1667,53 +1667,117 @@ html, body { overscroll-behavior-y: contain; }
     padding-right: 12px !important;
   }
 
-  /* Header: compress to single compact row, kill horizontal overflow */
+  /* Header: 3-column with CAOS centered + prominent. AccountMenu (MICHAEL)
+     stays small on left, search collapses to icon-only on right. The thread
+     pill ("okay Aria can…") is hidden — redundant on mobile since the user
+     knows what thread they're on. */
   .caos-header {
+    display: grid !important;
+    grid-template-columns: auto 1fr auto !important;
+    align-items: center !important;
     min-height: 56px !important;
     max-height: 64px !important;
     padding: 6px 10px !important;
+    gap: 8px !important;
     overflow: hidden !important;
   }
-  .caos-header h1 { font-size: 16px !important; line-height: 1; }
+  .caos-header-left,
+  .caos-header-center,
+  .caos-header-actions {
+    min-width: 0 !important;
+  }
+  .caos-header-left { justify-self: start !important; }
+  .caos-header-center { justify-self: center !important; text-align: center !important; }
+  .caos-header-actions {
+    justify-self: end !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+  .caos-header h1 {
+    font-size: 20px !important;
+    line-height: 1 !important;
+    letter-spacing: 0.5px !important;
+    margin: 0 !important;
+  }
   .caos-header-center p[data-testid="caos-header-subtitle"] {
     display: none !important;
   }
-  .caos-header-row,
-  .caos-header-inner {
-    flex-wrap: nowrap !important;
-    gap: 4px 6px !important;
-    padding-left: 10px !important;
-    padding-right: 10px !important;
-    min-width: 0 !important;
-    width: 100% !important;
-    overflow: hidden !important;
+  /* Hide the thread-title pill on mobile — frees the right side for search */
+  .caos-thread-pill,
+  [data-testid="caos-header-thread-pill"] {
+    display: none !important;
+  }
+  /* Search button collapses to icon only — hide its text label */
+  .caos-header-search-icon-btn span,
+  [data-testid="caos-title-search-trigger-label"] {
+    display: none !important;
+  }
+  .caos-header-search-icon-btn {
+    padding: 6px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    max-width: 36px !important;
+    flex: 0 0 auto !important;
+  }
+  /* Search dropdown when opened: full-width below header */
+  .caos-header-search-dropdown {
+    position: fixed !important;
+    top: 64px !important;
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    max-width: none !important;
+    z-index: 60 !important;
   }
 
-  /* All header pills shrink and lose forced min-width */
-  .caos-header-search-inline,
-  .caos-header-search-inline-active,
-  .caos-header .header-chip,
-  .multi-agent-toggle-chip,
-  .full-voice-chip,
-  .engine-chip,
-  .caos-live-web-chip,
-  .caos-user-pill {
-    min-width: 0 !important;
-    max-width: 100% !important;
-    flex: 0 1 auto !important;
-    font-size: 11px !important;
-  }
   /* Hide non-essential chips on mobile to free header space */
   .caos-header .full-voice-chip,
   .caos-header .multi-agent-toggle-chip,
-  .caos-header .caos-live-web-chip {
+  .caos-header .caos-live-web-chip,
+  .caos-header-wcw,
+  [data-testid="caos-header-wcw"] {
     display: none !important;
   }
-  .caos-header-search-inline:focus-within,
-  .caos-header-search-inline-active {
+
+  /* AccountMenu collapses to avatar-only on mobile (hide the NAME text) */
+  .account-menu-chip strong,
+  [data-testid="caos-account-menu-name"],
+  .account-menu-chip > svg.lucide-chevron-down,
+  .account-menu-chip .account-menu-chevron-open {
+    display: none !important;
+  }
+  .account-menu-chip {
+    padding: 4px !important;
+    gap: 0 !important;
+  }
+
+  /* TEXTAREA — target by ID for max specificity. The textarea is a direct
+     child of `.composer-shell` (not `.composer-row` — that class doesn't
+     exist in this component). Force it to claim flex space. */
+  #caos-draft,
+  [data-testid="caos-composer-textarea"] {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: 100% !important;
+    font-size: 14px !important;
+  }
+  /* The form itself becomes a single-line flex row on mobile */
+  .composer-shell {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-end !important;
+    gap: 4px !important;
     min-width: 0 !important;
     width: 100% !important;
-    max-width: 100% !important;
+  }
+  /* All non-textarea direct children of composer-shell shrink to fit */
+  .composer-shell > button,
+  .composer-shell > label,
+  .composer-shell > div:not(.composer-thought-stash):not(.composer-pending-attachments) {
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
   }
 
   /* Composer: tighten bottom strip so it doesn't eat 28% of the screen */
@@ -1799,6 +1863,54 @@ html, body { overscroll-behavior-y: contain; }
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
+  }
+
+  /* Composer row: flex layout with textarea claiming remaining space.
+     Textarea has no className in JSX, so we target via parent context. */
+  .composer-row {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-end !important;
+    gap: 4px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+  .composer-row > textarea,
+  .composer-row #caos-draft {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: 100% !important;
+    font-size: 14px !important;
+  }
+  /* Composer icon buttons compress on mobile so the textarea has room */
+  .composer-row > button,
+  .composer-row > label,
+  .composer-row .composer-upload,
+  .composer-row .composer-read-last-wrap {
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+  }
+
+  /* Message bubble: respect viewport width, leave gutter for breathing room.
+     App.css:806 sets width: min(100%, 840px) which on a 390px screen
+     overflows because parent itself can drift slightly past 100vw. */
+  .message-bubble {
+    max-width: calc(100vw - 32px) !important;
+    width: auto !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+  .message-bubble p,
+  .message-bubble pre,
+  .message-bubble code {
+    max-width: 100% !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: pre-wrap !important;
+  }
+  .message-bubble pre {
+    overflow-x: auto !important;
   }
 
   /* Welcome hero scaling */
