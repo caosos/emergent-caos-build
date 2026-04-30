@@ -1251,6 +1251,18 @@ body .command-footer,
     display: flex !important;
     flex-direction: column !important;
   }
+  /* The intermediate grid container needs to flex too so the inner main
+     column can claim the remaining vertical space. Without this, the main
+     column expands to fit ALL its content (27000px+) instead of becoming
+     a constrained scroll container. */
+  .caos-shell-root.caos-shell-no-rail .caos-grid-layout,
+  .caos-shell-root.caos-shell-no-rail .caos-shell-grid-no-rail {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+  }
   /* Header takes its natural height; main column gets the rest and scrolls */
   .caos-shell-no-rail .caos-main-column {
     flex: 1 1 auto !important;
@@ -1294,10 +1306,12 @@ body .command-footer,
     padding-top: 0;
   }
   
-  /* Main column: Better mobile padding */
+  /* Main column: side padding only — top/bottom controlled by the dynamic
+     header/composer rule earlier in this file (line ~1252). */
   .caos-shell-no-rail .caos-main-column,
   .caos-main-column {
-    padding: 0 12px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
   }
   
   /* Messages: Better spacing on mobile */
@@ -1438,7 +1452,8 @@ body .command-footer,
   }
   
   .caos-main-column {
-    padding: 0 8px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
   }
   
   .message-bubble {
@@ -1644,36 +1659,56 @@ html, body { overscroll-behavior-y: contain; }
 /* === safer for both iOS and Android. No component logic.      === */
 /* ============================================================ */
 @media (max-width: 768px) {
-  /* Main column: tighter side padding so messages have breathing room */
+  /* Main column: side padding only — top/bottom controlled by the dynamic
+     header/composer rule earlier in this file (line ~1252). Do NOT override
+     padding-top or padding-bottom here. */
   .caos-shell-no-rail .caos-main-column {
-    padding: 0 12px !important;
-  }
-
-  /* Header: let it wrap, kill any min-widths that force horizontal scroll */
-  .caos-header,
-  .caos-header-row,
-  .caos-header-inner {
-    flex-wrap: wrap !important;
-    gap: 6px 8px !important;
     padding-left: 12px !important;
     padding-right: 12px !important;
-    min-width: 0 !important;
   }
 
-  /* All header chips lose forced min-width so they can shrink and wrap */
+  /* Header: compress to single compact row, kill horizontal overflow */
+  .caos-header {
+    min-height: 56px !important;
+    max-height: 64px !important;
+    padding: 6px 10px !important;
+    overflow: hidden !important;
+  }
+  .caos-header h1 { font-size: 16px !important; line-height: 1; }
+  .caos-header-center p[data-testid="caos-header-subtitle"] {
+    display: none !important;
+  }
+  .caos-header-row,
+  .caos-header-inner {
+    flex-wrap: nowrap !important;
+    gap: 4px 6px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  /* All header pills shrink and lose forced min-width */
   .caos-header-search-inline,
   .caos-header-search-inline-active,
   .caos-header .header-chip,
   .multi-agent-toggle-chip,
   .full-voice-chip,
   .engine-chip,
-  .caos-live-web-chip {
+  .caos-live-web-chip,
+  .caos-user-pill {
     min-width: 0 !important;
     max-width: 100% !important;
     flex: 0 1 auto !important;
+    font-size: 11px !important;
   }
-
-  /* Search input shrinks on focus instead of expanding to 220px */
+  /* Hide non-essential chips on mobile to free header space */
+  .caos-header .full-voice-chip,
+  .caos-header .multi-agent-toggle-chip,
+  .caos-header .caos-live-web-chip {
+    display: none !important;
+  }
   .caos-header-search-inline:focus-within,
   .caos-header-search-inline-active {
     min-width: 0 !important;
@@ -1681,43 +1716,55 @@ html, body { overscroll-behavior-y: contain; }
     max-width: 100% !important;
   }
 
-  /* Composer floating bar: claim almost full width with safe gutters */
-  body .command-footer,
-  .caos-shell-root .command-footer,
-  .caos-shell-no-rail ~ .command-footer {
-    width: calc(100vw - 16px) !important;
-    bottom: 10px !important;
-    padding: 0 !important;
+  /* Composer: tighten bottom strip so it doesn't eat 28% of the screen */
+  .command-footer {
+    bottom: 6px !important;
+    width: calc(100vw - 12px) !important;
   }
-  .command-footer-inner {
-    padding: 0 !important;
+  .composer-bottom-strip {
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    padding: 4px 6px !important;
+    font-size: 11px !important;
   }
-
-  /* Message bubbles: drop heavy desktop padding so text isn't cramped */
-  .message-bubble,
-  .message-bubble-content {
-    max-width: 100% !important;
+  .composer-bottom-strip > * {
+    flex: 0 1 auto !important;
+    font-size: 11px !important;
   }
-  .message-row {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+  /* Hide non-critical composer chips on mobile so the textarea has room */
+  .composer-bottom-strip .multi-agent-toggle-chip,
+  .composer-bottom-strip .full-voice-chip,
+  .composer-bottom-strip .queue-status-chip,
+  .composer-bottom-strip [data-testid="caos-queue-status-chip"] {
+    display: none !important;
   }
-
-  /* Thread search panel: make it a full-screen overlay on mobile */
-  .thread-search-panel {
-    top: 60px !important;
-    right: 8px !important;
-    left: 8px !important;
-    bottom: 88px !important;
+  /* Textarea: claim flex space, never column-wrap the placeholder */
+  .composer-shell textarea,
+  .composer-shell .composer-textarea,
+  .composer-input,
+  .composer-input-wrap {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
     width: auto !important;
-    max-width: none !important;
   }
-  /* Don't shrink the main column for the right-side panel on mobile */
-  .caos-shell-root:has(.thread-search-panel) .caos-main-column {
-    padding-right: 12px !important;
+  .composer-shell {
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
   }
 
-  /* Drawer / artifact / memory side panels: full screen on mobile */
+  /* Message bubbles: tight margins so text claims width */
+  .message-bubble,
+  .message-bubble-content { max-width: 100% !important; }
+  .message-row { padding-left: 0 !important; padding-right: 0 !important; }
+
+  /* Search dropdown / drawer panels go full screen on mobile */
+  .caos-header-search-dropdown,
+  .thread-search-panel {
+    width: calc(100vw - 16px) !important;
+    max-width: none !important;
+    left: 8px !important;
+    right: 8px !important;
+  }
   .caos-drawer,
   .artifact-drawer,
   .memory-drawer,
@@ -1730,28 +1777,40 @@ html, body { overscroll-behavior-y: contain; }
     right: 0 !important;
   }
 
-  /* Welcome hero: title scales down so it doesn't overflow */
+  /* Last-line containment safety net — nothing in the document is allowed to
+     exceed viewport width on mobile. Catches any rogue child element forcing
+     horizontal scroll or rendering past the right edge. */
+  body, html, .caos-shell-root, .caos-grid-layout, .caos-main-column,
+  .message-pane, .message-scroll, .message-row, .message-bubble-row,
+  .caos-header, .command-footer, .composer-shell, .composer-bottom-strip {
+    max-width: 100vw !important;
+  }
+  .message-bubble,
+  .message-bubble-content {
+    max-width: calc(100vw - 32px) !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+  /* Thread-title strip (the floating "okay Aria can..." text) — clamp it */
+  .thread-title-strip,
+  .caos-thread-title,
+  .caos-active-title {
+    max-width: 100vw !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  /* Welcome hero scaling */
   .welcome-hero-title {
     font-size: clamp(2.25rem, 12vw, 4rem) !important;
     line-height: 1.05 !important;
   }
-  .welcome-pre-grid {
-    grid-template-columns: 1fr !important;
-  }
+  .welcome-pre-grid { grid-template-columns: 1fr !important; }
 
-  /* Long-form text in receipts/admin tables: allow horizontal scroll on the
-     specific table only, not the whole page */
-  .admin-table-wrap,
-  .admin-grid-wrap,
-  .receipts-table-wrap {
+  .admin-table-wrap, .admin-grid-wrap, .receipts-table-wrap {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
-  }
-
-  /* Last-line safety net: nothing in the document should force horizontal
-     scroll on the whole page. */
-  html, body {
-    overflow-x: hidden !important;
   }
 }
 
