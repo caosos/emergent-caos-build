@@ -1,8 +1,29 @@
-# CAOS — Emergent Build
+# CAOS — Working Prototype
 
-CAOS (Cognitive Adaptive Operating System) is a personal AI platform focused on persistent memory, tool orchestration, multi-provider inference, diagnostics, receipts, and admin-governed system evolution.
+**CAOS** — Cognitive Adaptive Operating System — is a governed AI platform prototype focused on persistent memory, tool orchestration, multi-provider inference, diagnostics, receipts, context hydration, and admin-governed system evolution.
 
-This repository is the Emergent-hosted CAOS application codebase. It contains the backend services, frontend UI, memory/receipt systems, connector integrations, and diagnostic/admin surfaces used by Aria.
+This repository contains the fuller working prototype codebase from the Emergent-hosted CAOS build. It includes backend services, frontend UI, memory/receipt systems, connector integrations, diagnostic/admin surfaces, and the Aria-oriented chat/runtime experience.
+
+If you want to inspect the actual prototype code, start here.
+
+If you want the clean server-target rebuild and public roadmap, see:
+
+- [`caosos/linode-repo`](https://github.com/caosos/linode-repo)
+
+Private CAOSCare implementation code is not published here.
+
+## What CAOS Explores
+
+CAOS is built around the idea that AI systems should not only answer prompts. They should operate inside a governed workbench with:
+
+- persistent memory;
+- context hydration and ranking;
+- tool and connector access;
+- receipts and diagnostics;
+- multi-provider inference direction;
+- admin-visible system state;
+- support-ticket and troubleshooting surfaces;
+- governed evolution instead of silent mutation.
 
 ## AI / Agent Start Here
 
@@ -40,21 +61,21 @@ backend/app/services/chat_pipeline.py
 
 That file coordinates:
 
-- session/profile setup
-- quota check
-- history fetch and compression
-- memory ranking
-- hydration policy
-- proactivity policy
-- connector/tool availability
-- prompt build
-- LLM execution
-- tool/MCP loop
-- receipts
-- summaries/seeds
-- background aftermath
+- session/profile setup;
+- quota check;
+- history fetch and compression;
+- memory ranking;
+- hydration policy;
+- proactivity policy;
+- connector/tool availability;
+- prompt build;
+- LLM execution;
+- tool/MCP loop;
+- receipts;
+- summaries/seeds;
+- background aftermath.
 
-The goal is to preserve behavior while gradually extracting large responsibilities into smaller modules.
+The goal is to preserve useful behavior while gradually extracting large responsibilities into smaller modules.
 
 ## Latency / Context Direction
 
@@ -76,6 +97,25 @@ Important concepts:
 - Admin users may inspect internal diagnostics.
 - Normal users receive plain-language explanations and support-ticket paths, not raw internal code/receipt details.
 
+## Public / Private Boundary
+
+Public here:
+
+- CAOS prototype code;
+- architecture docs;
+- memory/tool/orchestration experiments;
+- frontend/backend prototype surfaces;
+- diagnostics and receipts concepts;
+- public feedback and forks.
+
+Private elsewhere:
+
+- CAOSCare implementation code;
+- facility-specific workflows;
+- resident/staff data;
+- private deployment credentials;
+- sensitive operational screenshots/logs.
+
 ## Branch / Tooling Note
 
 Some AI/GitHub tools have trouble browsing branch names containing `/`. Prefer slash-free branch names for agent-created branches when possible, for example:
@@ -92,17 +132,36 @@ Existing slash branches are valid Git branches, but slash-free names are more re
 
 Do not remove or silently degrade:
 
-- tools
-- connectors
-- memory
-- summaries
-- seeds
-- receipts
-- lane workers
-- file handling
-- diagnostic tools
-- support tickets
-- proactive capability
-- admin diagnostics
+- tools;
+- connectors;
+- memory;
+- summaries;
+- seeds;
+- receipts;
+- lane workers;
+- file handling;
+- diagnostic tools;
+- support tickets;
+- proactive capability;
+- admin diagnostics.
 
 Optimization must be done by gating, measuring, extracting, caching, or isolating — not by deleting capability.
+
+## License
+
+This repository is released under the MIT License. See [`LICENSE`](LICENSE).
+
+## Feedback
+
+Feedback is welcome, especially on:
+
+- memory architecture;
+- context hydration;
+- tool/MCP loop safety;
+- model routing;
+- worker-agent orchestration;
+- receipt-backed diagnostics;
+- frontend/admin UX;
+- clean rebuild strategy.
+
+For the clean rebuild roadmap, see [`caosos/linode-repo`](https://github.com/caosos/linode-repo).
