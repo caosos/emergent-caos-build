@@ -12,11 +12,36 @@ If you want the clean server-target rebuild and public roadmap, see:
 
 Private CAOSCare implementation code is not published here.
 
+## Built For User-Owned AI
+
+CAOS is built for privacy, personalization, and user-directed AI experience.
+
+The goal is not a generic chatbot that forgets who you are every session. The goal is an AI workbench that can get to know the user, adapt to the user, and remain governed by the user.
+
+Core product principles:
+
+- **Your memory is yours.** CAOS memory is designed around user-owned context, not hidden data harvesting.
+- **Your AI should know you because you allow it to.** Personalization should be explicit, inspectable, correctable, and removable.
+- **Your experience should be customized to you and by you.** The user should control preferences, memory, models, tools, voice, workflows, and boundaries.
+- **Use the model that fits the job.** CAOS is designed for multi-provider inference and future model routing instead of locking every task to one model.
+- **Context should be governed.** Relevant context should be hydrated when useful, sanitized when needed, and backed by receipts.
+- **Tools need rules.** File, repo, connector, MCP, and agent actions should be permissioned, visible, and auditable.
+
+In short:
+
+```text
+Your memory.
+Your models.
+Your tools.
+Your rules.
+```
+
 ## What CAOS Explores
 
 CAOS is built around the idea that AI systems should not only answer prompts. They should operate inside a governed workbench with:
 
 - persistent memory;
+- user-owned personalization;
 - context hydration and ranking;
 - tool and connector access;
 - receipts and diagnostics;
@@ -155,6 +180,7 @@ This repository is released under the MIT License. See [`LICENSE`](LICENSE).
 
 Feedback is welcome, especially on:
 
+- user-owned memory and personalization;
 - memory architecture;
 - context hydration;
 - tool/MCP loop safety;
