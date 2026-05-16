@@ -33,13 +33,15 @@ This scaffold does not install system packages for you.
 
 ## First-time setup
 
-Clone the repository and check out the scaffold branch:
+Clone the repository and check out the deployment branch:
 
 ```bash
 git clone <repo-url> /opt/caoscare/prototype
 cd /opt/caoscare/prototype
-git checkout deploy-linode-scaffold-v1
+git checkout main
 ```
+
+If testing this PR before merge, check out the PR head branch shown by GitHub instead of `main`.
 
 Create an environment file from placeholders:
 
