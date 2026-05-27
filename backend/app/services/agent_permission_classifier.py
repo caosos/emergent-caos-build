@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 
 from app.schemas.agent_permissions import PermissionClassification
+from app.services.agent_secret_redaction import redact_secrets_text
 
 _SIDE_EFFECT_RULES: list[tuple[str, str, str, str]] = [
     ("modify_memory", r"\b(save memory|write memory|remember this|store this)\b", "high", "memory"),
@@ -37,7 +38,7 @@ def classify_request_intent(user_text: str) -> PermissionClassification:
                 action_type=action_type,
                 risk_level=risk,
                 reason=f"matched:{action_type}",
-                proposed_change=text[:220],
+                proposed_change=redact_secrets_text(text[:220]),
                 affected_resource=resource,
                 approval_required=True,
                 approval_prompt=f"Approve {action_type} affecting {resource}?",
