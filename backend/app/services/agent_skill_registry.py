@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from pathlib import Path
 import yaml
 
 _SKILLS_PATH = Path(__file__).resolve().parent.parent / "config" / "agent_skills.yaml"
 
 
+@lru_cache(maxsize=1)
 def load_skill_registry() -> dict[str, dict]:
     if not _SKILLS_PATH.exists():
         return {}
