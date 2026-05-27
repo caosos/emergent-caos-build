@@ -21,4 +21,4 @@ async def create_approval_item(session_id: str, user_email: str, action_type: st
         "updated_at": now,
     })
     await collection("agent_approvals").insert_one(doc)
-    return doc
+    return {k: v for k, v in doc.items() if k != "_id"}
