@@ -41,6 +41,8 @@ from app.services.token_meter import build_token_receipt
 from app.services.token_quota import check_and_deduct_tokens
 from app.services.thread_title_service import build_auto_thread_title, is_generic_session_title
 from app.services.agent_runtime_preflight import run_agent_preflight
+from app.services.agent_runtime_flags import load_agent_runtime_flags, runtime_applies
+from app.services.agent_runtime_persistence import persist_runtime_preflight_error, persist_runtime_preflight_outcome
 from app.services.agent_secret_redaction import redact_secrets
 
 _IMAGE_MIMES = {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"}
@@ -158,10 +160,22 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         is_admin_user = bool(profile_doc.get("is_admin") is True or profile_doc.get("role") == "admin")
     _mark("setup")
 
+    runtime_flags = load_agent_runtime_flags()
+    runtime_enabled = runtime_applies(is_admin_user=is_admin_user, flags=runtime_flags)
     try:
         preflight = await run_agent_preflight(user_text=payload.content, is_admin_user=is_admin_user, session_id=payload.session_id)
     except Exception as preflight_error:
+        if runtime_enabled:
+            try:
+                await persist_runtime_preflight_error(flags=runtime_flags, payload_session_id=payload.session_id, chat_session_id=payload.session_id, user_email=payload.user_email, user_id=getattr(profile, "id", None), user_request=payload.content, error_detail=str(preflight_error))
+            except Exception:
+                pass
         return _runtime_error_response(payload, str(preflight_error))
+    if runtime_enabled:
+        try:
+            await persist_runtime_preflight_outcome(flags=runtime_flags, preflight=preflight, payload_session_id=payload.session_id, chat_session_id=payload.session_id, user_email=payload.user_email, user_id=getattr(profile, "id", None), user_request=payload.content)
+        except Exception:
+            pass
     if preflight.requires_approval or (not preflight.allow_execute) or (not preflight.classification_known):
         return _runtime_blocked_response(payload, preflight.reason, preflight.receipt_fragment)
 

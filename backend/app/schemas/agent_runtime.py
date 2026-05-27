@@ -14,6 +14,8 @@ class AgentRuntimeFlags:
     admin_only: bool = False
     permission_gates_enabled: bool = False
     session_ledger_enabled: bool = False
+    approval_persistence_enabled: bool = False
+    runtime_receipts_enabled: bool = False
     skill_registry_enabled: bool = False
 
 

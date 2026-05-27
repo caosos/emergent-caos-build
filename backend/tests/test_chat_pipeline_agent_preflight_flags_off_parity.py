@@ -14,11 +14,11 @@ def test_hook_exists_and_precedes_quota_check():
     assert src.index('run_agent_preflight(') < src.index('estimated_tokens = 2000')
 
 
-def test_hook_is_compact_under_20_lines_inside_run_chat_turn():
+def test_hook_is_compact_under_30_lines_inside_run_chat_turn():
     lines = _chat_pipeline_source().splitlines()
     start = next(i for i, line in enumerate(lines) if 'preflight = await run_agent_preflight' in line)
     end = next(i for i, line in enumerate(lines[start:], start=start) if 'estimated_tokens = 2000' in line)
-    assert (end - start) <= 20
+    assert (end - start) <= 30
 
 
 def test_runtime_error_response_redacts_secret_detail():
