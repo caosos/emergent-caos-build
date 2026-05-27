@@ -76,6 +76,23 @@ def test_blocked_and_unknown_approval_and_receipts(monkeypatch):
     assert seen["approval"][1]["action_type"] == "unknown"
 
 
+def test_blocked_approval_persistence_does_not_require_session_ledger(monkeypatch):
+    called = {"session": 0, "approval": 0}
+
+    async def fake_create(_):
+        called["session"] += 1
+
+    async def fake_approval(**_):
+        called["approval"] += 1
+
+    monkeypatch.setattr(mod, "create_agent_session", fake_create)
+    monkeypatch.setattr(mod, "create_approval_item", fake_approval)
+
+    blocked = AgentPreflightResult(allow_execute=False, requires_approval=True, is_side_effect=True, classification_known=True, receipt_fragment={"output_summary": "send_email"})
+    asyncio.run(mod.persist_runtime_preflight_outcome(flags=_flags(session_ledger_enabled=False, approval_persistence_enabled=True), preflight=blocked, payload_session_id="s4", chat_session_id="s4", user_email="u@e.com", user_id=None, user_request="send email"))
+    assert called == {"session": 0, "approval": 1}
+
+
 def test_preflight_exception_best_effort_redacted(monkeypatch):
     seen = {"session": None, "updates": []}
 
