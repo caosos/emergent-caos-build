@@ -1,0 +1,22 @@
+skills:
+  - id: memory_review
+    name: Memory Review
+    description: Review existing memory entries only.
+    allowed_tools: [query_memory_atoms]
+    required_permissions: []
+    side_effect_types: []
+    requires_approval: false
+  - id: document_inspection
+    name: Document Inspection
+    description: Read and summarize documents.
+    allowed_tools: [read_file]
+    required_permissions: []
+    side_effect_types: []
+    requires_approval: false
+  - id: github_repo_inspection
+    name: GitHub Repo Inspection
+    description: Inspect repository status and report issues.
+    allowed_tools: [github_fetch, grep_code]
+    required_permissions: []
+    side_effect_types: []
+    requires_approval: false

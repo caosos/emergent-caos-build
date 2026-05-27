@@ -40,6 +40,8 @@ from app.services.runtime_service import resolve_chat_runtime, supports_temperat
 from app.services.token_meter import build_token_receipt
 from app.services.token_quota import check_and_deduct_tokens
 from app.services.thread_title_service import build_auto_thread_title, is_generic_session_title
+from app.services.agent_runtime_preflight import run_agent_preflight
+from app.services.agent_secret_redaction import redact_secrets
 
 _IMAGE_MIMES = {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"}
 _VISION_MAX_PER_TURN = 5
@@ -117,6 +119,18 @@ def _build_file_contents(runtime_provider: str, attachment_docs: list[dict]) -> 
     return file_contents
 
 
+def _runtime_error_response(payload: ChatRequest, detail: str) -> ChatResponse:
+    msg = "⚠️ Governed runtime preflight failed before classification; request blocked."
+    safe_detail = str(redact_secrets(detail or ""))[:200]
+    return ChatResponse(session_id=payload.session_id, reply=msg, assistant_message=MessageRecord(session_id=payload.session_id, role="assistant", content=msg, metadata_tags=["AGENT_RUNTIME_ERROR"]), sanitized_history=[], injected_memories=[], receipt={"error": "agent_runtime_preflight_failed", "detail": safe_detail}, provider=payload.provider or "system", model=payload.model or "system", lane="general", subject_bins=[], wcw_used_estimate=0, wcw_budget=0)
+
+
+def _runtime_blocked_response(payload: ChatRequest, reason: str, frag: dict) -> ChatResponse:
+    msg = "⛔ Request blocked pending governed runtime approval."
+    return ChatResponse(session_id=payload.session_id, reply=msg, assistant_message=MessageRecord(session_id=payload.session_id, role="assistant", content=msg, metadata_tags=["AGENT_RUNTIME_BLOCKED"]), sanitized_history=[], injected_memories=[], receipt={"error": "approval_required", "reason": reason, "agent_runtime_preflight": frag}, provider=payload.provider or "system", model=payload.model or "system", lane="general", subject_bins=[], wcw_used_estimate=0, wcw_budget=0)
+
+
+
 async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
     _t_start = time.perf_counter()
     step_timings: dict[str, int] = {}
@@ -143,6 +157,13 @@ async def run_chat_turn(payload: ChatRequest) -> ChatResponse:
         profile = UserProfileRecord(**profile_doc)
         is_admin_user = bool(profile_doc.get("is_admin") is True or profile_doc.get("role") == "admin")
     _mark("setup")
+
+    try:
+        preflight = await run_agent_preflight(user_text=payload.content, is_admin_user=is_admin_user, session_id=payload.session_id)
+    except Exception as preflight_error:
+        return _runtime_error_response(payload, str(preflight_error))
+    if preflight.requires_approval or (not preflight.allow_execute) or (not preflight.classification_known):
+        return _runtime_blocked_response(payload, preflight.reason, preflight.receipt_fragment)
 
     estimated_tokens = 2000
     quota_check = {"allowed": True, "tokens_remaining": 999999, "message": ""} if is_admin_user else await check_and_deduct_tokens(payload.user_email, estimated_tokens)
