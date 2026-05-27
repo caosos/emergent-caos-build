@@ -16,6 +16,10 @@ def _status_for(preflight: AgentPreflightResult) -> str:
     return "blocked"
 
 
+def _approval_required(preflight: AgentPreflightResult) -> bool:
+    return bool(preflight.requires_approval or not preflight.classification_known or preflight.is_side_effect or (not preflight.allow_execute))
+
+
 def _action_type_for(preflight: AgentPreflightResult) -> str:
     fragment = preflight.receipt_fragment or {}
     action = fragment.get("output_summary")
@@ -27,27 +31,30 @@ def _action_type_for(preflight: AgentPreflightResult) -> str:
 
 
 async def persist_runtime_preflight_outcome(*, flags: AgentRuntimeFlags, preflight: AgentPreflightResult, payload_session_id: str, chat_session_id: str, user_email: str, user_id: str | None, user_request: str) -> None:
-    if not flags.enabled or not flags.session_ledger_enabled:
+    if not flags.enabled:
         return
 
     receipt_fragment = redact_secrets(preflight.receipt_fragment or {})
-    record = AgentSessionLedgerRecord(
-        session_id=payload_session_id,
-        chat_session_id=chat_session_id,
-        user_email=user_email,
-        user_id=user_id,
-        user_request=user_request,
-        interpreted_intent=str(receipt_fragment.get("output_summary") or ""),
-        status=_status_for(preflight),
-        approval_required=bool(preflight.requires_approval or not preflight.classification_known or preflight.is_side_effect or (not preflight.allow_execute)),
-        approval_status="pending" if (preflight.requires_approval or not preflight.classification_known or preflight.is_side_effect or (not preflight.allow_execute)) else "not_required",
-    )
-    await create_agent_session(record)
+    approval_required = _approval_required(preflight)
 
-    if flags.runtime_receipts_enabled and receipt_fragment:
-        await update_agent_session(payload_session_id, {"receipts": [receipt_fragment]})
+    if flags.session_ledger_enabled:
+        record = AgentSessionLedgerRecord(
+            session_id=payload_session_id,
+            chat_session_id=chat_session_id,
+            user_email=user_email,
+            user_id=user_id,
+            user_request=user_request,
+            interpreted_intent=str(receipt_fragment.get("output_summary") or ""),
+            status=_status_for(preflight),
+            approval_required=approval_required,
+            approval_status="pending" if approval_required else "not_required",
+        )
+        await create_agent_session(record)
 
-    if (preflight.requires_approval or not preflight.classification_known or preflight.is_side_effect or (not preflight.allow_execute)) and flags.approval_persistence_enabled:
+        if flags.runtime_receipts_enabled and receipt_fragment:
+            await update_agent_session(payload_session_id, {"receipts": [receipt_fragment]})
+
+    if approval_required and flags.approval_persistence_enabled:
         await create_approval_item(
             session_id=payload_session_id,
             user_email=user_email,
