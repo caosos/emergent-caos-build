@@ -39,6 +39,7 @@ Before making architectural claims, inspect:
 ```text
 README.md
 docs/REPO_MAP.md
+docs/CCE_CAOS_CARE_ENGINE_PROPOSAL.md
 docs/LATENCY_AND_TURNTRACE.md
 backend/app/services/chat_pipeline.py
 backend/app/services/hydration_policy.py
@@ -47,6 +48,10 @@ backend/app/services/surface_registry.py
 backend/app/services/turn_trace.py
 backend/app/services/artifact_builder.py
 ```
+
+If a listed file does not exist in the current branch/ref, record that fact instead of inventing its behavior.
+
+For CCE, council orchestration, verifier passes, model routing, trust layers, or CAOS Care integration, read `docs/CCE_CAOS_CARE_ENGINE_PROPOSAL.md` before proposing code or product structure.
 
 If the task is frontend/UI, also inspect likely files under:
 
