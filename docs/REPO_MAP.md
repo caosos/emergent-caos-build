@@ -10,7 +10,21 @@ frontend/      React UI, chat surface, admin surfaces, settings, panels
 memory/        Memory-related artifacts and supporting materials
 tests/         Test files and smoke checks
 test_reports/  Test output and reports
-docs/          Architecture maps and agent-readable documentation
+docs/          Architecture maps, agent-readable documentation, CCE proposal
+```
+
+## Architecture / proposal docs
+
+```text
+docs/CCE_CAOS_CARE_ENGINE_PROPOSAL.md       CAOS Council Engine proposal and CAOS Care CCE-lite integration direction
+docs/LATENCY_AND_TURNTRACE.md              Hydration, proactivity, latency, and receipt diagnosis
+docs/REPO_MAP.md                           This repository map
+```
+
+CCE search terms:
+
+```text
+CCE, CAOS Council Engine, council mode, verified mode, verifier, critic, risk gate, source posture, bias framing, CCE-lite, CAOS Care trust layer
 ```
 
 ## Backend Hotspots
@@ -33,6 +47,8 @@ Role:
 - Builds receipts, summaries, seeds, engine usage, and aftermath tasks.
 
 Housecleaning direction: keep as orchestration spine only. Extract large responsibilities into focused modules.
+
+CCE note: future CCE runtime work should not be bolted directly into `chat_pipeline.py` as a new God-file responsibility. Add focused modules/contracts for mode selection, verifier passes, council worker roles, and CCE receipts.
 
 ### Context and memory
 
@@ -70,6 +86,8 @@ Search terms:
 hydration mode, wake departments, tools_allowed, connector_tools_allowed, admin surfaces, support tickets, memory console
 ```
 
+CCE note: mode selection should align with hydration/proactivity rather than waking all departments on every turn. CCE modes should preserve the existing principle: right context, right time, right reason.
+
 ### Latency / receipts / telemetry
 
 ```text
@@ -90,6 +108,8 @@ Search terms:
 TurnTrace, latency_trace, phase_timings, latency_category_totals, latency_budget, step_timings, receipt
 ```
 
+CCE receipt fields should eventually include mode, worker roles, verifier result, contradictions, safety flags, source posture, confidence, final gate decision, cost estimate, and latency.
+
 ### Runtime / model selection
 
 ```text
@@ -102,6 +122,8 @@ Search terms:
 ```text
 provider, model, context_window, OpenAI, Claude, Gemini, temperature
 ```
+
+CCE note: CCE should remain provider-agnostic. Model choices are implementation details selected by policy, cost, context window, tool capability, and trust requirements.
 
 ### Tools / connectors
 
@@ -171,6 +193,13 @@ Potential UI targets:
 - Memory console.
 - Files / Photos / Links side panels.
 
+Future CCE UI targets:
+
+- Mode selector: Fast / Verified / Council / Lockdown.
+- Receipt popover: why this mode was selected, verifier result, risk flags, source posture, cost, latency.
+- Admin-only council diagnostics.
+- Normal-user plain-language confidence and verification summary.
+
 ## Current Known PR Stack
 
 ```text
@@ -207,6 +236,16 @@ Recommended order:
    Extract persistence, lane worker rebuild, memory extraction scheduling.
 ```
 
+Potential future CCE extraction targets once runtime work begins:
+
+```text
+backend/app/services/cce_policy.py
+backend/app/services/cce_roles.py
+backend/app/services/cce_verifier.py
+backend/app/services/cce_receipt_builder.py
+backend/app/services/cce_orchestrator.py
+```
+
 ## Admin vs User Boundary
 
 Admin-only:
@@ -220,6 +259,7 @@ global support tickets
 engine spend/global usage
 internal connector timing analysis
 system architecture reasoning
+raw CCE worker outputs / council diagnostics
 ```
 
 User-available:
@@ -229,6 +269,7 @@ their own files/photos/links
 their own memory console if enabled
 their own connector outputs
 plain-language performance explanations
+plain-language verification/confidence summary where enabled
 support ticket creation/status where enabled
 voice/settings/thread surfaces
 ```
@@ -246,4 +287,6 @@ surface_registry Admin Dashboard Support Tickets
 FILE_TICKET support ticket
 MCP_CALL TOOL_RESULT aria_tools
 structured_memory rank_memories context_seeds thread_summaries
+CCE CAOS Council Engine verified mode council mode verifier risk gate
+CCE-lite CAOS Care trust layer human escalation receipt
 ```
