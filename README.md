@@ -26,6 +26,7 @@ Core product principles:
 - **Use the model that fits the job.** CAOS is designed for multi-provider inference and future model routing instead of locking every task to one model.
 - **Context should be governed.** Relevant context should be hydrated when useful, sanitized when needed, and backed by receipts.
 - **Tools need rules.** File, repo, connector, MCP, and agent actions should be permissioned, visible, and auditable.
+- **Important answers need checks.** CAOS Council Engine (CCE) is the proposed trust engine for verifier passes, council mode, risk gates, source posture, and receipt-backed synthesis.
 
 In short:
 
@@ -46,9 +47,22 @@ CAOS is built around the idea that AI systems should not only answer prompts. Th
 - tool and connector access;
 - receipts and diagnostics;
 - multi-provider inference direction;
+- CCE / CAOS Council Engine direction for model checking, verifier passes, source review, and council-mode synthesis;
 - admin-visible system state;
 - support-ticket and troubleshooting surfaces;
 - governed evolution instead of silent mutation.
+
+## CCE / CAOS Council Engine Direction
+
+CCE is the proposed core trust engine for CAOS.
+
+It is not a separate chatbot and not a vendor-specific model wrapper. It is the governed orchestration layer for deciding when a response should use one model, one model plus a verifier, a multi-model council, or human-only escalation.
+
+Start here for the proposal:
+
+- [`docs/CCE_CAOS_CARE_ENGINE_PROPOSAL.md`](docs/CCE_CAOS_CARE_ENGINE_PROPOSAL.md)
+
+The immediate product decision is that CAOS Care should use CCE-lite first: intent classification, risk gating, verification, receipts, and human escalation. Full council mode remains appropriate for admin, incident review, policy, research, architecture, and other high-impact workflows.
 
 ## AI / Agent Start Here
 
@@ -56,14 +70,15 @@ If you are ChatGPT, Claude, Gemini, Emergent Agent, GitHub Copilot, or another c
 
 1. `AGENTS.md` — mandatory inspection and safety protocol for AI agents.
 2. `docs/REPO_MAP.md` — searchable module map and file ownership guide.
-3. `docs/LATENCY_AND_TURNTRACE.md` — latency, hydration, proactivity, and TurnTrace architecture.
-4. `backend/app/services/chat_pipeline.py` — primary chat orchestration spine.
-5. `backend/app/services/hydration_policy.py` — context hydration decision logic.
-6. `backend/app/services/proactivity_policy.py` — proactive department wake policy.
-7. `backend/app/services/surface_registry.py` — UI/capability surface registry.
-8. `backend/app/services/turn_trace.py` — per-turn forensic latency ledger.
-9. `backend/app/services/artifact_builder.py` — persisted receipts, summaries, and seeds.
-10. `frontend/src` — React frontend application surface.
+3. `docs/CCE_CAOS_CARE_ENGINE_PROPOSAL.md` — CCE trust-engine proposal and CAOS Care integration direction.
+4. `docs/LATENCY_AND_TURNTRACE.md` — latency, hydration, proactivity, and TurnTrace architecture.
+5. `backend/app/services/chat_pipeline.py` — primary chat orchestration spine.
+6. `backend/app/services/hydration_policy.py` — context hydration decision logic.
+7. `backend/app/services/proactivity_policy.py` — proactive department wake policy.
+8. `backend/app/services/surface_registry.py` — UI/capability surface registry.
+9. `backend/app/services/turn_trace.py` — per-turn forensic latency ledger.
+10. `backend/app/services/artifact_builder.py` — persisted receipts, summaries, and seeds.
+11. `frontend/src` — React frontend application surface.
 
 ## Repository Layout
 
@@ -128,6 +143,7 @@ Public here:
 
 - CAOS prototype code;
 - architecture docs;
+- CCE / trust-engine proposal;
 - memory/tool/orchestration experiments;
 - frontend/backend prototype surfaces;
 - diagnostics and receipts concepts;
@@ -186,6 +202,7 @@ Feedback is welcome, especially on:
 - tool/MCP loop safety;
 - model routing;
 - worker-agent orchestration;
+- CCE / council-mode trust architecture;
 - receipt-backed diagnostics;
 - frontend/admin UX;
 - clean rebuild strategy.
