@@ -1,0 +1,45 @@
+services:
+  caos-prototype-mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - caos-prototype-mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  caos-prototype-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      caos-prototype-mongo:
+        condition: service_healthy
+    volumes:
+      - caos-prototype-uploads:/app/backend/uploads
+    expose:
+      - "8000"
+
+  caos-prototype-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL:-}
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - caos-prototype-api
+    ports:
+      - "${CAOS_PROTOTYPE_WEB_PORT:-8080}:80"
+
+volumes:
+  caos-prototype-mongo-data:
+  caos-prototype-uploads:

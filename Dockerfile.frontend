@@ -1,0 +1,24 @@
+FROM node:20-alpine AS build
+
+WORKDIR /app/frontend
+
+COPY frontend/package.json ./package.json
+RUN yarn install --non-interactive
+
+COPY frontend/ ./
+
+# Build with same-origin API routing. nginx proxies /api to the backend service.
+ARG REACT_APP_BACKEND_URL=
+ENV REACT_APP_BACKEND_URL=${REACT_APP_BACKEND_URL}
+RUN yarn build
+
+# The Emergent visual-edit runtime script is prototype/editor tooling, not part
+# of this self-hosted static runtime image. This does not modify source files.
+RUN find build -name 'index.html' -type f -exec sed -i '/assets\.emergent\.sh\/scripts\/emergent-main\.js/d' {} \;
+
+FROM nginx:1.27-alpine AS runtime
+
+COPY infra/nginx/caos-prototype.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/frontend/build /usr/share/nginx/html
+
+EXPOSE 80
